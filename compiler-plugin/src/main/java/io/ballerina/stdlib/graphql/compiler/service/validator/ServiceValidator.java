@@ -24,6 +24,7 @@ import io.ballerina.compiler.api.symbols.FunctionTypeSymbol;
 import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
 import io.ballerina.compiler.api.symbols.MapTypeSymbol;
 import io.ballerina.compiler.api.symbols.MethodSymbol;
+import io.ballerina.compiler.api.symbols.ObjectTypeSymbol;
 import io.ballerina.compiler.api.symbols.ParameterSymbol;
 import io.ballerina.compiler.api.symbols.RecordFieldSymbol;
 import io.ballerina.compiler.api.symbols.RecordTypeSymbol;
@@ -76,17 +77,16 @@ import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUt
  */
 public class ServiceValidator {
     private static final String FIELD_PATH_SEPARATOR = ".";
-    private final Set<ClassSymbol> visitedClassSymbols = new HashSet<>();
+    private final Set<Symbol> visitedClassesAndObjectTypeSymbols = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
     private final List<TypeSymbol> existingReturnTypes = new ArrayList<>();
     private final InterfaceFinder interfaceFinder;
     private final SyntaxNodeAnalysisContext context;
     private final ServiceDeclarationSymbol serviceDeclarationSymbol;
+    private final List<String> currentFieldPath;
     private int arrayDimension = 0;
     private boolean errorOccurred;
     private boolean hasQueryType;
-
-    private List<String> currentFieldPath;
 
     public ServiceValidator(SyntaxNodeAnalysisContext context, ServiceDeclarationSymbol serviceDeclarationSymbol,
                             InterfaceFinder interfaceFinder) {
@@ -299,7 +299,7 @@ public class ServiceValidator {
                 break;
             case RECORD:
                 addDiagnostic(CompilationError.INVALID_ANONYMOUS_FIELD_TYPE, location, typeSymbol.signature(),
-                              getCurrentFieldPath());
+                        getCurrentFieldPath());
                 break;
             default:
                 addDiagnostic(CompilationError.INVALID_RETURN_TYPE, location);
@@ -331,6 +331,7 @@ public class ServiceValidator {
         Location classSymbolLocation = getLocation(classSymbol, location);
         String className = classSymbol.getName().get();
         if (isServiceClass(classSymbol)) {
+            // TODO: remove
             if (this.interfaceFinder.isPossibleInterface(className)) {
                 validateInterfaces(className, classSymbol, location);
             }
@@ -340,12 +341,13 @@ public class ServiceValidator {
         }
     }
 
+    // TODO: remove along
     private void validateInterfaces(String className, ClassSymbol classSymbol, Location location) {
         if (!isDistinctServiceClass(classSymbol)) {
             addDiagnostic(CompilationError.NON_DISTINCT_INTERFACE_CLASS, location, className);
             return;
         }
-        for (ClassSymbol childClass : this.interfaceFinder.getImplementations(className)) {
+        for (Symbol childClass : this.interfaceFinder.getImplementations(className)) {
             if (childClass.getName().isEmpty()) {
                 continue;
             }
@@ -356,10 +358,10 @@ public class ServiceValidator {
             }
             if (!this.interfaceFinder.isValidInterfaceImplementation(classSymbol, childClass)) {
                 addDiagnostic(CompilationError.INTERFACE_IMPLEMENTATION_MISSING_RESOURCE, location, className,
-                              childClassName);
+                        childClassName);
             } else {
                 this.interfaceFinder.addValidInterface(className);
-                validateReturnTypeClass(childClass, location);
+                validateReturnTypeClass((ClassSymbol) childClass, location);
             }
         }
     }
@@ -368,9 +370,50 @@ public class ServiceValidator {
         TypeDefinitionSymbol typeDefinitionSymbol = (TypeDefinitionSymbol) typeReferenceTypeSymbol.definition();
         if (typeReferenceTypeSymbol.typeDescriptor().typeKind() == TypeDescKind.RECORD) {
             validateReturnType((RecordTypeSymbol) typeDefinitionSymbol.typeDescriptor(),
-                               typeReferenceTypeSymbol.typeDescriptor(), location);
+                    typeReferenceTypeSymbol.typeDescriptor(), location);
+        } else if (typeReferenceTypeSymbol.typeDescriptor().typeKind() == TypeDescKind.OBJECT) {
+            validateReturnTypeObject(typeReferenceTypeSymbol, location);
         } else {
             validateReturnType(typeDefinitionSymbol.typeDescriptor(), location);
+        }
+    }
+
+    private void validateReturnTypeObject(TypeReferenceTypeSymbol typeReferenceTypeSymbol, Location location) {
+        TypeDefinitionSymbol typeDefinitionSymbol = (TypeDefinitionSymbol) typeReferenceTypeSymbol.definition();
+        if (typeReferenceTypeSymbol.getName().isEmpty()) {
+            addDiagnostic(CompilationError.INVALID_RETURN_TYPE, location);
+            return;
+        }
+
+        String objectTypeName = typeReferenceTypeSymbol.getName().get();
+        if (!this.interfaceFinder.isPossibleInterface(objectTypeName)) {
+            addDiagnostic(CompilationError.INVALID_RETURN_TYPE, location);
+            return;
+        }
+        validateInterfaceObjectType(typeDefinitionSymbol, location);
+    }
+
+    private void validateInterfaceObjectType(TypeDefinitionSymbol typeDefinitionSymbol, Location location) {
+        if (this.visitedClassesAndObjectTypeSymbols.contains(typeDefinitionSymbol)) {
+            return;
+        }
+        this.visitedClassesAndObjectTypeSymbols.add(typeDefinitionSymbol);
+        // TODO: check for distinct keyword
+        boolean resourceMethodFound = false;
+        ObjectTypeSymbol objectTypeSymbol = (ObjectTypeSymbol) typeDefinitionSymbol.typeDescriptor();
+        for (MethodSymbol methodSymbol : objectTypeSymbol.methods().values()) {
+            Location methodLocation = getLocation(methodSymbol, location);
+            if (methodSymbol.kind() == SymbolKind.RESOURCE_METHOD) {
+                resourceMethodFound = true;
+                validateResourceMethod((ResourceMethodSymbol) methodSymbol, methodLocation);
+            } else if (isRemoteMethod(methodSymbol)) {
+                addDiagnostic(CompilationError.INVALID_FUNCTION, methodLocation);
+            }
+        }
+        if (!resourceMethodFound) {
+            addDiagnostic(CompilationError.MISSING_RESOURCE_FUNCTIONS, location);
+        } else {
+            interfaceFinder.addValidInterface(typeDefinitionSymbol.getName().get());
         }
     }
 
@@ -399,7 +442,7 @@ public class ServiceValidator {
                     }
                 } else {
                     validateInputParameterType(parameterSymbol.typeDescriptor(), inputLocation,
-                                               isResourceMethod(methodSymbol));
+                            isResourceMethod(methodSymbol));
                 }
                 i++;
             }
@@ -448,11 +491,11 @@ public class ServiceValidator {
                 break;
             case RECORD:
                 addDiagnostic(CompilationError.INVALID_ANONYMOUS_INPUT_TYPE, location, typeSymbol.signature(),
-                              getCurrentFieldPath());
+                        getCurrentFieldPath());
                 break;
             default:
                 addDiagnostic(CompilationError.INVALID_INPUT_PARAMETER_TYPE, location,
-                              typeSymbol.getName().orElse(typeSymbol.typeKind().getName()));
+                        typeSymbol.getName().orElse(typeSymbol.typeKind().getName()));
         }
     }
 
@@ -524,10 +567,10 @@ public class ServiceValidator {
     }
 
     private void validateServiceClassDefinition(ClassSymbol classSymbol, Location location) {
-        if (this.visitedClassSymbols.contains(classSymbol)) {
+        if (this.visitedClassesAndObjectTypeSymbols.contains(classSymbol)) {
             return;
         }
-        this.visitedClassSymbols.add(classSymbol);
+        this.visitedClassesAndObjectTypeSymbols.add(classSymbol);
         boolean resourceMethodFound = false;
         for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
             Location methodLocation = getLocation(methodSymbol, location);

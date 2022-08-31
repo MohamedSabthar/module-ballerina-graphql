@@ -20,6 +20,7 @@ package io.ballerina.stdlib.graphql.compiler.service;
 
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.MethodSymbol;
+import io.ballerina.compiler.api.symbols.ObjectTypeSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
@@ -32,16 +33,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.ballerina.stdlib.graphql.compiler.Utils.getObjectTypeSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isResourceMethod;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceReference;
+import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectDefinition;
+import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectReference;
 
 /**
  * Finds and validates possible GraphQL interfaces in a Ballerina service.
  */
 public class InterfaceFinder {
-    private final Map<String, List<ClassSymbol>> interfaceImplementations;
-    private final Map<String, ClassSymbol> possibleInterfaces;
+    private final Map<String, List<Symbol>> interfaceImplementations;
+    private final Map<String, TypeReferenceTypeSymbol> possibleInterfaces;
     private final List<String> validInterfaces;
 
     public InterfaceFinder() {
@@ -52,29 +55,28 @@ public class InterfaceFinder {
 
     public void populateInterfaces(SyntaxNodeAnalysisContext context) {
         for (Symbol symbol : context.semanticModel().moduleSymbols()) {
-            if (!isServiceClass(symbol)) {
+            if (!isServiceClass(symbol) && !isServiceObjectDefinition(symbol)) {
                 continue;
             }
-            ClassSymbol classSymbol = (ClassSymbol) symbol;
-            if (classSymbol.getName().isEmpty()) {
+            if (symbol.getName().isEmpty()) {
                 continue;
             }
-            findPossibleInterfaces(classSymbol);
+            findPossibleInterfaces(symbol);
         }
     }
 
-    private void findPossibleInterfaces(ClassSymbol classSymbol) {
-        for (TypeSymbol typeSymbol : classSymbol.typeInclusions()) {
-            if (!isServiceReference(typeSymbol)) {
+    private void findPossibleInterfaces(Symbol serviceObjectTypeOrServiceClass) {
+        ObjectTypeSymbol objectTypeSymbol = getObjectTypeSymbol(serviceObjectTypeOrServiceClass);
+        for (TypeSymbol typeSymbol : objectTypeSymbol.typeInclusions()) {
+            if (!isServiceObjectReference(typeSymbol)) {
                 continue;
             }
             if (typeSymbol.getName().isEmpty()) {
                 continue;
             }
-            ClassSymbol interfaceClass = (ClassSymbol) ((TypeReferenceTypeSymbol) typeSymbol).typeDescriptor();
             String interfaceName = typeSymbol.getName().get();
-            addPossibleInterface(interfaceName, interfaceClass);
-            addInterfaceImplementation(interfaceName, classSymbol);
+            addPossibleInterface(interfaceName, (TypeReferenceTypeSymbol) typeSymbol);
+            addInterfaceImplementation(interfaceName, serviceObjectTypeOrServiceClass);
         }
     }
 
@@ -82,45 +84,49 @@ public class InterfaceFinder {
         return this.validInterfaces.contains(name);
     }
 
-    public boolean isPossibleInterface(String className) {
-        return this.possibleInterfaces.containsKey(className);
+    public boolean isPossibleInterface(String name) {
+        return this.possibleInterfaces.containsKey(name);
     }
 
-    public List<ClassSymbol> getImplementations(String className) {
-        return this.interfaceImplementations.get(className);
+    public List<Symbol> getImplementations(String interfaceName) {
+        return this.interfaceImplementations.get(interfaceName);
     }
 
-    private void addInterfaceImplementation(String interfaceName, ClassSymbol interfaceClass) {
+    private void addInterfaceImplementation(String interfaceName, Symbol implementation) {
         if (this.interfaceImplementations.containsKey(interfaceName)) {
-            List<ClassSymbol> interfaces = this.interfaceImplementations.get(interfaceName);
-            if (!interfaces.contains(interfaceClass)) {
-                this.interfaceImplementations.get(interfaceName).add(interfaceClass);
+            List<Symbol> interfaces = this.interfaceImplementations.get(interfaceName);
+            if (!interfaces.contains(implementation)) {
+                this.interfaceImplementations.get(interfaceName).add(implementation);
             }
         } else {
-            List<ClassSymbol> interfaceClasses = new ArrayList<>();
-            interfaceClasses.add(interfaceClass);
+            List<Symbol> interfaceClasses = new ArrayList<>();
+            interfaceClasses.add(implementation);
             this.interfaceImplementations.put(interfaceName, interfaceClasses);
         }
     }
 
-    private void addPossibleInterface(String interfaceName, ClassSymbol interfaceClass) {
+    private void addPossibleInterface(String interfaceName, TypeReferenceTypeSymbol objectTypeReference) {
         if (this.possibleInterfaces.containsKey(interfaceName)) {
             return;
         }
-        this.possibleInterfaces.put(interfaceName, interfaceClass);
+        this.possibleInterfaces.put(interfaceName, objectTypeReference);
     }
 
-    public boolean isValidInterfaceImplementation(ClassSymbol interfaceClass, ClassSymbol childClass) {
+    // TODO: need to remove
+    public boolean isValidInterfaceImplementation(Symbol interfaceClass, Symbol childClass) {
         Set<String> interfaceResourceMethods = getResourceMethods(interfaceClass);
         Set<String> childResourceMethods = getResourceMethods(childClass);
         return childResourceMethods.containsAll(interfaceResourceMethods);
     }
 
-    private Set<String> getResourceMethods(ClassSymbol classSymbol) {
+    // TODO: remove along with isValidInterfaceImplementations
+    private Set<String> getResourceMethods(Symbol classSymbol) {
         Set<String> resourceMethods = new HashSet<>();
-        for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
-            if (isResourceMethod(methodSymbol)) {
-                resourceMethods.add(methodSymbol.signature());
+        if (classSymbol instanceof ClassSymbol) {
+            for (MethodSymbol methodSymbol : ((ClassSymbol) classSymbol).methods().values()) {
+                if (isResourceMethod(methodSymbol)) {
+                    resourceMethods.add(methodSymbol.signature());
+                }
             }
         }
         return resourceMethods;

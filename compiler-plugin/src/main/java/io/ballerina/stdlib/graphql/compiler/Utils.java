@@ -21,11 +21,13 @@ package io.ballerina.stdlib.graphql.compiler;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
 import io.ballerina.compiler.api.symbols.MethodSymbol;
+import io.ballerina.compiler.api.symbols.ObjectTypeSymbol;
 import io.ballerina.compiler.api.symbols.Qualifier;
 import io.ballerina.compiler.api.symbols.ResourceMethodSymbol;
 import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.SymbolKind;
+import io.ballerina.compiler.api.symbols.TypeDefinitionSymbol;
 import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
@@ -43,18 +45,16 @@ import java.util.List;
  */
 public final class Utils {
 
-    private Utils() {
-    }
-
     // compiler plugin constants
     public static final String PACKAGE_NAME = "graphql";
     public static final String PACKAGE_ORG = "ballerina";
-
     // resource function constants
     public static final String LISTENER_IDENTIFIER = "Listener";
     public static final String CONTEXT_IDENTIFIER = "Context";
     public static final String FILE_UPLOAD_IDENTIFIER = "Upload";
     public static final String SERVICE_CONFIG_IDENTIFIER = "ServiceConfig";
+    private Utils() {
+    }
 
     public static boolean isGraphqlModuleSymbol(Symbol symbol) {
         if (symbol.getModule().isEmpty()) {
@@ -120,6 +120,16 @@ public final class Utils {
         return intersectionTypeSymbol;
     }
 
+    public static ObjectTypeSymbol getObjectTypeSymbol(Symbol serviceObjectTypeOrClass) {
+        if (serviceObjectTypeOrClass.kind() == SymbolKind.TYPE_DEFINITION) {
+            TypeDefinitionSymbol serviceObjectTypeSymbol = (TypeDefinitionSymbol) serviceObjectTypeOrClass;
+            return (ObjectTypeSymbol) serviceObjectTypeSymbol.typeDescriptor();
+        } else if (serviceObjectTypeOrClass.kind() == SymbolKind.CLASS) {
+            return (ObjectTypeSymbol) serviceObjectTypeOrClass;
+        }
+        throw new UnsupportedOperationException();
+    }
+
     public static boolean isDistinctServiceReference(TypeSymbol typeSymbol) {
         if (typeSymbol.typeKind() != TypeDescKind.TYPE_REFERENCE) {
             return false;
@@ -147,6 +157,30 @@ public final class Utils {
             return false;
         }
         return ((ClassSymbol) symbol).qualifiers().contains(Qualifier.SERVICE);
+    }
+
+    public static boolean isServiceObjectDefinition(Symbol symbol) {
+        if (symbol.kind() != SymbolKind.TYPE_DEFINITION) {
+            return false;
+        }
+        TypeSymbol typeDescriptor = ((TypeDefinitionSymbol) symbol).typeDescriptor();
+        return isServiceObject(typeDescriptor);
+    }
+
+    public static boolean isServiceObjectReference(TypeSymbol typeSymbol) {
+        if (typeSymbol.typeKind() != TypeDescKind.TYPE_REFERENCE) {
+            return false;
+        }
+        // TODO: check distinct keyword
+        TypeSymbol typeDescriptor = ((TypeReferenceTypeSymbol) typeSymbol).typeDescriptor();
+        return isServiceObject(typeDescriptor);
+    }
+
+    private static boolean isServiceObject(TypeSymbol typeSymbol) {
+        if (typeSymbol.typeKind() != TypeDescKind.OBJECT) {
+            return false;
+        }
+        return ((ObjectTypeSymbol) typeSymbol).qualifiers().contains(Qualifier.SERVICE);
     }
 
     public static boolean isGraphqlService(SyntaxNodeAnalysisContext context) {
