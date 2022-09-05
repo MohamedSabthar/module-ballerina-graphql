@@ -19,25 +19,21 @@
 package io.ballerina.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.api.symbols.VariableSymbol;
-import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ModuleVariableDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
-import io.ballerina.compiler.syntax.tree.QualifiedNameReferenceNode;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
-import io.ballerina.compiler.syntax.tree.Token;
-import io.ballerina.compiler.syntax.tree.TypeDescriptorNode;
-import io.ballerina.compiler.syntax.tree.TypedBindingPatternNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.plugins.AnalysisTask;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
+import io.ballerina.stdlib.graphql.compiler.schema.generator.GraphqlModifierContext;
 import io.ballerina.stdlib.graphql.compiler.schema.generator.SchemaGeneratorForObject;
 import io.ballerina.stdlib.graphql.compiler.schema.types.Schema;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceFinder;
 import io.ballerina.stdlib.graphql.compiler.service.validator.ServiceObjectValidator;
 
-import static io.ballerina.stdlib.graphql.compiler.Utils.PACKAGE_NAME;
-import static io.ballerina.stdlib.graphql.compiler.Utils.SERVICE_NAME;
+import java.util.Map;
+
 import static io.ballerina.stdlib.graphql.compiler.Utils.hasCompilationErrors;
+import static io.ballerina.stdlib.graphql.compiler.Utils.isModuleLevelGraphQLServiceDeclaration;
 import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getDescription;
 
 // cases:
@@ -50,11 +46,11 @@ import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUti
  * Validates a Ballerina GraphQL Service.
  */
 public class ModuleLevelVariableDeclarationAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisContext> {
-//    private final Map<DocumentId, GraphqlModifierContext> modifierContextMap;
+    private final Map<DocumentId, GraphqlModifierContext> modifierContextMap;
 
-//    public ModuleLevelVariableDeclarationAnalysisTask(Map<DocumentId, GraphqlModifierContext> nodeMap) {
-//        this.modifierContextMap = nodeMap;
-//    }
+    public ModuleLevelVariableDeclarationAnalysisTask(Map<DocumentId, GraphqlModifierContext> nodeMap) {
+        this.modifierContextMap = nodeMap;
+    }
 
     @Override
     public void perform(SyntaxNodeAnalysisContext context) {
@@ -62,11 +58,10 @@ public class ModuleLevelVariableDeclarationAnalysisTask implements AnalysisTask<
             return;
         }
 
-        if (!isModuleLevelGraphQLServiceDeclaration(context)) {
+        ModuleVariableDeclarationNode moduleVariableDeclarationNode = (ModuleVariableDeclarationNode) context.node();
+        if (!isModuleLevelGraphQLServiceDeclaration(moduleVariableDeclarationNode)) {
             return;
         }
-
-        ModuleVariableDeclarationNode moduleVariableDeclarationNode = (ModuleVariableDeclarationNode) context.node();
 
         if (moduleVariableDeclarationNode.initializer().isEmpty()) {
             return;
@@ -89,31 +84,7 @@ public class ModuleLevelVariableDeclarationAnalysisTask implements AnalysisTask<
             description = getDescription(serviceVariableSymbol);
         }
         Schema schema = generateSchema(interfaceFinder, graphqlServiceObjectNode, description, context);
-//        addToModifierContextMap(documentId, node, schema);
-    }
-
-    private boolean isModuleLevelGraphQLServiceDeclaration(SyntaxNodeAnalysisContext context) {
-        ModuleVariableDeclarationNode moduleVariableDeclarationNode = (ModuleVariableDeclarationNode) context.node();
-        TypedBindingPatternNode typedBindingPatternNode = moduleVariableDeclarationNode.typedBindingPattern();
-        TypeDescriptorNode typeDescriptorNode = typedBindingPatternNode.typeDescriptor();
-
-        if (typeDescriptorNode.kind() != SyntaxKind.QUALIFIED_NAME_REFERENCE) {
-            return false;
-        }
-
-        QualifiedNameReferenceNode qualifiedNameReferenceNode = (QualifiedNameReferenceNode) typeDescriptorNode;
-        Token modulePrefixToken = qualifiedNameReferenceNode.modulePrefix();
-
-        if (modulePrefixToken.kind() != SyntaxKind.IDENTIFIER_TOKEN) {
-            return false;
-        }
-
-        if (!PACKAGE_NAME.equals(modulePrefixToken.text())) {
-            return false;
-        }
-
-        IdentifierToken identifier = qualifiedNameReferenceNode.identifier();
-        return SERVICE_NAME.equals(identifier.text());
+        addToModifierContextMap(documentId, moduleVariableDeclarationNode, schema);
     }
 
     private Schema generateSchema(InterfaceFinder interfaceFinder, ObjectConstructorExpressionNode serviceObjectNode,
@@ -123,14 +94,14 @@ public class ModuleLevelVariableDeclarationAnalysisTask implements AnalysisTask<
         return schemaGenerator.generate();
     }
 
-//    private void addToModifierContextMap(DocumentId documentId, ServiceDeclarationNode node, Schema schema) {
-//        if (this.modifierContextMap.containsKey(documentId)) {
-//            GraphqlModifierContext modifierContext = this.modifierContextMap.get(documentId);
-//            modifierContext.add(node, schema);
-//        } else {
-//            GraphqlModifierContext modifierContext = new GraphqlModifierContext();
-//            modifierContext.add(node, schema);
-//            this.modifierContextMap.put(documentId, modifierContext);
-//        }
-//    }
+    private void addToModifierContextMap(DocumentId documentId, ModuleVariableDeclarationNode node, Schema schema) {
+        if (this.modifierContextMap.containsKey(documentId)) {
+            GraphqlModifierContext modifierContext = this.modifierContextMap.get(documentId);
+            modifierContext.add(node, schema);
+        } else {
+            GraphqlModifierContext modifierContext = new GraphqlModifierContext();
+            modifierContext.add(node, schema);
+            this.modifierContextMap.put(documentId, modifierContext);
+        }
+    }
 }
