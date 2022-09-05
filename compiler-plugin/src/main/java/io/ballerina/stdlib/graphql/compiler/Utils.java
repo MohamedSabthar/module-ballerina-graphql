@@ -49,6 +49,7 @@ public final class Utils {
     // compiler plugin constants
     public static final String PACKAGE_NAME = "graphql";
     public static final String PACKAGE_ORG = "ballerina";
+    public static final String SERVICE_NAME = "Service";
 
     // resource function constants
     public static final String LISTENER_IDENTIFIER = "Listener";

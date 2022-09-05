@@ -37,10 +37,10 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isGraphqlService;
 /**
  * Validates a Ballerina GraphQL Service.
  */
-public class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisContext> {
+public class ServiceDeclarationAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisContext> {
     private final Map<DocumentId, GraphqlModifierContext> modifierContextMap;
 
-    public ServiceAnalysisTask(Map<DocumentId, GraphqlModifierContext> nodeMap) {
+    public ServiceDeclarationAnalysisTask(Map<DocumentId, GraphqlModifierContext> nodeMap) {
         this.modifierContextMap = nodeMap;
     }
 
