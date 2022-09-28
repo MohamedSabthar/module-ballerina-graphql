@@ -24,6 +24,7 @@ public class FragmentNode {
     private boolean inlineFragment;
     private SelectionNode[] selections;
     private DirectiveNode[] directives;
+    private boolean unknown;
 
     public isolated function init(string name, Location location, boolean inlineFragment, Location? spreadLocation = (),
                                   string onType = "") {
@@ -34,6 +35,7 @@ public class FragmentNode {
         self.inlineFragment = inlineFragment;
         self.selections = [];
         self.directives = [];
+        self.unknown = false;
     }
 
     public isolated function accept(Visitor visitor, anydata data = ()) {
@@ -82,5 +84,13 @@ public class FragmentNode {
 
     public isolated function getDirectives() returns DirectiveNode[] {
         return self.directives;
+    }
+
+    public isolated function setToUnknown() {
+        self.unknown = true;
+    }
+
+    public isolated function isUnknown() returns boolean {
+        return self.unknown;
     }
 }

@@ -15,6 +15,7 @@
 // under the License.
 
 import graphql.parser;
+import ballerina/io;
 
 class FieldValidatorVisitor {
     *ValidatorVisitor;
@@ -39,6 +40,7 @@ class FieldValidatorVisitor {
 
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
         __Field? operationField = createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors);
+        io:println("visitOp****************************");
         if operationField is __Field {
             foreach parser:SelectionNode selection in operationNode.getSelections() {
                 selection.accept(self, operationField);
@@ -93,6 +95,10 @@ class FieldValidatorVisitor {
     }
 
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {
+         if argumentNode.hasInvalidVariableValue() {
+            // This argument node already validated to have invalid value, thus no further validation needed.
+            return;
+        }
         __InputValue schemaArg = <__InputValue>(<map<anydata>>data).get("input");
         string fieldName = <string>(<map<anydata>>data).get("fieldName");
         if argumentNode.isVariableDefinition() {
@@ -106,6 +112,7 @@ class FieldValidatorVisitor {
             parser:ArgumentValue|parser:ArgumentValue[] fieldValue = argumentNode.getValue();
             if fieldValue is parser:ArgumentValue {
                 self.coerceArgumentNodeValue(argumentNode, schemaArg);
+                io:println("1.********************value*********************", argumentNode.getValue(), argumentNode.getVariableValue());
                 self.validateArgumentValue(fieldValue, argumentNode.getValueLocation(), getTypeName(argumentNode),
                                            schemaArg);
             }
@@ -181,10 +188,15 @@ class FieldValidatorVisitor {
 
     isolated function validateVariableValue(parser:ArgumentNode argumentNode, __InputValue schemaArg, string fieldName) {
         anydata variableValue = argumentNode.getVariableValue();
+        if argumentNode.hasInvalidVariableValue() {
+            // This argument node already validated to have invalid value, thus no further validation needed.
+            return;
+        }
         if getOfType(schemaArg.'type).name == UPLOAD {
             return;
         } else if variableValue is Scalar && (getTypeKind(schemaArg.'type) == SCALAR || getTypeKind(schemaArg.'type) == ENUM) {
             self.coerceArgumentNodeValue(argumentNode, schemaArg);
+            io:println("2.********************value*********************", argumentNode.getVariableValue());
             self.validateArgumentValue(variableValue, argumentNode.getValueLocation(), getTypeName(argumentNode), schemaArg);
         } else if variableValue is map<anydata> && getTypeKind(schemaArg.'type) == INPUT_OBJECT {
             self.updatePath(argumentNode.getName());
@@ -195,6 +207,7 @@ class FieldValidatorVisitor {
             self.validateListVariableValue(variableValue, schemaArg, argumentNode.getValueLocation(), fieldName);
             self.removePath();
         } else if variableValue is () {
+            io:println("3.********************value*********************", argumentNode.getVariableValue());
             self.validateArgumentValue(variableValue, argumentNode.getValueLocation(), getTypeName(argumentNode), schemaArg);
         } else {
             string expectedTypeName = getOfTypeName(schemaArg.'type);
@@ -212,6 +225,8 @@ class FieldValidatorVisitor {
         if value is () {
             if schemaArg.'type.kind == NON_NULL {
                 string listError = getListElementError(self.argumentPath);
+                io:println("******************************hit****************************");
+                io:println("******************************value****************************", value);
                 string message = string `${listError}Expected value of type "${getTypeNameFromType(schemaArg.'type)}"` +
                                  string `, found null.`;
                 ErrorDetail errorDetail = getErrorDetailRecord(message, valueLocation);
@@ -223,6 +238,7 @@ class FieldValidatorVisitor {
             self.validateEnumArgument(value, valueLocation, actualTypeName, schemaArg);
         } else if getTypeKind(schemaArg.'type) == SCALAR {
             string expectedTypeName = getOfTypeName(schemaArg.'type);
+            io:println("*********expected, actual: ", expectedTypeName, actualTypeName);
             if expectedTypeName == actualTypeName {
                 return;
             }
@@ -262,6 +278,8 @@ class FieldValidatorVisitor {
                             string actualTypeName = getTypeNameFromScalarValue(fieldValue);
                             variableValues[subInputValue.name] = self.coerceValue(fieldValue, expectedTypeName,
                                                                                   actualTypeName, location);
+            io:println("4.********************value*********************", fieldValue);
+
                             self.validateArgumentValue(fieldValue, location, getTypeNameFromScalarValue(fieldValue),
                                                        subInputValue);
                         }
@@ -275,6 +293,8 @@ class FieldValidatorVisitor {
                         self.removePath();
                     } else if fieldValue is () {
                         string expectedTypeName = getOfTypeName(inputValue.'type);
+            io:println("5.********************value*********************", fieldValue);
+
                         self.validateArgumentValue(fieldValue, location, expectedTypeName, subInputValue);
                     }
                 } else {
@@ -314,6 +334,8 @@ class FieldValidatorVisitor {
                             string actualTypeName = getTypeNameFromScalarValue(listItemValue);
                             variableValues[i] = self.coerceValue(listItemValue, expectedTypeName, actualTypeName,
                                                                  location);
+            io:println("5.********************value*********************", listItemValue);
+
                             self.validateArgumentValue(listItemValue, location,
                                                        getTypeNameFromScalarValue(listItemValue), listItemInputValue);
                         }
@@ -327,6 +349,8 @@ class FieldValidatorVisitor {
                         self.removePath();
                     } else if listItemValue is () {
                         string expectedTypeName = getOfTypeName(listItemInputValue.'type);
+            io:println("6.********************value*********************", listItemValue);
+                        
                         self.validateArgumentValue(listItemValue, location, expectedTypeName, listItemInputValue);
                     }
                     self.removePath();
@@ -430,6 +454,9 @@ class FieldValidatorVisitor {
     }
 
     isolated function validateFragment(parser:FragmentNode fragmentNode, string schemaTypeName) returns __Type? {
+        if fragmentNode.isUnknown() {
+            return;
+        }
         string fragmentOnTypeName = fragmentNode.getOnType();
         __Type? fragmentOnType = getTypeFromTypeArray(self.schema.types, fragmentOnTypeName);
         if fragmentOnType is () {
@@ -540,12 +567,16 @@ class FieldValidatorVisitor {
 
 isolated function createSchemaFieldFromOperation(__Type[] typeArray, parser:OperationNode operationNode,
                                                  ErrorDetail[] errors) returns __Field? {
+    if operationNode.isNotConfiguredOperation() {
+        return;
+    }
     parser:RootOperationType operationType = operationNode.getKind();
     string operationTypeName = getOperationTypeNameFromOperationType(operationType);
     __Type? 'type = getTypeFromTypeArray(typeArray, operationTypeName);
     if 'type == () {
         string message = string `Schema is not configured for ${operationType.toString()}s.`;
         errors.push(getErrorDetailRecord(message, operationNode.getLocation()));
+        operationNode.setNotConfiguredOperation();
     } else {
         return createField(operationTypeName, 'type);
     }

@@ -76,6 +76,7 @@ class FragmentValidatorVisitor {
             string message = string`Unknown fragment "${fragmentNode.getName()}".`;
             ErrorDetail errorDetail = getErrorDetailRecord(message, fragmentNode.getLocation());
             self.errors.push(errorDetail);
+            fragmentNode.setToUnknown();
         }
     }
 

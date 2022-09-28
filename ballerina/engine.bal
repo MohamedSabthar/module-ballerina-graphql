@@ -92,13 +92,22 @@ isolated class Engine {
         return getOutputObjectFromErrorDetail(errorDetail);
     }
 
-    isolated function validateDocument(parser:DocumentNode document, map<json>? variables) returns OutputObject? {
-        if document.getErrors().length() > 0 {
-            return getOutputObjectFromErrorDetail(document.getErrors());
+     isolated function validateDocument(parser:DocumentNode document, map<json>? variables) returns OutputObject? {
+        ValidatorVisitor[] validators = [
+            new FragmentCycleFinderVisitor(document.getFragments())
+        ];
+
+        foreach ValidatorVisitor validator in validators {
+            document.accept(validator);
+            ErrorDetail[]? errors = validator.getErrors();
+            if errors is ErrorDetail[] {
+                return getOutputObjectFromErrorDetail(errors);
+            }
         }
 
-        ValidatorVisitor[] validators = [
-            new FragmentCycleFinderVisitor(document.getFragments()),
+        ErrorDetail[] validationErrors = [];
+
+        validators = [
             new FragmentValidatorVisitor(document.getFragments()),
             new QueryDepthValidatorVisitor(self.maxQueryDepth),
             new VariableValidatorVisitor(self.schema, variables),
@@ -114,12 +123,11 @@ isolated class Engine {
             document.accept(validator);
             ErrorDetail[]? errors = validator.getErrors();
             if errors is ErrorDetail[] {
-                return getOutputObjectFromErrorDetail(errors);
+                validationErrors.push(...errors);
             }
         }
-        return;
+        return validationErrors.length() == 0 ? () : getOutputObjectFromErrorDetail(validationErrors);
     }
-
     isolated function getOperation(parser:DocumentNode document, string? operationName)
     returns parser:OperationNode|OutputObject {
         if operationName == () {

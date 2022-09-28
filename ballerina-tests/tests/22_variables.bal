@@ -68,7 +68,7 @@ isolated function testUnusedInputVariables() returns error? {
 }
 
 @test:Config {
-    groups: ["variables", "input"]
+    groups: ["variables", "input", "msg"]
 }
 isolated function testInputVariablesWithInvalidArgumentType() returns error? {
     string document = string`query Greeting($userName:String!){ greet (name: $userName ) }`;

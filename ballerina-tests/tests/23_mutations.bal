@@ -17,7 +17,7 @@
 import ballerina/test;
 
 @test:Config {
-    groups: ["mutations", "validation"]
+    groups: ["mutations", "validation", "op"]
 }
 isolated function testMutationRequestOnNonMutatableSchema() returns error? {
     string document = string`mutation { setName(name: "Heisenberg") { name } }`;
