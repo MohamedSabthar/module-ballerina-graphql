@@ -96,13 +96,9 @@ isolated class Engine {
         ErrorDetail[] validationErrors = [];
         ValidatorVisitor[] validators = [
             new FragmentCycleFinderVisitor(document.getFragments()),
-            new FragmentValidatorVisitor(document.getFragments()),
-            // new QueryDepthValidatorVisitor(self.maxQueryDepth),
-            new VariableValidatorVisitor(self.schema, variables),
-            new FieldValidatorVisitor(self.schema),
-            new DirectiveValidatorVisitor(self.schema),
-            new SubscriptionValidatorVisitor()
+            new FragmentValidatorVisitor(document.getFragments())
         ];
+
         if !self.introspectionEnabled {
             validators.push(new IntrospectionValidatorVisitor(self.introspectionEnabled));
         }
@@ -116,13 +112,60 @@ isolated class Engine {
         }
         
         final readonly & int? maxQueryDepth = self.maxQueryDepth.cloneReadOnly();
+        final readonly & __Schema schema = self.schema;
+        final readonly & map<json>? vars = variables.cloneReadOnly();
+
         worker v returns ErrorDetail[]? {
             var validator =  new QueryDepthValidatorVisitor(maxQueryDepth);
             document.accept(validator);
             return validator.getErrors();
         }
 
+        worker vv returns ErrorDetail[]? {
+            var validator =  new SubscriptionValidatorVisitor();
+            document.accept(validator);
+            return validator.getErrors();
+        }
+
+        worker vvv returns ErrorDetail[]? {
+            var validator =  new DirectiveValidatorVisitor(schema);
+            document.accept(validator);
+            return validator.getErrors();
+        }
+
+         worker vvvv returns ErrorDetail[] {
+            ErrorDetail[] e = [];
+            ValidatorVisitor[] vs = [
+                // This should never panic since `readonly & map<json>?` is subtype of `map<json>?`;
+                new VariableValidatorVisitor(schema, checkpanic vars.cloneWithType()),
+                new FieldValidatorVisitor(schema)
+            ];
+            foreach ValidatorVisitor validator in vs {
+                document.accept(validator);
+                ErrorDetail[]? errors = validator.getErrors();
+                if errors is ErrorDetail[] {
+                    e.push(...errors);
+                }
+            }
+            return e;
+        }
+
         ErrorDetail[]? errors = wait v;
+        if errors is ErrorDetail[] {
+            validationErrors.push(...errors);
+        }
+
+        errors = wait vv;
+        if errors is ErrorDetail[] {
+            validationErrors.push(...errors);
+        }
+
+        errors = wait vvv;
+        if errors is ErrorDetail[] {
+            validationErrors.push(...errors);
+        }
+
+        errors = wait vvvv;
         if errors is ErrorDetail[] {
             validationErrors.push(...errors);
         }
