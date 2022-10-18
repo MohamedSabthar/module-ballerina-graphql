@@ -99,10 +99,6 @@ isolated class Engine {
             new FragmentValidatorVisitor(document.getFragments())
         ];
 
-        if !self.introspectionEnabled {
-            validators.push(new IntrospectionValidatorVisitor(self.introspectionEnabled));
-        }
-
         foreach ValidatorVisitor validator in validators {
             document.accept(validator);
             ErrorDetail[]? errors = validator.getErrors();
@@ -110,67 +106,75 @@ isolated class Engine {
                 validationErrors.push(...errors);
             }
         }
+        validationErrors.push(...self.parallellyValidateDocument(document, variables));
+        return validationErrors.length() == 0 ? () : getOutputObjectFromErrorDetail(validationErrors);
+    }
+
+    isolated function parallellyValidateDocument(parser:DocumentNode document, map<json>? variables)
+    returns ErrorDetail[] {
+        ErrorDetail[] validationErrors = [];
         
         final readonly & int? maxQueryDepth = self.maxQueryDepth.cloneReadOnly();
         final readonly & __Schema schema = self.schema;
         final readonly & map<json>? vars = variables.cloneReadOnly();
+        final readonly & boolean introspectionEnabled = self.introspectionEnabled;
 
-        worker v returns ErrorDetail[]? {
+        worker A returns ErrorDetail[] {
             var validator =  new QueryDepthValidatorVisitor(maxQueryDepth);
             document.accept(validator);
-            return validator.getErrors();
+            return validator.getErrors()?: [];
         }
 
-        worker vv returns ErrorDetail[]? {
+        worker B returns ErrorDetail[] {
             var validator =  new SubscriptionValidatorVisitor();
             document.accept(validator);
-            return validator.getErrors();
+            return validator.getErrors() ?: [];
         }
 
-        worker vvv returns ErrorDetail[]? {
+        worker C returns ErrorDetail[] {
             var validator =  new DirectiveValidatorVisitor(schema);
             document.accept(validator);
-            return validator.getErrors();
+            return validator.getErrors() ?: [];
         }
 
-         worker vvvv returns ErrorDetail[] {
-            ErrorDetail[] e = [];
+        worker D returns ErrorDetail[] {
+            ErrorDetail[] errors = [];
             ValidatorVisitor[] vs = [
-                // This should never panic since `readonly & map<json>?` is subtype of `map<json>?`;
+                // This should never panic, `readonly & map<json>?` is subtype of `map<json>?`
                 new VariableValidatorVisitor(schema, checkpanic vars.cloneWithType()),
                 new FieldValidatorVisitor(schema)
             ];
             foreach ValidatorVisitor validator in vs {
                 document.accept(validator);
-                ErrorDetail[]? errors = validator.getErrors();
-                if errors is ErrorDetail[] {
-                    e.push(...errors);
+                ErrorDetail[]? visitorErrors = validator.getErrors();
+                if visitorErrors is ErrorDetail[] {
+                    errors.push(...errors);
                 }
             }
-            return e;
+            return errors;
         }
 
-        ErrorDetail[]? errors = wait v;
-        if errors is ErrorDetail[] {
-            validationErrors.push(...errors);
+        worker E returns ErrorDetail[] {
+            if introspectionEnabled {
+                return [];
+            }
+            var validator =  new IntrospectionValidatorVisitor();
+            document.accept(validator);
+            return validator.getErrors() ?: [];
         }
 
-        errors = wait vv;
-        if errors is ErrorDetail[] {
-            validationErrors.push(...errors);
-        }
+        ErrorDetail[] errors = wait A;
+        validationErrors.push(...errors);
+        errors = wait B;
+        validationErrors.push(...errors);
+        errors = wait C;
+        validationErrors.push(...errors);
+        errors = wait D;
+        validationErrors.push(...errors);
+        errors = wait E;
+        validationErrors.push(...errors);
 
-        errors = wait vvv;
-        if errors is ErrorDetail[] {
-            validationErrors.push(...errors);
-        }
-
-        errors = wait vvvv;
-        if errors is ErrorDetail[] {
-            validationErrors.push(...errors);
-        }
-
-        return validationErrors.length() == 0 ? () : getOutputObjectFromErrorDetail(validationErrors);
+        return validationErrors;
     }
 
     isolated function getOperation(parser:DocumentNode document, string? operationName)
