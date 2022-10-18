@@ -192,11 +192,11 @@ class FieldValidatorVisitor {
             self.validateArgumentValue(variableValue, argumentNode.getValueLocation(), getTypeName(argumentNode), schemaArg);
         } else if variableValue is map<anydata> && getTypeKind(schemaArg.'type) == INPUT_OBJECT {
             self.updatePath(argumentNode.getName());
-            self.validateInputObjectVariableValue(variableValue, schemaArg, argumentNode.getValueLocation(), fieldName);
+            self.validateInputObjectVariableValue(argumentNode, variableValue, schemaArg, argumentNode.getValueLocation(), fieldName);
             self.removePath();
         } else if variableValue is anydata[] && getTypeKind(schemaArg.'type) == LIST {
             self.updatePath(argumentNode.getName());
-            self.validateListVariableValue(variableValue, schemaArg, argumentNode.getValueLocation(), fieldName);
+            self.validateListVariableValue(argumentNode, variableValue, schemaArg, argumentNode.getValueLocation(), fieldName);
             self.removePath();
         } else if variableValue is () {
             self.validateArgumentValue(variableValue, argumentNode.getValueLocation(), getTypeName(argumentNode), schemaArg);
@@ -246,8 +246,8 @@ class FieldValidatorVisitor {
         }
     }
 
-    isolated function validateInputObjectVariableValue(map<anydata> variableValues, __InputValue inputValue,
-                                                       Location location, string fieldName) {
+    isolated function validateInputObjectVariableValue(parser:ArgumentNode argumentNode, map<anydata> variableValues,
+                                                       __InputValue inputValue, Location location, string fieldName) {
         __Type argType = getOfType(inputValue.'type);
         __InputValue[]? inputFields = argType?.inputFields;
         if inputFields is __InputValue[] {
@@ -271,11 +271,11 @@ class FieldValidatorVisitor {
                         }
                     } else if fieldValue is map<anydata> {
                         self.updatePath(subInputValue.name);
-                        self.validateInputObjectVariableValue(fieldValue, subInputValue, location, fieldName);
+                        self.validateInputObjectVariableValue(argumentNode, fieldValue, subInputValue, location, fieldName);
                         self.removePath();
                     } else if fieldValue is anydata[] {
                         self.updatePath(subInputValue.name);
-                        self.validateListVariableValue(fieldValue, subInputValue, location, fieldName);
+                        self.validateListVariableValue(argumentNode, fieldValue, subInputValue, location, fieldName);
                         self.removePath();
                     } else if fieldValue is () {
                         string expectedTypeName = getOfTypeName(inputValue.'type);
@@ -290,6 +290,7 @@ class FieldValidatorVisitor {
                     }
                 }
             }
+            argumentNode.setVariableValue(variableValues);
         } else {
             string expectedTypeName = getOfTypeName(inputValue.'type);
             string listError = getListElementError(self.argumentPath);
@@ -299,8 +300,8 @@ class FieldValidatorVisitor {
         }
     }
 
-    isolated function validateListVariableValue(anydata[] variableValues, __InputValue inputValue,
-                                                Location location, string fieldName) {
+    isolated function validateListVariableValue(parser:ArgumentNode argumentNode, anydata[] variableValues,
+                                                __InputValue inputValue, Location location, string fieldName) {
         if getTypeKind(inputValue.'type) == LIST {
             __InputValue listItemInputValue = createInputValueForListItem(inputValue);
             if getOfType(listItemInputValue.'type).name == UPLOAD {
@@ -323,11 +324,11 @@ class FieldValidatorVisitor {
                         }
                     } else if listItemValue is map<json> {
                         self.updatePath(listItemInputValue.name);
-                        self.validateInputObjectVariableValue(listItemValue, listItemInputValue, location, fieldName);
+                        self.validateInputObjectVariableValue(argumentNode, listItemValue, listItemInputValue, location, fieldName);
                         self.removePath();
                     } else if listItemValue is json[] {
                         self.updatePath(listItemInputValue.name);
-                        self.validateListVariableValue(listItemValue, listItemInputValue, location, fieldName);
+                        self.validateListVariableValue(argumentNode, listItemValue, listItemInputValue, location, fieldName);
                         self.removePath();
                     } else if listItemValue is () {
                         string expectedTypeName = getOfTypeName(listItemInputValue.'type);
@@ -335,6 +336,7 @@ class FieldValidatorVisitor {
                     }
                     self.removePath();
                 }
+                argumentNode.setVariableValue(variableValues);
             }
         } else {
             string expectedTypeName = getOfTypeName(inputValue.'type);
