@@ -97,7 +97,7 @@ isolated class Engine {
         ValidatorVisitor[] validators = [
             new FragmentCycleFinderVisitor(document.getFragments()),
             new FragmentValidatorVisitor(document.getFragments()),
-            new QueryDepthValidatorVisitor(self.maxQueryDepth),
+            // new QueryDepthValidatorVisitor(self.maxQueryDepth),
             new VariableValidatorVisitor(self.schema, variables),
             new FieldValidatorVisitor(self.schema),
             new DirectiveValidatorVisitor(self.schema),
@@ -114,6 +114,19 @@ isolated class Engine {
                 validationErrors.push(...errors);
             }
         }
+        
+        final readonly & int? maxQueryDepth = self.maxQueryDepth.cloneReadOnly();
+        worker v returns ErrorDetail[]? {
+            var validator =  new QueryDepthValidatorVisitor(maxQueryDepth);
+            document.accept(validator);
+            return validator.getErrors();
+        }
+
+        ErrorDetail[]? errors = wait v;
+        if errors is ErrorDetail[] {
+            validationErrors.push(...errors);
+        }
+
         return validationErrors.length() == 0 ? () : getOutputObjectFromErrorDetail(validationErrors);
     }
 

@@ -15,6 +15,6 @@
 // under the License.
 
 
-public type SelectionNode object {
+public type SelectionNode isolated object {
     *SelectionParentNode;
 };
