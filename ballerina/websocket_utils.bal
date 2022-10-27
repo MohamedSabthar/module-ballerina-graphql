@@ -16,10 +16,13 @@
 
 import ballerina/websocket;
 import graphql.parser;
+import ballerina/io;
 
 isolated function executeOperation(Engine engine, Context context, readonly & __Schema schema,
                                    readonly & map<string> customHeaders, websocket:Caller caller, string connectionId,
-                                   parser:OperationNode node) returns websocket:Error? {
+                                   parser:OperationNode node, SubscriptionHander subscriptionHander) returns websocket:Error? {
+    worker A returns websocket:Error? {
+        
     RootFieldVisitor rootFieldVisitor = new (node);
     parser:FieldNode fieldNode = <parser:FieldNode>rootFieldVisitor.getRootFieldNode();
     stream<any, error?>|json sourceStream = getSubscriptionResponse(engine, schema, context, fieldNode);
@@ -27,26 +30,40 @@ isolated function executeOperation(Engine engine, Context context, readonly & __
         record {|any value;|}|error? next = sourceStream.next();
         while next !is error? {
             OutputObject outputObject = engine.getResult(node, context, next.value);
-            if outputObject.hasKey(DATA_FIELD) || outputObject.hasKey(ERRORS_FIELD) {
+            if (outputObject.hasKey(DATA_FIELD) || outputObject.hasKey(ERRORS_FIELD)) {
+                if subscriptionHander.isSubscriptionComplete() {
+                    return;
+                }
                 check sendWebSocketResponse(caller, customHeaders, WS_NEXT, outputObject.toJson(), connectionId);
+                io:println("**************** SENT");
             }
             context.resetErrors(); //Remove previous event's errors before the next one
             next = sourceStream.next();
         }
         if next is error {
             json errorPayload = {errors: {message: next.message()}};
+            if subscriptionHander.isSubscriptionComplete() {
+                return;
+            }
             check sendWebSocketResponse(caller, customHeaders, WS_ERROR, errorPayload, connectionId);
             closeConnection(caller);
         } else {
             if customHeaders.hasKey(WS_SUB_PROTOCOL) {
+                if subscriptionHander.isSubscriptionComplete() {
+                    return;
+                }
                 check sendWebSocketResponse(caller, customHeaders, WS_COMPLETE, null, connectionId);
             } else {
                 closeConnection(caller);
             }
         }
     } else {
+        if subscriptionHander.isSubscriptionComplete() {
+            return;
+        }
         check sendWebSocketResponse(caller, customHeaders, WS_ERROR, sourceStream, connectionId);
         closeConnection(caller);
+    }
     }
 }
 

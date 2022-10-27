@@ -265,7 +265,7 @@ isolated function testSubscriptionWithServiceObjectsUsingSubProtocol() returns e
         websocket:ClientConfiguration config = {subProtocols: [subProtocol]};
         websocket:Client wsClient = check new(url, config);
         string messageType = subProtocol == GRAPHQL_WS ? WS_DATA : WS_NEXT;
-        check initiateConnectionInitMessage(wsClient, "1");
+        check initiateConnectionInitMessage(wsClient);
         check validateConnectionInitMessage(wsClient);
 
         check writeWebSocketTextMessage(document, wsClient, id = "1", subProtocol = subProtocol);
@@ -293,7 +293,7 @@ isolated function testSubscriptionWithVariablesUsingSubProtocol() returns error?
         websocket:Client wsClient = check new(url, config);
         string messageType = subProtocol == GRAPHQL_WS ? WS_DATA : WS_NEXT;
 
-        check initiateConnectionInitMessage(wsClient, "1");
+        check initiateConnectionInitMessage(wsClient);
         check validateConnectionInitMessage(wsClient);
 
         check writeWebSocketTextMessage(document, wsClient, variables, id = "1", subProtocol = subProtocol);
@@ -317,9 +317,10 @@ isolated function testSubscriptionWithMultipleClientsUsingSubProtocol() returns 
         websocket:Client wsClient2 = check new(url, config);
         string messageType = subProtocol == GRAPHQL_WS ? WS_DATA : WS_NEXT;
 
-        check initiateConnectionInitMessage(wsClient1, "1");
-        check initiateConnectionInitMessage(wsClient2, "2");
+        check initiateConnectionInitMessage(wsClient1);
         check validateConnectionInitMessage(wsClient1);
+
+        check initiateConnectionInitMessage(wsClient2);
         check validateConnectionInitMessage(wsClient2);
 
         check writeWebSocketTextMessage(document, wsClient1, id = "1", subProtocol = subProtocol);
@@ -354,9 +355,10 @@ isolated function testSubscriptionsWithMultipleOperationsUsingSubProtocol() retu
         websocket:Client wsClient2 = check new(url, config);
         string messageType = subProtocol == GRAPHQL_WS ? WS_DATA : WS_NEXT;
 
-        check initiateConnectionInitMessage(wsClient1, "1");
-        check initiateConnectionInitMessage(wsClient2, "2");
+        check initiateConnectionInitMessage(wsClient1);
         check validateConnectionInitMessage(wsClient1);
+
+        check initiateConnectionInitMessage(wsClient2);
         check validateConnectionInitMessage(wsClient2);
 
         check writeWebSocketTextMessage(document, wsClient1, {}, "getMessages", "1", subProtocol = subProtocol);
@@ -391,7 +393,7 @@ isolated function testSubscriptionWithFragmentsUsingSubProtocol() returns error?
         websocket:Client wsClient = check new(url, config);
         string messageType = subProtocol == GRAPHQL_WS ? WS_DATA : WS_NEXT;
 
-        check initiateConnectionInitMessage(wsClient, "1");
+        check initiateConnectionInitMessage(wsClient);
         check validateConnectionInitMessage(wsClient);
 
         check writeWebSocketTextMessage(document, wsClient, id = "1", subProtocol = subProtocol);
@@ -416,7 +418,7 @@ isolated function testInvalidSubscriptionUsingSubProtocol() returns error? {
         websocket:Client wsClient = check new(url, config);
         string messageType = subProtocol == GRAPHQL_WS ? WS_DATA : WS_ERROR;
         json responsePayload = check getJsonContentFromFile("subscription_invalid_field.json");
-        check initiateConnectionInitMessage(wsClient, "1");
+        check initiateConnectionInitMessage(wsClient);
         check validateConnectionInitMessage(wsClient);
 
         json payload = {query: document};
@@ -438,7 +440,7 @@ isolated function testSubscriptionFunctionWithErrorsUsingSubProtocol() returns e
         websocket:Client wsClient = check new(url, config);
         string messageType = subProtocol == GRAPHQL_WS ? WS_DATA : WS_ERROR;
 
-        check initiateConnectionInitMessage(wsClient, "1");
+        check initiateConnectionInitMessage(wsClient);
         check validateConnectionInitMessage(wsClient);
 
         check writeWebSocketTextMessage(document, wsClient, id = "1", subProtocol = subProtocol);
@@ -458,7 +460,7 @@ isolated function testConnectionInitMessage() returns error? {
     foreach string subProtocol in subProtocols {
         websocket:ClientConfiguration config = {subProtocols: [subProtocol]};
         websocket:Client wsClient = check new(url, config);
-        check initiateConnectionInitMessage(wsClient, "1");
+        check initiateConnectionInitMessage(wsClient);
         check validateConnectionInitMessage(wsClient);
     }
 }
@@ -516,7 +518,7 @@ function testAlreadyExistingSubscriberUsingSubProtocol() returns error? {
     websocket:Client wsClient = check new(url, config);
     string clientId = wsClient.getConnectionId();
 
-    check initiateConnectionInitMessage(wsClient, clientId);
+    check initiateConnectionInitMessage(wsClient);
     check validateConnectionInitMessage(wsClient);
 
     check writeWebSocketTextMessage(document, wsClient, id = clientId, subProtocol = subProtocol);
@@ -583,4 +585,55 @@ isolated function testInvalidSubProtocolInSubscriptions() returns error? {
     if message is websocket:Error {
         test:assertEquals((<error>message).message(), errorMsg);
     }
+}
+
+@test:Config {
+    groups: ["sub_protocols", "service", "subscriptions", "a"]
+}
+isolated function testUnsubscribeDuringMessagesAreInFlightToClient() returns error? {
+    string document = string `subscription { words }`;
+    string url = "ws://localhost:9099/subscriptions";
+    string subProtocol = "graphql-ws";
+
+    websocket:ClientConfiguration config = {subProtocols: [subProtocol]};
+    websocket:Client wsClient = check new(url, config);
+    string messageType = WS_DATA;
+    check initiateConnectionInitMessage(wsClient);
+    check validateConnectionInitMessage(wsClient);
+
+    check writeWebSocketTextMessage(document, wsClient, id = "1", subProtocol = subProtocol);
+    json unsubscribe = {"type": WS_COMPLETE, id: "1"};
+    check wsClient->writeMessage(unsubscribe);
+    int maxStreamLength = words.length();
+    json actualPayload = ();
+    json expectedPayload = ();
+    foreach int index in 0..< maxStreamLength {
+        actualPayload = check wsClient->readMessage();
+        expectedPayload =  {"type": messageType, id: "1", payload: {data: {words: words[index]}}};
+        assertJsonValuesWithOrder(actualPayload, expectedPayload);
+    }
+    actualPayload = check wsClient->readMessage();
+
+    check writeWebSocketTextMessage(document, wsClient, id = "2", subProtocol = subProtocol);
+    foreach int index in 0..< maxStreamLength {
+        actualPayload = check wsClient->readMessage();
+        expectedPayload =  {"type": messageType, id: "2", payload: {data: {words: words[index]}}};
+        assertJsonValuesWithOrder(actualPayload, expectedPayload);
+    }
+
+    // payload = {data: {students: {id: 2, name: "Mikasa Ackerman"}}};
+    // expectedPayload = {"type": messageType, id: "1", payload: payload};
+    // check validateWebSocketResponse(wsClient, expectedPayload);
+    // expectedPayload = {"type": WS_COMPLETE, id: "1", payload: null};
+    // check validateWebSocketResponse(wsClient, expectedPayload);
+
+    // check writeWebSocketTextMessage(document, wsClient, id = "2", subProtocol = subProtocol);
+    //  payload = {data: {students: {id: 1, name: "Eren Yeager"}}};
+    //  expectedPayload = {"type": messageType, id: "2", payload: payload};
+    // check validateWebSocketResponse(wsClient, expectedPayload);
+    // payload = {data: {students: {id: 2, name: "Mikasa Ackerman"}}};
+    // expectedPayload = {"type": messageType, id: "2", payload: payload};
+    // check validateWebSocketResponse(wsClient, expectedPayload);
+    // expectedPayload = {"type": WS_COMPLETE, id: "2", payload: null};
+    // check validateWebSocketResponse(wsClient, expectedPayload);
 }

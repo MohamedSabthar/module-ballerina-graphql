@@ -17,6 +17,23 @@
 import ballerina/lang.value;
 import ballerina/websocket;
 import graphql.parser;
+import ballerina/io;
+
+isolated class SubscriptionHander {
+    private boolean isComplete = false;
+
+    public isolated function isSubscriptionComplete() returns boolean {
+        lock {
+            return self.isComplete;
+        }
+    }
+
+    public isolated function setIsComplete() {
+        lock {
+            self.isComplete = true;
+        }
+    }
+}
 
 isolated service class WsService {
     *websocket:Service;
@@ -24,7 +41,7 @@ isolated service class WsService {
     private final Engine engine;
     private final readonly & __Schema schema;
     private final Context context;
-    private string[] activeConnections;
+    private map<SubscriptionHander> activeConnections;
     private final readonly & map<string> customHeaders;
     private boolean initiatedConnection;
 
@@ -34,7 +51,7 @@ isolated service class WsService {
         self.schema = schema;
         self.context = context;
         self.customHeaders = customHeaders;
-        self.activeConnections = [];
+        self.activeConnections = {};
         self.initiatedConnection = false;
     }
 
@@ -81,31 +98,33 @@ isolated service class WsService {
                 self.initiatedConnection = true;
             }
         } else if wsType == WS_SUBSCRIBE || wsType == WS_START || !self.customHeaders.hasKey(WS_SUB_PROTOCOL) {
+            SubscriptionHander subscriptionHander = new;
             lock {
                 if self.customHeaders.hasKey(WS_SUB_PROTOCOL) {
                     if !self.initiatedConnection {
                         closeConnection(caller, 4401, "Unauthorized");
                         return;
                     }
-                    if self.activeConnections.indexOf(connectionId) !is () {
+                    if self.activeConnections.hasKey(connectionId) {
                         closeConnection(caller, 4409, string `Subscriber for ${connectionId} already exists`);
                         return;
                     }
-                    self.activeConnections.push(connectionId);
+                    self.activeConnections[connectionId]= subscriptionHander;
                 }
             }
             parser:OperationNode|json node = validateSubscriptionPayload(wsPayload, self.engine);
             if node is parser:OperationNode {
                 check executeOperation(self.engine, self.context, self.schema, self.customHeaders, caller,
-                                       connectionId, node);
+                                       connectionId, node, subscriptionHander);
             } else {
                 check sendWebSocketResponse(caller, self.customHeaders, WS_ERROR, node, connectionId);
                 closeConnection(caller);
             }
         } else if wsType == WS_STOP || wsType == WS_COMPLETE {
+            io:println("************** HIT");
             lock {
-                _ = self.activeConnections.remove(<int>self.activeConnections.indexOf(connectionId));
-                self.initiatedConnection = false;
+                var subscriptionHandler = self.activeConnections.remove(connectionId);
+                subscriptionHandler.setIsComplete();
             }
             check sendWebSocketResponse(caller, self.customHeaders, WS_COMPLETE, null, connectionId);
             closeConnection(caller);

@@ -1261,6 +1261,34 @@ service /nullable_inputs on basicListener {
 }
 
 public string[] namesArray = ["Walter", "Skyler"];
+public final readonly & string[] words = [
+    "Lorem",
+    "ipsum",
+    "dolor",
+    "sit",
+    "amet,",
+    "consectetur",
+    "adipiscing",
+    "elit.",
+    "Fusce",
+    "et",
+    "placerat",
+    "sapien."
+];
+
+type StringItterator object {
+    public isolated function next() returns record {|
+        string value;
+    |}?;
+};
+
+class WordGenerator {
+    StringItterator wordItteroator = words.iterator();
+    public isolated function next() returns record {| string value; |}? {
+        runtime:sleep(10); // simulate network delay
+        return self.wordItteroator.next();
+    }
+}
 
 service /subscriptions on subscriptionListener {
     isolated resource function get name() returns string {
@@ -1315,6 +1343,11 @@ service /subscriptions on subscriptionListener {
         StudentService s = new StudentService(1, "Jesse Pinkman");
         TeacherService t = new TeacherService(0, "Walter White", "Chemistry");
         return [s, t].toStream();
+    }
+
+    isolated resource function subscribe words() returns stream<string> {
+        stream<string> words = new(new WordGenerator());
+        return words;
     }
 }
 
