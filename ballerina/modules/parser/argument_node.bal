@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-public class ArgumentNode {
+public readonly class ArgumentNode {
     *NamedNode;
 
     private string name;
@@ -27,14 +27,16 @@ public class ArgumentNode {
     private boolean variableDefinition;
     private boolean containsInvalidValue;
 
-    public isolated function init(string name, Location location, ArgumentType kind, boolean isVarDef = false) {
+    public isolated function init(string name, Location location, ArgumentType kind,
+                                  boolean isVarDef = false, Location? valueLocation = (),
+                                  ArgumentValue|ArgumentValue[] value = (), string? variableName = ()) {
         self.name = name;
-        self.location = location;
-        self.value = ();
-        self.valueLocation = location;
+        self.location = location.cloneReadOnly();
+        self.value = value.cloneReadOnly();
+        self.valueLocation = valueLocation is () ? location.cloneReadOnly() : valueLocation.cloneReadOnly();
         self.kind = kind;
         self.variableDefinition = isVarDef;
-        self.variableName = ();
+        self.variableName = variableName;
         self.variableValue = ();
         self.containsInvalidValue = false;
     }
@@ -55,25 +57,25 @@ public class ArgumentNode {
         return self.kind;
     }
 
-    public isolated function setKind(ArgumentType kind) {
-        self.kind = kind;
-    }
+    // public isolated function setKind(ArgumentType kind) {
+    //     self.kind = kind;
+    // }
 
-    public isolated function addVariableName(string name) {
-        self.variableName = name;
-    }
+    // public isolated function addVariableName(string name) {
+    //     self.variableName = name;
+    // }
 
     public isolated function getVariableName() returns string? {
         return self.variableName;
     }
 
-    public isolated function setValue(ArgumentValue|ArgumentValue[] value) {
-        self.value = value;
-    }
+    // public isolated function setValue(ArgumentValue|ArgumentValue[] value) {
+    //     self.value = value;
+    // }
 
-    public isolated function setValueLocation(Location location) {
-        self.valueLocation = location;
-    }
+    // public isolated function setValueLocation(Location location) {
+    //     self.valueLocation = location;
+    // }
 
     public isolated function getValue() returns ArgumentValue|ArgumentValue[] {
         return self.value;
@@ -83,25 +85,25 @@ public class ArgumentNode {
         return self.valueLocation;
     }
 
-    public isolated function setVariableDefinition(boolean value) {
-        self.variableDefinition = value;
-    }
+    // public isolated function setVariableDefinition(boolean value) {
+    //     self.variableDefinition = value;
+    // }
 
     public isolated function isVariableDefinition() returns boolean {
         return self.variableDefinition;
     }
 
-    public isolated function setVariableValue(anydata inputValue) {
-        self.variableValue = inputValue;
-    }
+    // public isolated function setVariableValue(anydata inputValue) {
+    //     self.variableValue = inputValue;
+    // }
 
     public isolated function getVariableValue() returns anydata {
         return self.variableValue;
     }
 
-    public isolated function setInvalidVariableValue() {
-        self.containsInvalidValue = true;
-    }
+    // public isolated function setInvalidVariableValue() {
+    //     self.containsInvalidValue = true;
+    // }
 
     public isolated function hasInvalidVariableValue() returns boolean {
         return self.containsInvalidValue;

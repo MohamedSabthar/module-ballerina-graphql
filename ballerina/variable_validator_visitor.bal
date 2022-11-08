@@ -46,9 +46,9 @@ class VariableValidatorVisitor {
         self.variableDefinitions = operationNode.getVaribleDefinitions();
         __Field? schemaFieldForOperation =
             createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors);
-        foreach ErrorDetail errorDetail in operationNode.getErrors() {
-            self.errors.push(errorDetail);
-        }
+        // foreach ErrorDetail errorDetail in operationNode.getErrors() {
+        //     self.errors.push(errorDetail);
+        // }
         self.validateDirectiveVariables(operationNode);
         if schemaFieldForOperation is __Field {
             foreach parser:SelectionNode selection in operationNode.getSelections() {

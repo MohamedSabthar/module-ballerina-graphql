@@ -16,16 +16,25 @@
 
 public class Parser {
     private Lexer lexer;
-    private DocumentNode document;
+    // private DocumentNode document;
+    private map<FragmentNode> fragments;
+    private map<OperationNode> operations;
+    private ErrorDetail[] errors;
+    private boolean isFirstAnonymousOperationErrorPushed;
 
     public isolated function init(string text) {
         self.lexer = new (text);
-        self.document = new;
+        self.fragments = {};
+        self.operations = {};
+        self.errors = [];
+        self.isFirstAnonymousOperationErrorPushed = false;
+        // self.document = new;
     }
 
     public isolated function parse() returns DocumentNode|Error {
         check self.populateDocument();
-        return self.document;
+        DocumentNode document = new(self.operations, self.fragments, self.errors);
+        return document;
     }
 
     isolated function populateDocument() returns Error? {
@@ -54,7 +63,7 @@ public class Parser {
     isolated function parseAnonymousOperation() returns Error? {
         Token token = check self.peekNextNonSeparatorToken();
         OperationNode operation = check self.createOperationNode(ANONYMOUS_OPERATION, OPERATION_QUERY, token.location);
-        self.addOperationToDocument(operation);
+        self.addOperationToMap(operation);
     }
 
     isolated function parseOperationWithType(RootOperationType operationType) returns Error? {
@@ -66,7 +75,7 @@ public class Parser {
         TokenType tokenType = token.kind;
         if tokenType == T_OPEN_PARENTHESES || tokenType == T_OPEN_BRACE || tokenType == T_AT {
             OperationNode operation = check self.createOperationNode(operationName, operationType, location);
-            self.addOperationToDocument(operation);
+            self.addOperationToMap(operation);
         } else {
             return getExpectedCharError(token, OPEN_BRACE);
         }
@@ -91,30 +100,32 @@ public class Parser {
         token = check self.readNextNonSeparatorToken();
         string onType = check getIdentifierTokenvalue(token);
 
-        FragmentNode fragmentNode = new (name, location, false, onType = onType);
-        check self.addDirectivesToSelection(fragmentNode, FRAGMENT_DEFINITION);
+        DirectiveNode[]  directiveNodes = check self.addDirectivesToSelection(FRAGMENT_DEFINITION);
         token = check self.peekNextNonSeparatorToken();
         if token.kind != T_OPEN_BRACE {
             return getExpectedCharError(token, OPEN_BRACE);
         }
-        check self.addSelections(fragmentNode);
-        self.document.addFragment(fragmentNode);
+        SelectionNode[] selectionNodes = check self.addSelections(name);
+        FragmentNode fragmentNode = new (name, location, false, onType = onType, selections = selectionNodes, directives = directiveNodes);
+        self.addFragmentToMap(fragmentNode);
     }
 
     isolated function createOperationNode(string name, RootOperationType kind, Location location)
     returns OperationNode|Error {
-        OperationNode operation = new (name, kind, location);
         Token token = check self.peekNextNonSeparatorToken();
+        map<VariableNode> variables = {};
         if token.kind == T_OPEN_PARENTHESES {
-            check self.addVariableDefinition(operation);
+            variables = check self.addVariableDefinition();
         }
-        check self.addDirectivesToSelection(operation, getLocationFromRootOperationType(kind));
-        check self.addSelections(operation);
+        DirectiveNode[] directiveNodes = check self.addDirectivesToSelection(getLocationFromRootOperationType(kind));
+        SelectionNode[] selectionNodes = check self.addSelections(name);
+        OperationNode operation = new (name, kind, location, variables = variables, directives = directiveNodes, selections = selectionNodes);
         return operation;
     }
 
-    isolated function addVariableDefinition(OperationNode operationNode) returns Error? {
+    isolated function addVariableDefinition() returns map<VariableNode>|Error {
         Token token = check self.readNextNonSeparatorToken(); // Read the open parantheses here
+        map<VariableNode> variableNodes = {};
         while token.kind != T_CLOSE_PARENTHESES {
             token = check self.readNextNonSeparatorToken();
             if token.kind != T_DOLLAR {
@@ -130,100 +141,117 @@ public class Parser {
             }
             token = check self.readNextNonSeparatorToken();
             string varType = check self.getTypeIdentifierTokenValue(token);
-            VariableNode variableNode = new (name, varType, varDefinitionLocation);
             token = check self.peekNextNonSeparatorToken();
+            ArgumentNode? value = ();
             if token.kind == T_EQUAL {
                 token = check self.readNextNonSeparatorToken(); // consume "=" sign here
                 token = check self.peekNextNonSeparatorToken();
                 if token.kind == T_OPEN_BRACE {
-                    ArgumentNode value = check self.getInputObjectTypeArgument(name, varLocation, false);
-                    variableNode.setDefaultValue(value);
+                    value = check self.getInputObjectTypeArgument(name, varLocation, false);
                 } else if token.kind == T_OPEN_BRACKET {
-                    ArgumentNode value = check self.getListTypeArgument(name, varLocation, false);
-                    variableNode.setDefaultValue(value);
+                    value = check self.getListTypeArgument(name, varLocation, false);
                 } else {
-                    ArgumentNode value = check self.getScalarTypeArgument(name, varLocation, false);
-                    variableNode.setDefaultValue(value);
+                    value = check self.getScalarTypeArgument(name, varLocation, false);
                 }
                 token = check self.peekNextNonSeparatorToken();
             }
-            operationNode.addVariableDefinition(variableNode);
+            VariableNode variableNode = new (name, varType, varDefinitionLocation, value);
+            self.updateVariableDefinitionMap(variableNodes, variableNode); // ---> operationNode.addVariableDefinition(variableNode);
         }
         token = check self.readNextNonSeparatorToken();
+        return variableNodes;
     }
 
-    isolated function addSelections(SelectionParentNode parentNode) returns Error? {
+    isolated function updateVariableDefinitionMap(map<VariableNode> variables, VariableNode variable) {
+        if variables.hasKey(variable.getName()) {
+            string message = string `There can be only one variable named "$${variable.getName()}"`;
+            Location location = variable.getLocation();
+            self.errors.push({message: message, locations: [location]});
+        } else {
+            variables[variable.getName()] = variable;
+        }
+    }
+
+    isolated function addSelections(string parentNodeName) returns SelectionNode[]|Error {
         Token token = check self.readNextNonSeparatorToken(); // Read the open brace here
+        SelectionNode[] selectionNodes = [];
         while token.kind != T_CLOSE_BRACE {
             token = check self.peekNextNonSeparatorToken();
             if token.kind == T_ELLIPSIS {
-                check self.addFragment(parentNode);
+                check self.addFragment(parentNodeName, selectionNodes);
             } else {
-                FieldNode fieldNode = check self.addSelectionToNode(parentNode);
-                parentNode.addSelection(fieldNode);
+                FieldNode fieldNode = check self.addSelectionToNode();
+                // parentNode.addSelection(fieldNode);
+                selectionNodes.push(fieldNode);
             }
             token = check self.peekNextNonSeparatorToken();
         }
         // If it comes to this, token.kind == T_CLOSE_BRACE. We consume it
         token = check self.readNextNonSeparatorToken();
+        return selectionNodes;
     }
 
-    isolated function addFragment(SelectionParentNode parentNode) returns Error? {
+    isolated function addFragment(string parentNodeName, SelectionNode[] selectionNodes) returns Error? {
         Token token = check self.readNextNonSeparatorToken(); // Consume Ellipsis token
         Location spreadLocation = token.location;
         token = check self.peekNextNonSeparatorToken();
         string keyword = check getIdentifierTokenvalue(token);
         if keyword == ON {
-            check self.addInlineFragmentToNode(parentNode, spreadLocation);
+            check self.addInlineFragmentToNode(parentNodeName, spreadLocation, selectionNodes);
         } else {
-            check self.addNamedFragmentToNode(parentNode, spreadLocation);
+            check self.addNamedFragmentToNode(spreadLocation, selectionNodes);
         }
     }
 
-    isolated function addSelectionToNode(SelectionParentNode parentNode) returns FieldNode|Error {
+    isolated function addSelectionToNode() returns FieldNode|Error {
         Token token = check self.readNextNonSeparatorToken();
         string alias = check getIdentifierTokenvalue(token);
         string name = check self.getNameWhenAliasPresent(alias);
 
-        FieldNode fieldNode = new (name, token.location, alias);
-        check self.addArgumentsToSelection(fieldNode);
-        check self.addDirectivesToSelection(fieldNode, FIELD);
+        ArgumentNode[] argumentNodes = check self.addArgumentsToSelection();
+        DirectiveNode[] directiveNodes = check self.addDirectivesToSelection(FIELD);
         token = check self.peekNextNonSeparatorToken();
+        SelectionNode[] selectionNodes = [];
         if token.kind == T_OPEN_BRACE {
-            check self.addSelections(fieldNode);
+            selectionNodes = check self.addSelections(name);
         }
+        FieldNode fieldNode = new (name, token.location, alias, selections = selectionNodes, arguments = argumentNodes, directives = directiveNodes);
         return fieldNode;
     }
 
-    isolated function addNamedFragmentToNode(SelectionParentNode parentNode, Location spreadLocation) returns Error? {
+    isolated function addNamedFragmentToNode(Location spreadLocation, SelectionNode[] selectionNodes) returns Error? {
         Token token = check self.readNextNonSeparatorToken();
         string fragmentName = check getIdentifierTokenvalue(token);
-        FragmentNode fragmentNode = new (fragmentName, token.location, false, spreadLocation);
-        check self.addDirectivesToSelection(fragmentNode, FRAGMENT_SPREAD);
-        parentNode.addSelection(fragmentNode);
+        DirectiveNode[] directiveNodes = check self.addDirectivesToSelection(FRAGMENT_SPREAD);
+        FragmentNode fragmentNode = new (fragmentName, token.location, false, spreadLocation, directives = directiveNodes);
+        // parentNode.addSelection(fragmentNode);
+        selectionNodes.push(fragmentNode);
     }
 
-    isolated function addInlineFragmentToNode(SelectionParentNode parentNode, Location spreadLocation) returns Error? {
+    isolated function addInlineFragmentToNode(string parentNodeName, Location spreadLocation, SelectionNode[] selectionNodes)
+    returns Error? {
         Token token = check self.readNextNonSeparatorToken(); //Consume on keyword
         token = check self.readNextNonSeparatorToken();
         Location location = token.location;
         string onType = check getIdentifierTokenvalue(token);
-        string fragmentName = string `${parentNode.getName()}_${onType}`;
-        FragmentNode fragmentNode = new (fragmentName, location, true, spreadLocation, onType);
-        check self.addDirectivesToSelection(fragmentNode, INLINE_FRAGMENT);
+        string fragmentName = string `${parentNodeName}_${onType}`;
+        DirectiveNode[] directiveNodes = check self.addDirectivesToSelection(INLINE_FRAGMENT);
         token = check self.peekNextNonSeparatorToken();
         if token.kind != T_OPEN_BRACE {
             return getExpectedCharError(token, OPEN_BRACE);
         }
-        check self.addSelections(fragmentNode);
-        self.document.addFragment(fragmentNode);
-        parentNode.addSelection(fragmentNode);
+        SelectionNode[] selections = check self.addSelections(fragmentName);
+        FragmentNode fragmentNode = new (fragmentName, location, true, spreadLocation, onType, directives = directiveNodes, selections = selections);
+        self.addFragmentToMap(fragmentNode);
+        // parentNode.addSelection(fragmentNode);
+        selectionNodes.push(fragmentNode);
     }
 
-    isolated function addArgumentsToSelection(FieldNode fieldNode) returns Error? {
+    isolated function addArgumentsToSelection() returns ArgumentNode[]|Error {
         Token token = check self.peekNextNonSeparatorToken();
+        ArgumentNode[] argumentNodes = [];
         if token.kind != T_OPEN_PARENTHESES {
-            return;
+            return argumentNodes;
         }
         token = check self.readNextNonSeparatorToken();
         while token.kind != T_CLOSE_PARENTHESES {
@@ -237,43 +265,52 @@ public class Parser {
             token = check self.peekNextNonSeparatorToken();
             if token.kind == T_OPEN_BRACE {
                 ArgumentNode argumentNode = check self.getInputObjectTypeArgument(name, location);
-                fieldNode.addArgument(argumentNode);
+                argumentNodes.push(argumentNode);
+                // fieldNode.addArgument(argumentNode);
             } else if token.kind == T_OPEN_BRACKET {
                 ArgumentNode argumentNode = check self.getListTypeArgument(name, location);
-                fieldNode.addArgument(argumentNode);
+                argumentNodes.push(argumentNode);
+                // fieldNode.addArgument(argumentNode);
             } else {
                 ArgumentNode argument = check self.getScalarTypeArgument(name, location);
-                fieldNode.addArgument(argument);
+                argumentNodes.push(argument);
+                // fieldNode.addArgument(argument);
             }
             token = check self.peekNextNonSeparatorToken();
         }
         // If it comes to this, token.kind == T_CLOSE_BRACE. We consume it
         token = check self.readNextNonSeparatorToken();
+        return argumentNodes;
     }
 
-    isolated function addDirectivesToSelection(SelectionParentNode parentNode, DirectiveLocation directiveLocation)
-    returns Error? {
+    isolated function addDirectivesToSelection(DirectiveLocation directiveLocation)
+    returns DirectiveNode[]|Error {
         Token token = check self.peekNextNonSeparatorToken();
+        DirectiveNode[] directiveNodes = [];
         if token.kind != T_AT {
-            return;
+            return directiveNodes;
         }
         while token.kind == T_AT {
             token = check self.readNextNonSeparatorToken(); //consume @
             Location location = token.location.clone();
             token = check self.readNextNonSeparatorToken();
             string name = check getIdentifierTokenvalue(token);
-            DirectiveNode directiveNode = new (name, location, directiveLocation);
             token = check self.peekNextNonSeparatorToken();
+            ArgumentNode[] argumentNodes = [];
             if token.kind == T_OPEN_PARENTHESES {
-                check self.addArgumentsToDirective(directiveNode, directiveLocation);
+                argumentNodes = check self.addArgumentsToDirective(directiveLocation);
             }
-            parentNode.addDirective(directiveNode);
+            DirectiveNode directiveNode = new (name, location, directiveLocation, argumentNodes);
+            directiveNodes.push(directiveNode);
+            // ---> parentNode.addDirective(directiveNode);
             token = check self.peekNextNonSeparatorToken();
         }
+        return directiveNodes;
     }
 
-    isolated function addArgumentsToDirective(DirectiveNode directiveNode, DirectiveLocation dirLocation) returns Error? {
+    isolated function addArgumentsToDirective(DirectiveLocation dirLocation) returns ArgumentNode[]|Error {
         Token token = check self.readNextNonSeparatorToken(); //consume (
+        ArgumentNode[] argumentNodes = [];
         while token.kind != T_CLOSE_PARENTHESES {
             token = check self.readNextNonSeparatorToken();
             string varName = check getIdentifierTokenvalue(token);
@@ -286,41 +323,49 @@ public class Parser {
             if token.kind == T_OPEN_BRACE {
                 if dirLocation == QUERY || dirLocation == MUTATION {
                     ArgumentNode argumentNode = check self.getInputObjectTypeArgument(varName, location, false);
-                    directiveNode.addArgument(argumentNode);
+                    argumentNodes.push(argumentNode);
+                    // ---> directiveNode.addArgument(argumentNode);
                 } else {
                     ArgumentNode argumentNode = check self.getInputObjectTypeArgument(varName, location);
-                    directiveNode.addArgument(argumentNode);
+                    argumentNodes.push(argumentNode);
+                    // ---> directiveNode.addArgument(argumentNode);
                 }
             } else if token.kind == T_OPEN_BRACKET {
                 if dirLocation == QUERY || dirLocation == MUTATION {
                     ArgumentNode argumentNode = check self.getListTypeArgument(varName, location, false);
-                    directiveNode.addArgument(argumentNode);
+                    argumentNodes.push(argumentNode);
+                    // ---> directiveNode.addArgument(argumentNode);
                 } else {
                     ArgumentNode argumentNode = check self.getListTypeArgument(varName, location);
-                    directiveNode.addArgument(argumentNode);
+                    argumentNodes.push(argumentNode);
+                    // ---> directiveNode.addArgument(argumentNode);
                 }
             } else {
                 if dirLocation == QUERY || dirLocation == MUTATION {
                     ArgumentNode argument = check self.getScalarTypeArgument(varName, location, false);
-                    directiveNode.addArgument(argument);
+                    argumentNodes.push(argument);
+                    // ---> directiveNode.addArgument(argument);
                 } else {
                     ArgumentNode argument = check self.getScalarTypeArgument(varName, location);
-                    directiveNode.addArgument(argument);
+                    argumentNodes.push(argument);
+                    // ---> directiveNode.addArgument(argument);
                 }
             }
             token = check self.peekNextNonSeparatorToken();
         }
         token = check self.readNextNonSeparatorToken();
+        return argumentNodes;
     }
 
     isolated function getInputObjectTypeArgument(string name, Location location,
                                                  boolean isAllowVariableValue = true) returns ArgumentNode|Error {
-        ArgumentNode argumentNode = new (name, location, T_INPUT_OBJECT);
+        // ArgumentNode argumentNode = new (name, location, T_INPUT_OBJECT);
         ArgumentValue[] fields = [];
         string[] visitedFields = [];
         Token token = check self.readNextNonSeparatorToken(); // consume open brace here
         token = check self.peekNextNonSeparatorToken();
-        argumentNode.setValueLocation(token.location);
+        Location valueLocation = token.location;
+        // ---> argumentNode.setValueLocation(token.location);
         if token.kind != T_CLOSE_BRACE {
             while token.kind != T_CLOSE_BRACE {
                 token = check self.readNextNonSeparatorToken();
@@ -352,8 +397,8 @@ public class Parser {
                         token = check self.readNextNonSeparatorToken();
                         string varName = check getIdentifierTokenvalue(token);
                         ArgumentNode nestedVariableFields = new (fieldName, token.location, T_IDENTIFIER,
-                                                                 isVarDef = true);
-                        nestedVariableFields.addVariableName(varName);
+                                                                 isVarDef = true, variableName = varName);
+                        // nestedVariableFields.addVariableName(varName);
                         fields.push(nestedVariableFields);
                         visitedFields.push(fieldName);
                     } else {
@@ -364,9 +409,9 @@ public class Parser {
                     token = check self.readNextNonSeparatorToken();
                     ArgumentType argType = <ArgumentType>token.kind;
                     ArgumentValue fieldValue = check getArgumentValue(token);
-                    ArgumentNode inputObjectFieldNode = new (fieldName, fieldLocation, argType);
-                    inputObjectFieldNode.setValue(fieldValue);
-                    inputObjectFieldNode.setValueLocation(token.location);
+                    ArgumentNode inputObjectFieldNode = new (fieldName, fieldLocation, argType, value = fieldValue, valueLocation = token.location);
+                    // inputObjectFieldNode.setValue(fieldValue);
+                    // inputObjectFieldNode.setValueLocation(token.location);
                     fields.push(inputObjectFieldNode);
                     visitedFields.push(fieldName);
                 }
@@ -374,17 +419,18 @@ public class Parser {
             }
         }
         token = check self.readNextNonSeparatorToken(); // consume close brace here
-        argumentNode.setValue(fields);
+        ArgumentNode argumentNode = new (name, location, T_INPUT_OBJECT, value = fields, valueLocation = valueLocation);
+        // argumentNode.setValue(fields);
         return argumentNode;
     }
 
     isolated function getListTypeArgument(string name, Location location,
                                         boolean isAllowVariableValue = true) returns ArgumentNode|Error {
-        ArgumentNode argumentNode = new (name, location, T_LIST);
         Token token = check self.readNextNonSeparatorToken(); // consume open bracket here
         ArgumentValue[] listMembers = [];
         token = check self.peekNextNonSeparatorToken();
-        argumentNode.setValueLocation(token.location);
+        Location valueLocation = token.location;
+        // argumentNode.setValueLocation();
         if token.kind != T_CLOSE_BRACKET {
             while token.kind != T_CLOSE_BRACKET {
                 token = check self.peekNextNonSeparatorToken();
@@ -403,8 +449,8 @@ public class Parser {
                         token = check self.readNextNonSeparatorToken(); // consume dollar here
                         token = check self.readNextNonSeparatorToken();
                         string varName = check getIdentifierTokenvalue(token);
-                        ArgumentNode variableValue = new (name, token.location, T_IDENTIFIER, isVarDef = true);
-                        variableValue.addVariableName(varName);
+                        ArgumentNode variableValue = new (name, token.location, T_IDENTIFIER, isVarDef = true, variableName = varName);
+                        // variableValue.addVariableName(varName);
                         listMembers.push(variableValue);
                     } else {
                         return getUnexpectedTokenError(token);
@@ -414,8 +460,8 @@ public class Parser {
                     token = check self.readNextNonSeparatorToken();
                     ArgumentType argType = <ArgumentType>token.kind;
                     ArgumentValue value = check getArgumentValue(token);
-                    ArgumentNode argumentValue = new (name, token.location, argType);
-                    argumentValue.setValue(value);
+                    ArgumentNode argumentValue = new (name, token.location, argType, value = value);
+                    // argumentValue.setValue(value);
                     listMembers.push(argumentValue);
                 } else {
                     return getUnexpectedTokenError(token);
@@ -424,7 +470,8 @@ public class Parser {
             }
         }
         token = check self.readNextNonSeparatorToken(); // consume close bracket here
-        argumentNode.setValue(listMembers);
+        ArgumentNode argumentNode = new (name, location, T_LIST, value = listMembers, valueLocation = valueLocation);
+        // argumentNode.setValue(listMembers)
         return argumentNode;
     }
 
@@ -437,18 +484,18 @@ public class Parser {
                 token = check self.readNextNonSeparatorToken();
                 string varName = check getIdentifierTokenvalue(token);
                 ArgumentType argType = <ArgumentType>token.kind;
-                ArgumentNode argument = new (name, token.location, argType, isVarDef = true);
-                argument.addVariableName(varName);
-                argument.setValueLocation(token.location);
+                ArgumentNode argument = new (name, token.location, argType, isVarDef = true, variableName = varName, valueLocation = token.location);
+                // argument.addVariableName(varName);
+                // argument.setValueLocation(token.location);
                 return argument;
             }
             return getUnexpectedTokenError(token);
         } else {
             ArgumentValue value = check getArgumentValue(token);
             ArgumentType argType = <ArgumentType>token.kind;
-            ArgumentNode argument = new (name, location, argType);
-            argument.setValue(value);
-            argument.setValueLocation(token.location);
+            ArgumentNode argument = new (name, location, argType, value = value, valueLocation = token.location);
+            // argument.setValue(value);
+            // argument.setValueLocation(token.location);
             return argument;
         }
     }
@@ -493,10 +540,6 @@ public class Parser {
         return varType;
     }
 
-    isolated function addOperationToDocument(OperationNode operation) {
-        self.document.addOperation(operation);
-    }
-
     isolated function readNextNonSeparatorToken() returns Token|Error {
         Token token = check self.lexer.read();
         if token.kind is IgnoreType {
@@ -517,6 +560,54 @@ public class Parser {
         }
 
         return token;
+    }
+
+    isolated function addOperationToMap(OperationNode operation) {
+        if self.operations.hasKey(ANONYMOUS_OPERATION) {
+            if !self.isFirstAnonymousOperationErrorPushed {
+                OperationNode originalOperation = <OperationNode>self.operations[ANONYMOUS_OPERATION];
+                self.errors.push(getAnonymousOperationInMultipleOperationsError(originalOperation));
+                self.isFirstAnonymousOperationErrorPushed = true;
+            }
+            if operation.getName() == ANONYMOUS_OPERATION {
+                self.errors.push(getAnonymousOperationInMultipleOperationsError(operation));
+            }
+            return;
+        } else if operation.getName() == ANONYMOUS_OPERATION && self.operations.length() > 0 {
+            self.errors.push(getAnonymousOperationInMultipleOperationsError(operation));
+            self.isFirstAnonymousOperationErrorPushed = true;
+            return;
+        } else if self.operations.hasKey(operation.getName()) {
+            OperationNode originalOperation = <OperationNode>self.operations[operation.getName()];
+            string message = string `There can be only one operation named "${operation.getName()}".`;
+            Location l1 = originalOperation.getLocation();
+            Location l2 = operation.getLocation();
+            self.errors.push({message: message, locations: [l1, l2]});
+            return;
+        }
+        self.operations[operation.getName()] = operation;
+    }
+
+    isolated function addFragmentToMap(FragmentNode fragment) {
+        if self.fragments.hasKey(fragment.getName()) {
+            FragmentNode originalFragment = <FragmentNode>self.fragments[fragment.getName()];
+            if fragment.isInlineFragment() {
+                self.appendDuplicateInlineFragment(fragment, originalFragment);
+            } else {
+                string message = string `There can be only one fragment named "${fragment.getName()}".`;
+                Location l1 = originalFragment.getLocation();
+                Location l2 = fragment.getLocation();
+                self.errors.push({message: message, locations: [l1, l2]});
+                self.fragments[fragment.getName()] = fragment;
+            }
+        } else {
+            self.fragments[fragment.getName()] = fragment;
+        }
+    }
+
+    isolated function appendDuplicateInlineFragment(FragmentNode duplicate, FragmentNode original) {
+        FragmentNode modifiedNode = original.modifyWithSelections(duplicate.getSelections());
+        self.fragments[original.getName()] = modifiedNode;
     }
 }
 
