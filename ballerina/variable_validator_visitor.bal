@@ -25,14 +25,16 @@ class VariableValidatorVisitor {
     private ErrorDetail[] errors;
     map<parser:VariableNode> variableDefinitions;
     private (string|int)[] argumentPath;
+    private map<parser:ArgumentNode> modfiedArgumentNodes;
 
-    isolated function init(__Schema schema, map<json>? variableValues) {
+    isolated function init(__Schema schema, map<json>? variableValues, map<parser:ArgumentNode> modfiedArgumentNodes ) {
         self.schema = schema;
         self.visitedVariableDefinitions = [];
         self.errors = [];
         self.variables = variableValues == () ? {} : variableValues;
         self.variableDefinitions = {};
         self.argumentPath = [];
+        self.modfiedArgumentNodes = modfiedArgumentNodes;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -108,12 +110,14 @@ class VariableValidatorVisitor {
                     self.visitedVariableDefinitions.push(variableName);
                     string message = string `Unknown type "${argumentTypeName}".`;
                     self.errors.push(getErrorDetailRecord(message, variableNode.getLocation()));
-                    argumentNode.setInvalidVariableValue();
+                    // argumentNode.setInvalidVariableValue();
+                    self.modifyArgumentNode(argumentNode, containsInvalidValue = true);
                 }
             } else {
                 string message = string `Variable "$${variableName}" is not defined.`;
                 self.errors.push(getErrorDetailRecord(message, argumentNode.getLocation()));
-                argumentNode.setInvalidVariableValue();
+                // argumentNode.setInvalidVariableValue();
+                self.modifyArgumentNode(argumentNode, containsInvalidValue = true);
             }
             self.removePath();
         } else {
@@ -131,11 +135,17 @@ class VariableValidatorVisitor {
             }
 
             if argumentNode.getValue() is parser:ArgumentValue[] {
+                parser:ArgumentValue[] value = [];
                 foreach parser:ArgumentValue argField in <parser:ArgumentValue[]>argumentNode.getValue() {
                     if argField is parser:ArgumentNode {
                         argField.accept(self, inputValues);
+                        string hashCode = parser:getHashCode(argField);
+                        value.push(self.modfiedArgumentNodes.get(hashCode));
+                    } else {
+                        value.push(argField);
                     }
                 }
+                self.modifyArgumentNode(argumentNode, value = value);
             }
         }
     }
@@ -145,7 +155,8 @@ class VariableValidatorVisitor {
         string variableName = <string>argumentNode.getVariableName();
         parser:ArgumentNode? defaultValue = variable.getDefaultValue();
         if self.variables.hasKey(variableName) {
-            argumentNode.setKind(getArgumentTypeIdentifierFromType(variableType));
+            // argumentNode.setKind(getArgumentTypeIdentifierFromType(variableType));
+            self.modifyArgumentNode(argumentNode, kind = getArgumentTypeIdentifierFromType(variableType));
             json value = self.variables.get(variableName);
             self.setArgumentValue(value, argumentNode, variable.getTypeName(), variableType);
         } else if defaultValue is parser:ArgumentNode {
@@ -153,7 +164,8 @@ class VariableValidatorVisitor {
             if hasInvalidValue {
                 string message = getInvalidDefaultValueError(variableName, variable.getTypeName(), defaultValue);
                 self.errors.push(getErrorDetailRecord(message, defaultValue.getValueLocation()));
-                argumentNode.setInvalidVariableValue();
+                // argumentNode.setInvalidVariableValue();
+                self.modifyArgumentNode(argumentNode, containsInvalidValue = true);
             } else {
                 self.setDefaultValueToArgumentNode(argumentNode, getArgumentTypeIdentifierFromType(variableType),
                                                    defaultValue.getValue(), defaultValue.getValueLocation());
@@ -164,10 +176,13 @@ class VariableValidatorVisitor {
                 string message = string `Variable "$${variableName}" of required type ${variable.getTypeName()} was `+
                                  string `not provided.`;
                 self.errors.push(getErrorDetailRecord(message, location));
-                argumentNode.setInvalidVariableValue();
+                // argumentNode.setInvalidVariableValue();
+                self.modifyArgumentNode(argumentNode, containsInvalidValue = true);
+
             } else {
-                argumentNode.setValueLocation(location);
-                argumentNode.setVariableDefinition(false);
+                // argumentNode.setValueLocation(location);
+                // argumentNode.setVariableDefinition(false);
+                self.modifyArgumentNode(argumentNode, valueLocation = location, isVarDef = false);
             }
         }
     }
@@ -181,7 +196,8 @@ class VariableValidatorVisitor {
             return false;
         } else if defaultValue.getKind() == parser:T_INT &&
             getArgumentTypeIdentifierFromType(variableType) == parser:T_FLOAT {
-            defaultValue.setValue(defaultValue.getValue());
+            // defaultValue.setValue(defaultValue.getValue()); // *******
+            // self.modifyArgumentNode(defaultValue, value = defaultValue.getValue());
             return false;
         } else if defaultValue.getValue() is () && variableType.kind != NON_NULL {
             return false;
@@ -203,8 +219,8 @@ class VariableValidatorVisitor {
                         string listError = string `${getListElementError(self.argumentPath)}`;
                         string message = getInvalidDefaultValueError(listError, getTypeNameFromType(memberType), member);
                         self.errors.push(getErrorDetailRecord(message, member.getValueLocation()));
-                        member.setInvalidVariableValue();
-
+                        // member.setInvalidVariableValue();
+                        self.modifyArgumentNode(member, containsInvalidValue = true);
                     }
                 }
                 self.removePath();
@@ -219,10 +235,11 @@ class VariableValidatorVisitor {
     isolated function setDefaultValueToArgumentNode(parser:ArgumentNode argumentNode, parser:ArgumentType kind,
                                                     parser:ArgumentValue|parser:ArgumentValue[] defaultValue,
                                                     parser:Location valueLocation) {
-        argumentNode.setKind(kind);
-        argumentNode.setValue(defaultValue);
-        argumentNode.setValueLocation(valueLocation);
-        argumentNode.setVariableDefinition(false);
+        // argumentNode.setKind(kind);
+        // argumentNode.setValue(defaultValue);
+        // argumentNode.setValueLocation(valueLocation);
+        // argumentNode.setVariableDefinition(false);
+        self.modifyArgumentNode(argumentNode, kind = kind, value = defaultValue, valueLocation = valueLocation, containsInvalidValue = false);
     }
 
     isolated function setArgumentValue(json value, parser:ArgumentNode argument, string variableTypeName,
@@ -231,20 +248,25 @@ class VariableValidatorVisitor {
             return;
         } else if value !is () && (argument.getKind() == parser:T_INPUT_OBJECT ||
             argument.getKind() == parser:T_LIST || argument.getKind() == parser:T_IDENTIFIER) {
-            argument.setVariableValue(value);
+            // argument.setVariableValue(value);
+            self.modifyArgumentNode(argument, variableValue = value);
         } else if value is Scalar && getTypeNameFromScalarValue(<Scalar>value) == getTypeName(argument) {
-            argument.setVariableValue(value);
+            // argument.setVariableValue(value);
+            self.modifyArgumentNode(argument, variableValue = value);
         } else if getTypeName(argument) == FLOAT && value is decimal|int {
-            argument.setVariableValue(value);
+            // argument.setVariableValue(value);
+            self.modifyArgumentNode(argument, variableValue = value);
         } else if value is () && variableType.kind != NON_NULL {
-            argument.setVariableValue(value);
+            // argument.setVariableValue(value);
+            self.modifyArgumentNode(argument, variableValue = value);
         } else {
             string invalidValue = value is () ? "null": value.toString();
             string message = string `Variable ${<string> argument.getVariableName()} expected value of type ` +
                              string `"${variableTypeName}", found ${invalidValue}`;
             self.errors.push(getErrorDetailRecord(message, argument.getLocation()));
-            argument.setInvalidVariableValue();
-        }
+            // argument.setInvalidVariableValue();
+            self.modifyArgumentNode(argument, containsInvalidValue = true);
+            }
     }
 
     isolated function checkVariableUsageCompatibility(__Type varType, __InputValue[] inputValues,
@@ -257,7 +279,8 @@ class VariableValidatorVisitor {
                                  string `"${variable.getTypeName()}" used in position expecting type `+
                                  string `"${getTypeNameFromType(inputValue.'type)}".`;
                 self.errors.push(getErrorDetailRecord(message, argNode.getLocation()));
-                argNode.setInvalidVariableValue();
+                // argNode.setInvalidVariableValue();
+                self.modifyArgumentNode(argNode, containsInvalidValue = true);
             }
         }
     }
@@ -363,5 +386,24 @@ class VariableValidatorVisitor {
 
     public isolated function getErrors() returns ErrorDetail[]? {
         return self.errors.length() > 0 ? self.errors : ();
+    }
+
+    public isolated function modifyArgumentNode(parser:ArgumentNode argumentNode,
+        parser:ArgumentType? kind = (),
+        string? variableName = (),
+        parser:ArgumentValue|parser:ArgumentValue[] value = (),
+        Location? valueLocation = (),
+        boolean? isVarDef = (),
+        anydata variableValue = (),
+        boolean? containsInvalidValue = ()) {
+
+        string hashCode = parser:getHashCode(argumentNode);
+        if self.modfiedArgumentNodes.hasKey(hashCode) {
+            parser:ArgumentNode previouslyModifiedNode = self.modfiedArgumentNodes.get(hashCode);
+            self.modfiedArgumentNodes[hashCode] = previouslyModifiedNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+            return;
+        }
+        self.modfiedArgumentNodes[hashCode] = argumentNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+        return;
     }
 }

@@ -23,12 +23,18 @@ class FieldValidatorVisitor {
     private ErrorDetail[] errors;
     private map<string> usedFragments;
     private (string|int)[] argumentPath;
+    private map<()> fragmentWithCycles;
+    private map<()> unknowFragments;
+    private map<parser:ArgumentNode> modfiedArgumentNodes;
 
-    isolated function init(__Schema schema) {
+    isolated function init(__Schema schema, map<()> fragmentWithCycles, map<()> unknowFragments, map<parser:ArgumentNode> modfiedArgumentNodes) {
         self.schema = schema;
         self.errors = [];
         self.usedFragments = {};
         self.argumentPath = [];
+        self.fragmentWithCycles = fragmentWithCycles;
+        self.unknowFragments = unknowFragments;
+        self.modfiedArgumentNodes = modfiedArgumentNodes;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -93,24 +99,26 @@ class FieldValidatorVisitor {
     }
 
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {
-        if argumentNode.hasInvalidVariableValue() {
+        string hashCode = parser:getHashCode(argumentNode);
+        parser:ArgumentNode argNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argumentNode;
+        if argNode.hasInvalidVariableValue() {
             // This argument node is already validated to have an invalid value. No further validation is needed.
             return;
         }
         __InputValue schemaArg = <__InputValue>(<map<anydata>>data).get("input");
         string fieldName = <string>(<map<anydata>>data).get("fieldName");
-        if argumentNode.isVariableDefinition() {
-            self.validateVariableValue(argumentNode, schemaArg, fieldName);
-            argumentNode.setKind(getArgumentTypeIdentifierFromType(schemaArg.'type));
-        } else if argumentNode.getKind() == parser:T_INPUT_OBJECT {
-            self.visitInputObject(argumentNode, schemaArg, fieldName);
-        } else if argumentNode.getKind() == parser:T_LIST {
-            self.visitListValue(argumentNode, schemaArg, fieldName);
+        if argNode.isVariableDefinition() {
+            self.validateVariableValue(argNode, schemaArg, fieldName);
+            argNode.setKind(getArgumentTypeIdentifierFromType(schemaArg.'type));
+        } else if argNode.getKind() == parser:T_INPUT_OBJECT {
+            self.visitInputObject(argNode, schemaArg, fieldName);
+        } else if argNode.getKind() == parser:T_LIST {
+            self.visitListValue(argNode, schemaArg, fieldName);
         } else {
-            parser:ArgumentValue|parser:ArgumentValue[] fieldValue = argumentNode.getValue();
+            parser:ArgumentValue|parser:ArgumentValue[] fieldValue = argNode.getValue();
             if fieldValue is parser:ArgumentValue {
-                self.coerceArgumentNodeValue(argumentNode, schemaArg);
-                self.validateArgumentValue(fieldValue, argumentNode.getValueLocation(), getTypeName(argumentNode),
+                self.coerceArgumentNodeValue(argNode, schemaArg);
+                self.validateArgumentValue(fieldValue, argNode.getValueLocation(), getTypeName(argumentNode),
                                            schemaArg);
             }
         }
@@ -434,7 +442,8 @@ class FieldValidatorVisitor {
     }
 
     isolated function validateFragment(parser:FragmentNode fragmentNode, string schemaTypeName) returns __Type? {
-        if fragmentNode.isUnknown() || fragmentNode.hasCycle() {
+        if self.unknowFragments.hasKey(fragmentNode.getName()) 
+            || self.fragmentWithCycles.hasKey(fragmentNode.getName()) {
             return;
         }
         string fragmentOnTypeName = fragmentNode.getOnType();
@@ -542,6 +551,24 @@ class FieldValidatorVisitor {
 
     public isolated function getErrors() returns ErrorDetail[]? {
         return self.errors.length() > 0 ? self.errors : ();
+    }
+
+    public isolated function modifyArgumentNode(string hashCode, parser:ArgumentNode argumentNode,
+        parser:ArgumentType? kind = (),
+        string? variableName = (),
+        parser:ArgumentValue|parser:ArgumentValue[] value = (),
+        Location? valueLocation = (),
+        boolean? isVarDef = (),
+        anydata variableValue = (),
+        boolean? containsInvalidValue = ()) {
+
+        if self.modfiedArgumentNodes.hasKey(hashCode) {
+            parser:ArgumentNode previouslyModifiedNode = self.modfiedArgumentNodes.get(hashCode);
+            self.modfiedArgumentNodes[hashCode] = previouslyModifiedNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+            return;
+        }
+        self.modfiedArgumentNodes[hashCode] = argumentNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+        return;
     }
 }
 

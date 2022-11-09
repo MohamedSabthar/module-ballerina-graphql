@@ -33,7 +33,7 @@ public class Parser {
 
     public isolated function parse() returns DocumentNode|Error {
         check self.populateDocument();
-        DocumentNode document = new(self.operations, self.fragments, self.errors);
+        DocumentNode document = new(self.operations, self.fragments);
         return document;
     }
 
@@ -606,8 +606,12 @@ public class Parser {
     }
 
     isolated function appendDuplicateInlineFragment(FragmentNode duplicate, FragmentNode original) {
-        FragmentNode modifiedNode = original.modifyWithSelections(duplicate.getSelections());
+        FragmentNode modifiedNode = original.modifyWith(selections = duplicate.getSelections());
         self.fragments[original.getName()] = modifiedNode;
+    }
+
+    public isolated function getErrors() returns ErrorDetail[] {
+        return self.errors;
     }
 }
 

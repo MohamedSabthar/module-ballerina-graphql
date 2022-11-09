@@ -48,6 +48,7 @@ class DuplicateFieldRemoverVisitor {
 
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {}
 
+    // this function modifies the array
     private isolated function removeDuplicateSelections(parser:SelectionNode[] selections) {
         map<parser:FieldNode> visitedFields = {};
         map<parser:FragmentNode> visitedFragments = {};

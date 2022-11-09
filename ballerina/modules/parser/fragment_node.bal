@@ -92,21 +92,23 @@ public readonly class FragmentNode {
     //     self.unknownFragment = true;
     // }
 
-    public isolated function isUnknown() returns boolean {
-        return self.unknownFragment;
-    }
+    // public isolated function isUnknown() returns boolean {
+    //     return self.unknownFragment;
+    // }
 
     // public isolated function setHasCycle() {
     //     self.containsCycle = true;
     // }
 
-    public isolated function hasCycle() returns boolean {
-        return self.containsCycle;
-    }
+    // public isolated function hasCycle() returns boolean {
+    //     return self.containsCycle;
+    // }
 
-     public isolated function modifyWithSelections(SelectionNode[] selections) returns FragmentNode {
+     public isolated function modifyWith(SelectionNode[] selections = [], DirectiveNode[] directives = [], string onType = "") returns FragmentNode {
         selections.push(...self.selections);
-        return new (self.name, self.location, self.inlineFragment, self.spreadLocation,
-                                  self.onType, self.directives, selections);
+        directives.push(...self.directives);
+        string onTypeValue = onType == "" ? self.onType : onType;
+        return new (self.name, self.location, self.inlineFragment, self.spreadLocation, onTypeValue, directives,
+                    selections);
     }
 }

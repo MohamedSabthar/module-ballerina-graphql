@@ -19,13 +19,11 @@ public readonly class DocumentNode {
 
     private map<OperationNode> operations;
     private map<FragmentNode> fragments;
-    private ErrorDetail[] errors;
     private boolean isFirstAnonymousOperationErrorPushed;
 
-    public isolated function init(map<OperationNode> operations, map<FragmentNode> fragments, ErrorDetail[] errors) {
+    public isolated function init(map<OperationNode> operations, map<FragmentNode> fragments) {
         self.operations = operations.cloneReadOnly();
         self.fragments = fragments.cloneReadOnly();
-        self.errors = errors.cloneReadOnly();
         self.isFirstAnonymousOperationErrorPushed = false;
     }
 
@@ -86,9 +84,9 @@ public readonly class DocumentNode {
         return self.operations.toArray();
     }
 
-    public isolated function getErrors() returns ErrorDetail[] {
-        return self.errors;
-    }
+    // public isolated function getErrors() returns ErrorDetail[] {
+    //     return self.errors;
+    // }
 
     public isolated function getFragments() returns map<FragmentNode> {
         return self.fragments;
