@@ -20,9 +20,11 @@ class DefaultDirectiveProcessorVisitor {
     *parser:Visitor;
 
     private final __Schema schema;
+    private map<parser:Node> removedNodes;
 
-    isolated function init(__Schema schema) {
+    isolated function init(__Schema schema,map<parser:Node> removedNodes) {
         self.schema = schema;
+        self.removedNodes = removedNodes;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -41,7 +43,8 @@ class DefaultDirectiveProcessorVisitor {
         self.updateSelections(fragmentNode.getSelections());
     }
 
-    private isolated function updateSelections(parser:SelectionParentNode[] selections) {
+    private isolated function updateSelections(parser:SelectionParentNode[] selectionsNodes) {
+        parser:SelectionParentNode[] selections = [...selectionsNodes]; // temp
         int i = 0;
         while i < selections.length() {
             boolean isIncluded = self.includeField(selections[i].getDirectives());
@@ -49,7 +52,8 @@ class DefaultDirectiveProcessorVisitor {
                 selections[i].accept(self);
                 i += 1;
             } else {
-                _ = selections.remove(i);
+                var node = selections.remove(i); // ???????????
+                self.removedNodes[parser:getHashCode(node)] = node;
             }
         }
     }

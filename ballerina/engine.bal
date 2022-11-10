@@ -63,11 +63,12 @@ isolated class Engine {
 
     isolated function getResult(parser:OperationNode operationNode, Context context, any|error result = ())
     returns OutputObject {
-        DefaultDirectiveProcessorVisitor defaultDirectiveProcessor = new (self.schema);
-        DuplicateFieldRemoverVisitor duplicateFieldRemover = new;
+        map<parser:Node> removedNodes = {};
+        // DefaultDirectiveProcessorVisitor defaultDirectiveProcessor = new (self.schema, removedNodes);
+        DuplicateFieldRemoverVisitor duplicateFieldRemover = new(removedNodes);
 
         parser:Visitor[] updatingVisitors = [
-            defaultDirectiveProcessor,
+            // defaultDirectiveProcessor,
             duplicateFieldRemover
         ];
 
@@ -75,7 +76,7 @@ isolated class Engine {
             operationNode.accept(visitor);
         }
 
-        ExecutorVisitor executor = new (self, self.schema, context, result);
+        ExecutorVisitor executor = new (self, self.schema, context, removedNodes, result);
         operationNode.accept(executor);
         OutputObject outputObject = executor.getOutput();
         ResponseFormatter responseFormatter = new (self.schema);
@@ -93,15 +94,19 @@ isolated class Engine {
     }
 
     isolated function validateDocument(parser:DocumentNode document, map<json>? variables) returns OutputObject? {
-        ErrorDetail[] validationErrors = [];
+        ErrorDetail[] validationErrors = []; // parser.getErrors should call somewhere
+        map<()> fragmentWithCycles = {};
+        map<()> unknowFragments = {};
+        map<parser:FragmentNode> modifiedFragments = {};
+        map<parser:ArgumentNode> modfiedArgumentNodes = {};
         ValidatorVisitor[] validators = [
-            new FragmentCycleFinderVisitor(document.getFragments()),
-            new FragmentValidatorVisitor(document.getFragments()),
-            new QueryDepthValidatorVisitor(self.maxQueryDepth),
-            new VariableValidatorVisitor(self.schema, variables),
-            new FieldValidatorVisitor(self.schema),
-            new DirectiveValidatorVisitor(self.schema),
-            new SubscriptionValidatorVisitor()
+            new FragmentCycleFinderVisitor(document.getFragments(), fragmentWithCycles), // no change
+            new FragmentValidatorVisitor(document.getFragments(), fragmentWithCycles, unknowFragments, modifiedFragments), // modify
+            new QueryDepthValidatorVisitor(self.maxQueryDepth), // no change
+            new VariableValidatorVisitor(self.schema, variables, modfiedArgumentNodes), // modify
+            new FieldValidatorVisitor(self.schema, fragmentWithCycles, unknowFragments, modfiedArgumentNodes), // modify
+            new DirectiveValidatorVisitor(self.schema), // no change
+            new SubscriptionValidatorVisitor(modifiedFragments) // no change but uses modifed ones
         ];
         if !self.introspection {
             validators.push(new IntrospectionValidatorVisitor(self.introspection));
@@ -191,7 +196,7 @@ isolated class Engine {
                 }
             }
         }
-        ResponseGenerator responseGenerator = new (self, context, fieldType, 'field.getPath().clone());
+        ResponseGenerator responseGenerator = new (self, context, fieldType, 'field.getPath().clone(), 'field.getRemovedNodesMap());
         return responseGenerator.getResult(fieldValue, fieldNode);
     }
 

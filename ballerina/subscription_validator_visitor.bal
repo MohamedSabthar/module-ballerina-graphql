@@ -20,9 +20,10 @@ class SubscriptionValidatorVisitor {
     *ValidatorVisitor;
 
     private ErrorDetail[] errors;
-
-    public isolated function init() {
+    private map<parser:FragmentNode> modifiedFragments;
+    public isolated function init(map<parser:FragmentNode> modifiedFragments) {
         self.errors = [];
+        self.modifiedFragments = modifiedFragments;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -53,10 +54,15 @@ class SubscriptionValidatorVisitor {
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        if fragmentNode.getSelections().length() > 1 {
-            self.addErrorDetail(fragmentNode.getSelections()[1], <string>data);
+        string hashCode = parser:getHashCode(fragmentNode);
+        parser:FragmentNode fragment = self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : fragmentNode;
+        if fragment.getSelections().length() == 0 {
+            return;
+        }
+        if fragment.getSelections().length() > 1 {
+            self.addErrorDetail(fragment.getSelections()[1], <string>data);
         } else {
-            fragmentNode.getSelections()[0].accept(self, data);
+            fragment.getSelections()[0].accept(self, data);
         }
     }
 

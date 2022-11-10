@@ -29,7 +29,8 @@ public readonly class ArgumentNode {
 
     public isolated function init(string name, Location location, ArgumentType kind,
                                   boolean isVarDef = false, Location? valueLocation = (),
-                                  ArgumentValue|ArgumentValue[] value = (), string? variableName = ()) {
+                                  ArgumentValue|ArgumentValue[] value = (), string? variableName = (),
+                                  boolean containsInvalidValue = false, anydata variableValue=()) {
         self.name = name;
         self.location = location.cloneReadOnly();
         self.value = value.cloneReadOnly();
@@ -37,8 +38,8 @@ public readonly class ArgumentNode {
         self.kind = kind;
         self.variableDefinition = isVarDef;
         self.variableName = variableName;
-        self.variableValue = ();
-        self.containsInvalidValue = false;
+        self.variableValue = variableValue;
+        self.containsInvalidValue = containsInvalidValue;
     }
 
     public isolated function accept(Visitor visitor, anydata data = ()) {
@@ -107,5 +108,26 @@ public readonly class ArgumentNode {
 
     public isolated function hasInvalidVariableValue() returns boolean {
         return self.containsInvalidValue;
+    }
+
+    public isolated function modifyWith(
+            ArgumentType? kind = (),
+            string? variableName = (),
+            ArgumentValue|ArgumentValue[] value = (),
+            Location? valueLocation = (),
+            boolean? isVarDef = (),
+            anydata variableValue = (),
+            boolean? containsInvalidValue = ()) returns ArgumentNode {
+
+        string? modfiedVariableName = variableName is () ? self.variableName : variableName;
+        ArgumentType modfiedKind = kind is () ? self.kind : kind;
+        boolean variableDefinition = isVarDef is () ? self.variableDefinition : isVarDef;
+        Location? modifeidValueLocation = valueLocation is () ? self.valueLocation : valueLocation;
+        ArgumentValue|ArgumentValue[] modifedValue = value is () ? self.value : value;
+        boolean modifiedContainsInvalidValue = containsInvalidValue is () ? self.containsInvalidValue : containsInvalidValue;
+        anydata modifiedVariableValue = variableValue is () ? self.variableValue : variableValue;
+
+        return new (self.name, self.location, modfiedKind, variableDefinition, modifeidValueLocation,
+                    modifedValue, modfiedVariableName, modifiedContainsInvalidValue, modifiedVariableValue);
     }
 }

@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// import ballerina/lang.value;
 import graphql.parser;
 
 class FragmentValidatorVisitor {
@@ -22,11 +23,18 @@ class FragmentValidatorVisitor {
     private ErrorDetail[] errors;
     private map<parser:FragmentNode> usedFragments;
     private map<parser:FragmentNode> fragments;
+    private map<()> fragmentWithCycles;
+    private map<()> unknowFragments;
+    private map<parser:FragmentNode> modifiedFragments;
 
-    public isolated function init(map<parser:FragmentNode> fragments) {
+    public isolated function init(map<parser:FragmentNode> fragments, map<()> fragmentWithCycles,
+     map<()> unknowFragments, map<parser:FragmentNode> modifiedFragments) {
         self.errors = [];
         self.usedFragments = {};
         self.fragments = fragments;
+        self.fragmentWithCycles = fragmentWithCycles;
+        self.unknowFragments = unknowFragments;
+        self.modifiedFragments = modifiedFragments;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -40,7 +48,7 @@ class FragmentValidatorVisitor {
                 ErrorDetail errorDetail = getErrorDetailRecord(message, entry[1].getLocation());
                 self.errors.push(errorDetail);
             }
-            _ = documentNode.getFragments().remove(entry[0]);
+            // _ = documentNode.getFragments().remove(entry[0]); ??????????
         }
     }
 
@@ -59,7 +67,7 @@ class FragmentValidatorVisitor {
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {}
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        if fragmentNode.hasCycle() {
+        if self.fragmentWithCycles.hasKey(fragmentNode.getName()) {
             return;
         }
         self.appendNamedFragmentFields(fragmentNode);
@@ -79,18 +87,21 @@ class FragmentValidatorVisitor {
             string message = string`Unknown fragment "${fragmentNode.getName()}".`;
             ErrorDetail errorDetail = getErrorDetailRecord(message, fragmentNode.getLocation());
             self.errors.push(errorDetail);
-            fragmentNode.setUnknown();
+            self.unknowFragments[fragmentNode.getName()] = ();
         }
     }
 
     isolated function appendFields(parser:FragmentNode actualFragmentNode, parser:FragmentNode fragmentNode) {
-        fragmentNode.setOnType(actualFragmentNode.getOnType());
-        foreach parser:SelectionNode fragmentSelection in actualFragmentNode.getSelections() {
-            fragmentNode.addSelection(fragmentSelection);
-        }
-        foreach parser:DirectiveNode directive in actualFragmentNode.getDirectives() {
-            fragmentNode.addDirective(directive);
-        }
+        // fragmentNode.setOnType(actualFragmentNode.getOnType());
+        // foreach parser:SelectionNode fragmentSelection in actualFragmentNode.getSelections() {
+        //     fragmentNode.addSelection(fragmentSelection);
+        // }
+        // foreach parser:DirectiveNode directive in actualFragmentNode.getDirectives() {
+        //     fragmentNode.addDirective(directive);
+        // }
+        parser:FragmentNode modifiedFragmentNode = fragmentNode.modifyWith(actualFragmentNode.getSelections(),
+                                                    actualFragmentNode.getDirectives(), actualFragmentNode.getOnType());
+        self.modifiedFragments[parser:getHashCode(fragmentNode)] = modifiedFragmentNode;
     }
 
     public isolated function visitDirective(parser:DirectiveNode directiveNode, anydata data = ()) {}

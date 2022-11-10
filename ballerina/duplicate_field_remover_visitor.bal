@@ -18,9 +18,17 @@ import graphql.parser;
 
 class DuplicateFieldRemoverVisitor {
     *parser:Visitor;
+    private map<parser:Node> removedNodes;
+
+    isolated function init(map<parser:Node> removedNodes) {
+        self.removedNodes = removedNodes;
+    }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
         foreach parser:OperationNode operationNode in documentNode.getOperations() {
+            if self.removedNodes.hasKey(parser:getHashCode(operationNode)) {
+                continue;
+            }
             operationNode.accept(self);
         }
     }
@@ -28,6 +36,9 @@ class DuplicateFieldRemoverVisitor {
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
         self.removeDuplicateSelections(operationNode.getSelections());
         foreach parser:SelectionNode selection in operationNode.getSelections() {
+            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
+                continue;
+            }
             selection.accept(self);
         }
     }
@@ -35,6 +46,9 @@ class DuplicateFieldRemoverVisitor {
     public isolated function visitField(parser:FieldNode fieldNode, anydata data = ()) {
         self.removeDuplicateSelections(fieldNode.getSelections());
         foreach parser:SelectionNode selection in fieldNode.getSelections() {
+            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
+                continue;
+            }
             selection.accept(self);
         }
     }
@@ -42,13 +56,18 @@ class DuplicateFieldRemoverVisitor {
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
         self.removeDuplicateSelections(fragmentNode.getSelections());
         foreach parser:SelectionNode selection in fragmentNode.getSelections() {
+            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
+                continue;
+            }
             selection.accept(self);
         }
     }
 
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {}
 
-    private isolated function removeDuplicateSelections(parser:SelectionNode[] selections) {
+    // this function modifies the array
+    private isolated function removeDuplicateSelections(parser:SelectionNode[] selectionsNodes) {
+        parser:SelectionNode[] selections = [...selectionsNodes]; // temp
         map<parser:FieldNode> visitedFields = {};
         map<parser:FragmentNode> visitedFragments = {};
         int i = 0;
@@ -57,7 +76,8 @@ class DuplicateFieldRemoverVisitor {
             if selection is parser:FragmentNode {
                 if visitedFragments.hasKey(selection.getOnType()) {
                     self.appendDuplicates(selection, visitedFragments.get(selection.getOnType()));
-                    _ = selections.remove(i);
+                    var node = selections.remove(i); // ????????????????
+                    self.removedNodes[parser:getHashCode(node)] = node;
                     i -= 1;
                 } else {
                     visitedFragments[selection.getOnType()] = selection;
@@ -65,7 +85,8 @@ class DuplicateFieldRemoverVisitor {
             } else if selection is parser:FieldNode {
                 if visitedFields.hasKey(selection.getAlias()) {
                     self.appendDuplicates(selection, visitedFields.get(selection.getAlias()));
-                    _ = selections.remove(i);
+                    var node = selections.remove(i); // ?????????????????
+                    self.removedNodes[parser:getHashCode(node)] = node;
                     i -= 1;
                 } else {
                     visitedFields[selection.getAlias()] = selection;
@@ -79,7 +100,7 @@ class DuplicateFieldRemoverVisitor {
 
     private isolated function appendDuplicates(parser:SelectionParentNode duplicate, parser:SelectionParentNode original) {
         foreach parser:SelectionNode selection in duplicate.getSelections() {
-            original.addSelection(selection);
+            // original.addSelection(selection); ?????????????????
         }
     }
 
