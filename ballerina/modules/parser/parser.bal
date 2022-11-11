@@ -207,7 +207,7 @@ public class Parser {
         Token token = check self.readNextNonSeparatorToken();
         string alias = check getIdentifierTokenvalue(token);
         string name = check self.getNameWhenAliasPresent(alias);
-
+        Location fieldNodeLocation = token.location;
         ArgumentNode[] argumentNodes = check self.addArgumentsToSelection();
         DirectiveNode[] directiveNodes = check self.addDirectivesToSelection(FIELD);
         token = check self.peekNextNonSeparatorToken();
@@ -215,7 +215,7 @@ public class Parser {
         if token.kind == T_OPEN_BRACE {
             selectionNodes = check self.addSelections(name);
         }
-        FieldNode fieldNode = new (name, token.location, alias, selections = selectionNodes, arguments = argumentNodes, directives = directiveNodes);
+        FieldNode fieldNode = new (name, fieldNodeLocation, alias, selections = selectionNodes, arguments = argumentNodes, directives = directiveNodes);
         return fieldNode;
     }
 
