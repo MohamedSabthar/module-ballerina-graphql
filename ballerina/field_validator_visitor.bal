@@ -463,8 +463,9 @@ class FieldValidatorVisitor {
     }
 
     isolated function validateFragment(parser:FragmentNode fragmentNode, string schemaTypeName) returns __Type? {
-        if self.unknowFragments.hasKey(fragmentNode.getName()) 
-            || self.fragmentWithCycles.hasKey(fragmentNode.getName()) {
+        string hashCode = parser:getHashCode(fragmentNode);
+        if self.unknowFragments.hasKey(hashCode) 
+            || self.fragmentWithCycles.hasKey(hashCode) {
             return;
         }
         string fragmentOnTypeName = fragmentNode.getOnType();

@@ -97,7 +97,7 @@ public readonly class OperationNode {
         return self.cofiguredInSchema;
     }
 
-    public isolated function modifyWith(map<VariableNode> variables, SelectionNode[] selections) returns OperationNode {
-        return new(self.name, self.kind, self.location, selections, variables, self.directives);
+    public isolated function modifyWith(map<VariableNode> variables, SelectionNode[] selections, DirectiveNode[] directives) returns OperationNode {
+        return new(self.name, self.kind, self.location, selections, variables, directives);
     }
 }

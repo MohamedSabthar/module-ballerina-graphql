@@ -174,7 +174,7 @@ isolated function testDirectivesWithServiceReturningObjectsArray() returns error
 }
 
 @test:Config {
-    groups: ["directives", "input"]
+    groups: ["directives", "input", "a"]
 }
 isolated function testDirectivesSkipAllSelections() returns error? {
     string document = string`query getData { profile(id: 1) @skip(if: true) { name } }`;

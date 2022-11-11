@@ -43,6 +43,9 @@ class ResponseGenerator {
             return self.addError(parentValue, parentNode);
         }
         if parentValue is Scalar || parentValue is Scalar[] {
+            if !includeField(parentNode.getDirectives()) || self.removedNodes.hasKey(parser:getHashCode(parentNode)) {
+                return;
+            }
             return parentValue;
         }
         if parentValue is map<any> {

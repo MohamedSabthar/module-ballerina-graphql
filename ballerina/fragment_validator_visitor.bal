@@ -68,7 +68,7 @@ class FragmentValidatorVisitor {
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {}
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        if self.fragmentWithCycles.hasKey(fragmentNode.getName()) {
+        if self.fragmentWithCycles.hasKey(parser:getHashCode(fragmentNode)) {
             return;
         }
         self.appendNamedFragmentFields(fragmentNode);
@@ -90,7 +90,7 @@ class FragmentValidatorVisitor {
             string message = string`Unknown fragment "${fragmentNode.getName()}".`;
             ErrorDetail errorDetail = getErrorDetailRecord(message, fragmentNode.getLocation());
             self.errors.push(errorDetail);
-            self.unknowFragments[fragmentNode.getName()] = ();
+            self.unknowFragments[parser:getHashCode(fragmentNode)] = ();
         }
     }
 

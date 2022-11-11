@@ -42,6 +42,12 @@ class TreeModifierVisitor {
     }
 
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
+            parser:DirectiveNode[] directives = [];
+            foreach parser:DirectiveNode directiveNode in operationNode.getDirectives() {
+                directiveNode.accept(self);
+                parser:DirectiveNode directive = <parser:DirectiveNode>self.getModifiedNode(directiveNode);
+                directives.push(directive);
+            }
             map<parser:VariableNode> variables = {};
             foreach [string, parser:VariableNode] [key, variableNode] in operationNode.getVaribleDefinitions().entries() {
                 variableNode.accept(self);
@@ -54,7 +60,7 @@ class TreeModifierVisitor {
                 selections.push(selection);
             }
             string hashCode = parser:getHashCode(operationNode);
-            self.modifiedNodes[hashCode] = operationNode.modifyWith(variables, selections);
+            self.modifiedNodes[hashCode] = operationNode.modifyWith(variables, selections, directives);
     }
 
     public isolated function visitField(parser:FieldNode fieldNode, anydata data = ()) {
