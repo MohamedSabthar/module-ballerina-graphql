@@ -291,7 +291,7 @@ isolated function testNestedFragmentsQueryingServiceObjectsWithMultipleFields() 
 }
 
 @test:Config {
-    groups: ["fragments"]
+    groups: ["fragments","a"]
 }
 isolated function testFragmentsWithCycles() returns error? {
     string document = check getGraphQLDocumentFromFile("fragments_with_cycles.graphql");

@@ -104,10 +104,10 @@ public readonly class FragmentNode {
     //     return self.containsCycle;
     // }
 
-    public isolated function modifyWith(SelectionNode[] selections = [], DirectiveNode[] directives = [], string onType = "") returns FragmentNode {
+    public isolated function modifyWith(SelectionNode[] selections = [], DirectiveNode[] directives = [], string? onType = ()) returns FragmentNode {
         SelectionNode[] combinedSelections = [...selections, ...self.selections];
         DirectiveNode[] combinedDirectives = [...directives, ...self.directives];
-        string onTypeValue = onType == "" ? self.onType : onType;
+        string onTypeValue = onType is () ? self.onType : onType;
         return new (self.name, self.location, self.inlineFragment, self.spreadLocation, onTypeValue, combinedDirectives,
                     combinedSelections);
     }

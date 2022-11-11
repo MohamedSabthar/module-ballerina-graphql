@@ -41,14 +41,15 @@ class FragmentValidatorVisitor {
         foreach parser:OperationNode operation in documentNode.getOperations() {
             operation.accept(self);
         }
-
-        foreach [string, parser:FragmentNode] entry in documentNode.getFragments().entries() {
+        map<parser:FragmentNode> fragments = {...documentNode.getFragments()};
+        foreach [string, parser:FragmentNode] entry in fragments.entries() {
             if !self.usedFragments.hasKey(entry[0]) {
                 string message = string`Fragment "${entry[0]}" is never used.`;
                 ErrorDetail errorDetail = getErrorDetailRecord(message, entry[1].getLocation());
                 self.errors.push(errorDetail);
             }
             // _ = documentNode.getFragments().remove(entry[0]); ??????????
+            _ = fragments.remove(entry[0]);
         }
     }
 
