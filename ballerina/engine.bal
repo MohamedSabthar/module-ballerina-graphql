@@ -53,10 +53,11 @@ isolated class Engine {
             return result;
         }
         parser:DocumentNode document = <parser:DocumentNode>result;
-        OutputObject? validationResult = self.validateDocument(document, variables);
+        OutputObject|parser:DocumentNode validationResult = self.validateDocument(document, variables);
         if validationResult is OutputObject {
             return validationResult;
         } else {
+            document = validationResult; // updated tree
             return self.getOperation(document, operationName);
         }
     }
@@ -93,7 +94,7 @@ isolated class Engine {
         return getOutputObjectFromErrorDetail(errorDetail);
     }
 
-    isolated function validateDocument(parser:DocumentNode document, map<json>? variables) returns OutputObject? {
+    isolated function validateDocument(parser:DocumentNode document, map<json>? variables) returns OutputObject|parser:DocumentNode {
         ErrorDetail[] validationErrors = []; // parser.getErrors should call somewhere
         map<()> fragmentWithCycles = {};
         map<()> unknowFragments = {};
@@ -101,15 +102,15 @@ isolated class Engine {
         map<parser:ArgumentNode> modfiedArgumentNodes = {};
         ValidatorVisitor[] validators = [
             new FragmentCycleFinderVisitor(document.getFragments(), fragmentWithCycles), // no change
-            new FragmentValidatorVisitor(document.getFragments(), fragmentWithCycles, unknowFragments, modifiedFragments), // modify
-            new QueryDepthValidatorVisitor(self.maxQueryDepth), // no change
-            new VariableValidatorVisitor(self.schema, variables, modfiedArgumentNodes), // modify
-            new FieldValidatorVisitor(self.schema, fragmentWithCycles, unknowFragments, modfiedArgumentNodes), // modify
-            new DirectiveValidatorVisitor(self.schema), // no change
+            new FragmentValidatorVisitor(document.getFragments(), fragmentWithCycles, unknowFragments, modifiedFragments), // modify frag nodes
+            new QueryDepthValidatorVisitor(self.maxQueryDepth, modifiedFragments), // no change
+            new VariableValidatorVisitor(self.schema, variables, modifiedFragments, modfiedArgumentNodes), // modify arg nodes
+            new FieldValidatorVisitor(self.schema, fragmentWithCycles, unknowFragments, modifiedFragments, modfiedArgumentNodes), // modify arg node
+            new DirectiveValidatorVisitor(self.schema, modifiedFragments, modfiedArgumentNodes), // no change
             new SubscriptionValidatorVisitor(modifiedFragments) // no change but uses modifed ones
         ];
         if !self.introspection {
-            validators.push(new IntrospectionValidatorVisitor(self.introspection));
+            validators.push(new IntrospectionValidatorVisitor(self.introspection, modifiedFragments)); // no change
         }
 
         foreach ValidatorVisitor validator in validators {
@@ -119,7 +120,13 @@ isolated class Engine {
                 validationErrors.push(...errors);
             }
         }
-        return validationErrors.length() == 0 ? () : getOutputObjectFromErrorDetail(validationErrors);
+        if validationErrors.length() > 0 {
+            return getOutputObjectFromErrorDetail(validationErrors);
+        } else {
+            TreeModifierVisitor treeModifierVisitor = new(modifiedFragments, modfiedArgumentNodes);
+             document.accept(treeModifierVisitor);
+             return treeModifierVisitor.getDocumentNode();
+        }
     }
 
     isolated function getOperation(parser:DocumentNode document, string? operationName)

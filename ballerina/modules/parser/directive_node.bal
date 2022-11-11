@@ -52,4 +52,8 @@ public readonly class DirectiveNode {
     public isolated function getDirectiveLocation() returns DirectiveLocation {
         return self.directiveLocation;
     }
+
+    public isolated function modifyWith(ArgumentNode[] argumentNodes) returns DirectiveNode {
+        return new(self.name, self.location, self.directiveLocation, argumentNodes);
+    }
 }

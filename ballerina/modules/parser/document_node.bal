@@ -19,12 +19,12 @@ public readonly class DocumentNode {
 
     private map<OperationNode> operations;
     private map<FragmentNode> fragments;
-    private boolean isFirstAnonymousOperationErrorPushed;
+    // private boolean isFirstAnonymousOperationErrorPushed;
 
     public isolated function init(map<OperationNode> operations, map<FragmentNode> fragments) {
         self.operations = operations.cloneReadOnly();
         self.fragments = fragments.cloneReadOnly();
-        self.isFirstAnonymousOperationErrorPushed = false;
+        // self.isFirstAnonymousOperationErrorPushed = false;
     }
 
     public isolated function accept(Visitor visitor, anydata data = ()) {
@@ -94,5 +94,9 @@ public readonly class DocumentNode {
 
     public isolated function getFragment(string name) returns FragmentNode? {
         return self.fragments[name];
+    }
+
+    public isolated function modifyWith(map<OperationNode> operations) returns DocumentNode {
+        return new(operations, {});
     }
 }

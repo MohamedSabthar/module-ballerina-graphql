@@ -23,12 +23,14 @@ class QueryDepthValidatorVisitor {
     private int maxQueryDepth;
     private int queryDepthLimit;
     private ErrorDetail[] errors;
+    private map<parser:FragmentNode> modifiedFragments;
 
-    public isolated function init(int? queryDepthLimit) {
+    public isolated function init(int? queryDepthLimit, map<parser:FragmentNode> modifiedFragments) {
         self.queryDepth = 0;
         self.maxQueryDepth = 0;
         self.queryDepthLimit = queryDepthLimit is int ? queryDepthLimit : 0;
         self.errors = [];
+        self.modifiedFragments = modifiedFragments;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -75,7 +77,9 @@ class QueryDepthValidatorVisitor {
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        foreach parser:SelectionNode selection in fragmentNode.getSelections() {
+        string hashCode = parser:getHashCode(fragmentNode);
+        parser:FragmentNode fragment = self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : fragmentNode;
+        foreach parser:SelectionNode selection in fragment.getSelections() {
             selection.accept(self);
         }
     }

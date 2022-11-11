@@ -26,8 +26,9 @@ class FieldValidatorVisitor {
     private map<()> fragmentWithCycles;
     private map<()> unknowFragments;
     private map<parser:ArgumentNode> modfiedArgumentNodes;
+    private map<parser:FragmentNode> modifiedFragments;
 
-    isolated function init(__Schema schema, map<()> fragmentWithCycles, map<()> unknowFragments, map<parser:ArgumentNode> modfiedArgumentNodes) {
+    isolated function init(__Schema schema, map<()> fragmentWithCycles, map<()> unknowFragments, map<parser:FragmentNode> modifiedFragments, map<parser:ArgumentNode> modfiedArgumentNodes) {
         self.schema = schema;
         self.errors = [];
         self.usedFragments = {};
@@ -35,6 +36,7 @@ class FieldValidatorVisitor {
         self.fragmentWithCycles = fragmentWithCycles;
         self.unknowFragments = unknowFragments;
         self.modfiedArgumentNodes = modfiedArgumentNodes;
+        self.modifiedFragments = modifiedFragments;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -85,14 +87,16 @@ class FieldValidatorVisitor {
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
+        string hashCode = parser:getHashCode(fragmentNode);
+        parser:FragmentNode fragment = self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : fragmentNode;
         __Field parentField = <__Field>data;
         __Type parentType = <__Type>getOfType(parentField.'type);
-        __Type? fragmentOnType = self.validateFragment(fragmentNode, <string>parentType.name);
+        __Type? fragmentOnType = self.validateFragment(fragment, <string>parentType.name);
 
         if fragmentOnType is __Type {
             parentField = createField(getOfTypeName(fragmentOnType), fragmentOnType);
-            self.validateDirectiveArguments(fragmentNode);
-            foreach parser:SelectionNode selection in fragmentNode.getSelections() {
+            self.validateDirectiveArguments(fragment);
+            foreach parser:SelectionNode selection in fragment.getSelections() {
                 selection.accept(self, data);
             }
         }
@@ -119,7 +123,7 @@ class FieldValidatorVisitor {
             parser:ArgumentValue|parser:ArgumentValue[] fieldValue = argNode.getValue();
             if fieldValue is parser:ArgumentValue {
                 self.coerceArgumentNodeValue(argNode, schemaArg, hashCode);
-                self.validateArgumentValue(fieldValue, argNode.getValueLocation(), getTypeName(argumentNode),
+                self.validateArgumentValue(fieldValue, argNode.getValueLocation(), getTypeName(argNode),
                                            schemaArg);
             }
         }

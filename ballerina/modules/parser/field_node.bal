@@ -74,4 +74,8 @@ public readonly class FieldNode {
     public isolated function getDirectives() returns DirectiveNode[] {
         return self.directives;
     }
+
+    public isolated function modifyWith(ArgumentNode[] arguments, SelectionNode[] selections, DirectiveNode[] directives) returns FieldNode {
+        return new(self.name, self.location, self.alias, arguments, selections, directives);
+    }
 }

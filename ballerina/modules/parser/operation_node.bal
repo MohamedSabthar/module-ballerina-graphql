@@ -96,4 +96,8 @@ public readonly class OperationNode {
     public isolated function isConfiguredOperationInSchema() returns boolean {
         return self.cofiguredInSchema;
     }
+
+    public isolated function modifyWith(map<VariableNode> variables, SelectionNode[] selections) returns OperationNode {
+        return new(self.name, self.kind, self.location, selections, variables, self.directives);
+    }
 }
