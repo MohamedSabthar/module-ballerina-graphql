@@ -244,7 +244,7 @@ class VariableValidatorVisitor {
         // argumentNode.setValue(defaultValue);
         // argumentNode.setValueLocation(valueLocation);
         // argumentNode.setVariableDefinition(false);
-        self.modifyArgumentNode(argumentNode, kind = kind, value = defaultValue, valueLocation = valueLocation, containsInvalidValue = false);
+        self.modifyArgumentNode(argumentNode, kind = kind, value = defaultValue, valueLocation = valueLocation, isVarDef = false);
     }
 
     isolated function setArgumentValue(json value, parser:ArgumentNode argument, string variableTypeName,

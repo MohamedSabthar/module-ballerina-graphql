@@ -50,7 +50,6 @@ class TreeModifierVisitor {
             parser:SelectionNode[] selections = [];
             foreach parser:SelectionNode selectionNode in operationNode.getSelections() {
                 selectionNode.accept(self);
-                string hashCode = parser:getHashCode(selectionNode);
                 parser:SelectionNode selection = <parser:SelectionNode>self.getModifiedNode(selectionNode);
                 selections.push(selection);
             }
@@ -62,21 +61,18 @@ class TreeModifierVisitor {
         parser:ArgumentNode[] arguments = [];
         foreach parser:ArgumentNode argumentNode in fieldNode.getArguments() {
             argumentNode.accept(self);
-            string hashCode = parser:getHashCode(argumentNode);
             parser:ArgumentNode argument = <parser:ArgumentNode>self.getModifiedNode(argumentNode);
             arguments.push(argument);
         }
         parser:SelectionNode[] selections = [];
         foreach parser:SelectionNode selectionNode in fieldNode.getSelections() {
             selectionNode.accept(self);
-            string hashCode = parser:getHashCode(selectionNode);
             parser:SelectionNode selection = <parser:SelectionNode>self.getModifiedNode(selectionNode);
             selections.push(selection);
         }
         parser:DirectiveNode[] directives = [];
         foreach parser:DirectiveNode directiveNode in fieldNode.getDirectives() {
             directiveNode.accept(self);
-            string hashCode = parser:getHashCode(directiveNode);
             parser:DirectiveNode directive = <parser:DirectiveNode>self.getModifiedNode(directiveNode);
             directives.push(directive);
         }
@@ -90,14 +86,12 @@ class TreeModifierVisitor {
         parser:SelectionNode[] selections = [];
         foreach parser:SelectionNode selectionNode in fragment.getSelections() {
             selectionNode.accept(self);
-            string hashCode = parser:getHashCode(selectionNode);
             parser:SelectionNode selection = <parser:SelectionNode>self.getModifiedNode(selectionNode);
             selections.push(selection);
         }
         parser:DirectiveNode[] directives = [];
         foreach parser:DirectiveNode directiveNode in fragment.getDirectives() {
             directiveNode.accept(self);
-            string hashCode = parser:getHashCode(directiveNode);
             parser:DirectiveNode directive = <parser:DirectiveNode>self.getModifiedNode(directiveNode);
             directives.push(directive);
         }
@@ -115,7 +109,6 @@ class TreeModifierVisitor {
         parser:ArgumentNode[] arguments = [];
         foreach parser:ArgumentNode argumentNode in directiveNode.getArguments() {
             argumentNode.accept(self);
-            string hashCode = parser:getHashCode(argumentNode);
             parser:ArgumentNode argument = <parser:ArgumentNode>self.getModifiedNode(argumentNode);
             arguments.push(argument);
         }

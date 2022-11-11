@@ -113,6 +113,8 @@ class FieldValidatorVisitor {
         string fieldName = <string>(<map<anydata>>data).get("fieldName");
         if argNode.isVariableDefinition() {
             self.validateVariableValue(argNode, schemaArg, fieldName, hashCode); // this modifies argNode
+            hashCode = parser:getHashCode(argNode);
+            argNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argNode;
             self.modifyArgumentNode(hashCode, argNode, kind = getArgumentTypeIdentifierFromType(schemaArg.'type));
             argNode = self.modfiedArgumentNodes.get(hashCode);
         } else if argNode.getKind() == parser:T_INPUT_OBJECT {
