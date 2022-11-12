@@ -17,7 +17,7 @@
 import ballerina/test;
 
 @test:Config {
-    groups: ["directives", "fragments", "input", "a"]
+    groups: ["directives", "fragments", "input"]
 }
 isolated function testDirectives() returns error? {
     string document = check getGraphQLDocumentFromFile("directives.graphql");
@@ -134,7 +134,7 @@ isolated function testDuplicateDirectivesInSameLocation() returns error? {
 }
 
 @test:Config {
-    groups: ["directives", "variables"]
+    groups: ["directives", "variables", "a"]
 }
 isolated function testDirectivesWithDuplicateFields() returns error? {
     string document = check getGraphQLDocumentFromFile("directives_with_duplicate_fields.graphql");

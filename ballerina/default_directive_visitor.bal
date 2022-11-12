@@ -50,11 +50,11 @@ class DefaultDirectiveProcessorVisitor {
             boolean isIncluded = self.includeField(selections[i].getDirectives());
             if isIncluded {
                 selections[i].accept(self);
-                i += 1;
             } else {
-                var node = selections.remove(i); // ???????????
-                self.removedNodes[parser:getHashCode(node)] = node;
+                // var node = selections.remove(i); // ???????????
+                self.removedNodes[parser:getHashCode(selections[i])] = selections[i];
             }
+            i += 1;
         }
     }
 
