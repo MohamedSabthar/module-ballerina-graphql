@@ -27,8 +27,10 @@ class FieldValidatorVisitor {
     private map<()> unknowFragments;
     private map<parser:ArgumentNode> modfiedArgumentNodes;
     private map<parser:SelectionNode> modifiedSelections;
+    private map<()> nonConfiguredOperationNodesInSchema;
 
-    isolated function init(__Schema schema, map<()> fragmentWithCycles, map<()> unknowFragments, map<parser:SelectionNode> modifiedSelections, map<parser:ArgumentNode> modfiedArgumentNodes) {
+    isolated function init(__Schema schema, map<()> fragmentWithCycles, map<()> unknowFragments, map<parser:SelectionNode> modifiedSelections,
+     map<parser:ArgumentNode> modfiedArgumentNodes, map<()> nonConfiguredOperationNodesInSchema) {
         self.schema = schema;
         self.errors = [];
         self.usedFragments = {};
@@ -37,6 +39,7 @@ class FieldValidatorVisitor {
         self.unknowFragments = unknowFragments;
         self.modfiedArgumentNodes = modfiedArgumentNodes;
         self.modifiedSelections = modifiedSelections;
+        self.nonConfiguredOperationNodesInSchema = nonConfiguredOperationNodesInSchema;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -46,7 +49,7 @@ class FieldValidatorVisitor {
     }
 
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
-        __Field? operationField = createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors);
+        __Field? operationField = createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors, self.nonConfiguredOperationNodesInSchema);
         if operationField is __Field {
             foreach parser:SelectionNode selection in operationNode.getSelections() {
                 selection.accept(self, operationField);
@@ -595,8 +598,12 @@ class FieldValidatorVisitor {
 }
 
 isolated function createSchemaFieldFromOperation(__Type[] typeArray, parser:OperationNode operationNode,
-                                                 ErrorDetail[] errors) returns __Field? {
-    if !operationNode.isConfiguredOperationInSchema() {
+                                                 ErrorDetail[] errors, map<()> nonConfiguredOperationNodesInSchema) returns __Field? {
+    // if !operationNode.isConfiguredOperationInSchema() {
+    //     return;
+    // }
+    string hashCode = parser:getHashCode(operationNode);
+    if nonConfiguredOperationNodesInSchema.hasKey(hashCode) {
         return;
     }
     parser:RootOperationType operationType = operationNode.getKind();
@@ -606,6 +613,7 @@ isolated function createSchemaFieldFromOperation(__Type[] typeArray, parser:Oper
         string message = string `Schema is not configured for ${operationType.toString()}s.`;
         errors.push(getErrorDetailRecord(message, operationNode.getLocation()));
         // operationNode.setNotConfiguredOperationInSchema(); // #################
+        nonConfiguredOperationNodesInSchema[hashCode] = ();
     } else {
         return createField(operationTypeName, 'type);
     }

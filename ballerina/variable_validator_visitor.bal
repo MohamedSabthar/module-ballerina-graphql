@@ -27,8 +27,11 @@ class VariableValidatorVisitor {
     private (string|int)[] argumentPath;
     private map<parser:SelectionNode> modifiedSelections;
     private map<parser:ArgumentNode> modfiedArgumentNodes;
+    private map<()> nonConfiguredOperationNodesInSchema;
+    
 
-    isolated function init(__Schema schema, map<json>? variableValues, map<parser:SelectionNode> modifiedSelections, map<parser:ArgumentNode> modfiedArgumentNodes) {
+    isolated function init(__Schema schema, map<json>? variableValues, map<parser:SelectionNode> modifiedSelections,
+        map<parser:ArgumentNode> modfiedArgumentNodes, map<()> nonConfiguredOperationNodesInSchema) {
         self.schema = schema;
         self.visitedVariableDefinitions = [];
         self.errors = [];
@@ -37,6 +40,7 @@ class VariableValidatorVisitor {
         self.argumentPath = [];
         self.modfiedArgumentNodes = modfiedArgumentNodes;
         self.modifiedSelections = modifiedSelections;
+        self.nonConfiguredOperationNodesInSchema = nonConfiguredOperationNodesInSchema;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -49,7 +53,7 @@ class VariableValidatorVisitor {
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
         self.variableDefinitions = operationNode.getVaribleDefinitions();
         __Field? schemaFieldForOperation =
-            createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors);
+            createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors, self.nonConfiguredOperationNodesInSchema);
         // foreach ErrorDetail errorDetail in operationNode.getErrors() {
         //     self.errors.push(errorDetail);
         // }

@@ -105,12 +105,13 @@ isolated class Engine {
         map<()> unknowFragments = {};
         map<parser:SelectionNode> modifiedSelections = {};
         map<parser:ArgumentNode> modfiedArgumentNodes = {};
+        map<()> nonConfiguredOperationNodesInSchema = {};
         ValidatorVisitor[] validators = [
             new FragmentCycleFinderVisitor(document.getFragments(), fragmentWithCycles), // no change
             new FragmentValidatorVisitor(document.getFragments(), fragmentWithCycles, unknowFragments, modifiedSelections), // modify frag nodes
             new QueryDepthValidatorVisitor(self.maxQueryDepth, modifiedSelections), // no change
-            new VariableValidatorVisitor(self.schema, variables, modifiedSelections, modfiedArgumentNodes), // modify arg nodes
-            new FieldValidatorVisitor(self.schema, fragmentWithCycles, unknowFragments, modifiedSelections, modfiedArgumentNodes), // modify arg node
+            new VariableValidatorVisitor(self.schema, variables, modifiedSelections, modfiedArgumentNodes, nonConfiguredOperationNodesInSchema), // modify arg nodes
+            new FieldValidatorVisitor(self.schema, fragmentWithCycles, unknowFragments, modifiedSelections, modfiedArgumentNodes, nonConfiguredOperationNodesInSchema), // modify arg node
             new DirectiveValidatorVisitor(self.schema, modifiedSelections, modfiedArgumentNodes), // no change
             new SubscriptionValidatorVisitor(modifiedSelections) // no change but uses modifed ones
         ];
