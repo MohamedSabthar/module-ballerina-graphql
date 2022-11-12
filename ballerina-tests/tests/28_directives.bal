@@ -17,7 +17,7 @@
 import ballerina/test;
 
 @test:Config {
-    groups: ["directives", "fragments", "input"]
+    groups: ["directives", "fragments", "input", "a"]
 }
 isolated function testDirectives() returns error? {
     string document = check getGraphQLDocumentFromFile("directives.graphql");
@@ -174,7 +174,7 @@ isolated function testDirectivesWithServiceReturningObjectsArray() returns error
 }
 
 @test:Config {
-    groups: ["directives", "input", "a"]
+    groups: ["directives", "input"]
 }
 isolated function testDirectivesSkipAllSelections() returns error? {
     string document = string`query getData { profile(id: 1) @skip(if: true) { name } }`;

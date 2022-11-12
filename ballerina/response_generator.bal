@@ -43,9 +43,9 @@ class ResponseGenerator {
             return self.addError(parentValue, parentNode);
         }
         if parentValue is Scalar || parentValue is Scalar[] {
-            if !includeField(parentNode.getDirectives()) || self.removedNodes.hasKey(parser:getHashCode(parentNode)) {
-                return;
-            }
+            // if !includeField(parentNode.getDirectives()) || self.removedNodes.hasKey(parser:getHashCode(parentNode)) {
+            //     return;
+            // }
             return parentValue;
         }
         if parentValue is map<any> {
@@ -118,12 +118,12 @@ class ResponseGenerator {
     isolated function getResultFromRecord(map<any> parentValue, parser:FieldNode parentNode) returns anydata {
         Data result = {};
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-                continue;
-            }
-            if !includeField(selection.getDirectives()) {
-                continue;
-            }
+            // if self.removedNodes.hasKey(parser:getHashCode(selection)) {
+            //     continue;
+            // }
+            // if !includeField(selection.getDirectives()) {
+            //     continue;
+            // }
             if selection is parser:FieldNode {
                 anydata fieldValue = self.getRecordResult(parentValue, selection);
                 result[selection.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
@@ -179,12 +179,12 @@ class ResponseGenerator {
     returns anydata {
         Data result = {};
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-                continue;
-            }
-            if !includeField(selection.getDirectives()) {
-                continue;
-            }
+            // if self.removedNodes.hasKey(parser:getHashCode(selection)) {
+            //     continue;
+            // }
+            // if !includeField(selection.getDirectives()) {
+            //     continue;
+            // }
             if selection is parser:FieldNode {
                 anydata selectionValue = self.getResultFromObject(serviceObject, selection);
                 result[selection.getAlias()] = selectionValue is ErrorDetail ? () : selectionValue;
@@ -202,12 +202,12 @@ class ResponseGenerator {
             return;
         }
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-                continue;
-            }
-            if !includeField(selection.getDirectives()) {
-                continue;
-            }
+            // if self.removedNodes.hasKey(parser:getHashCode(selection)) {
+            //     continue;
+            // }
+            // if !includeField(selection.getDirectives()) {
+            //     continue;
+            // }
             if selection is parser:FieldNode {
                 anydata fieldValue = self.getRecordResult(parentValue, selection);
                 result[selection.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
@@ -224,12 +224,12 @@ class ResponseGenerator {
             return;
         }
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-                continue;
-            }
-            if !includeField(selection.getDirectives()) {
-                continue;
-            }
+            // if self.removedNodes.hasKey(parser:getHashCode(selection)) {
+            //     continue;
+            // }
+            // if !includeField(selection.getDirectives()) {
+            //     continue;
+            // }
             if selection is parser:FieldNode {
                 anydata selectionValue = self.getResultFromObject(parentValue, selection);
                 result[selection.getAlias()] = selectionValue is ErrorDetail ? () : selectionValue;
@@ -266,25 +266,25 @@ class ResponseGenerator {
     }
 }
 
-isolated function includeField(parser:DirectiveNode[] directives) returns boolean {
-    boolean isSkipped = false;
-    boolean isIncluded = true;
-    foreach parser:DirectiveNode directive in directives {
-        if directive.getName() == SKIP {
-            isSkipped = getDirectiveArgumentValue(directive);
-        } else if directive.getName() == INCLUDE {
-            isIncluded = getDirectiveArgumentValue(directive);
-        }
-    }
-    return !isSkipped && isIncluded;
-}
+// isolated function includeField(parser:DirectiveNode[] directives) returns boolean {
+//     boolean isSkipped = false;
+//     boolean isIncluded = true;
+//     foreach parser:DirectiveNode directive in directives {
+//         if directive.getName() == SKIP {
+//             isSkipped = getDirectiveArgumentValue(directive);
+//         } else if directive.getName() == INCLUDE {
+//             isIncluded = getDirectiveArgumentValue(directive);
+//         }
+//     }
+//     return !isSkipped && isIncluded;
+// }
 
-isolated function getDirectiveArgumentValue(parser:DirectiveNode directiveNode) returns boolean {
-    parser:ArgumentNode argumentNode = directiveNode.getArguments()[0];
-    if argumentNode.isVariableDefinition() {
-        return <boolean>argumentNode.getVariableValue();
-    } else {
-        parser:ArgumentValue value = <parser:ArgumentValue> argumentNode.getValue();
-        return <boolean>value;
-    }
-}
+// isolated function getDirectiveArgumentValue(parser:DirectiveNode directiveNode) returns boolean {
+//     parser:ArgumentNode argumentNode = directiveNode.getArguments()[0];
+//     if argumentNode.isVariableDefinition() {
+//         return <boolean>argumentNode.getVariableValue();
+//     } else {
+//         parser:ArgumentValue value = <parser:ArgumentValue> argumentNode.getValue();
+//         return <boolean>value;
+//     }
+// }

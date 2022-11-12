@@ -22,11 +22,13 @@ class OperationNodeModifierVisitor {
     private map<parser:SelectionNode> modifiedSelections;
     private parser:OperationNode? operation;
     private map<parser:Node> modifiedNodes;
+    private map<parser:Node> removedNodes;
 
-    isolated function init(map<parser:SelectionNode> modifiedSelections) {
+    isolated function init(map<parser:SelectionNode> modifiedSelections, map<parser:Node> removedNodes) {
         self.modifiedSelections = modifiedSelections;
         self.modifiedNodes = {};
         self.operation = ();
+        self.removedNodes = removedNodes;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -46,6 +48,10 @@ class OperationNodeModifierVisitor {
             // }
             parser:SelectionNode[] selections = [];
             foreach parser:SelectionNode selectionNode in operationNode.getSelections() {
+                string hashCode = parser:getHashCode(selectionNode);
+                if self.removedNodes.hasKey(hashCode) {
+                    continue;
+                }
                 selectionNode.accept(self);
                 parser:SelectionNode selection = <parser:SelectionNode>self.getModifiedNode(selectionNode);
                 selections.push(selection);
@@ -66,6 +72,10 @@ class OperationNodeModifierVisitor {
         // }
         parser:SelectionNode[] selections = [];
         foreach parser:SelectionNode selectionNode in 'field.getSelections() {
+            string hashCode = parser:getHashCode(selectionNode);
+            if self.removedNodes.hasKey(hashCode) {
+                continue;
+            }
             selectionNode.accept(self);
             parser:SelectionNode selection = <parser:SelectionNode>self.getModifiedNode(selectionNode);
             selections.push(selection);
@@ -85,6 +95,10 @@ class OperationNodeModifierVisitor {
         parser:FragmentNode fragment = self.modifiedSelections.hasKey(fragmentHashCode) ? <parser:FragmentNode>self.modifiedSelections.get(fragmentHashCode) : fragmentNode;
         parser:SelectionNode[] selections = [];
         foreach parser:SelectionNode selectionNode in fragment.getSelections() {
+            string hashCode = parser:getHashCode(selectionNode);
+            if self.removedNodes.hasKey(hashCode) {
+                continue;
+            }
             selectionNode.accept(self);
             parser:SelectionNode selection = <parser:SelectionNode>self.getModifiedNode(selectionNode);
             selections.push(selection);

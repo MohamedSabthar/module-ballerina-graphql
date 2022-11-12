@@ -547,7 +547,7 @@ isolated function testClientExecuteWithTypeWithInlineFragment() returns error? {
 }
 
 @test:Config {
-    groups: ["client" , "aa"]
+    groups: ["client" ]
 }
 isolated function testClientExecuteWithInlineFragment() returns error? {
     string url = "http://localhost:9091/records";

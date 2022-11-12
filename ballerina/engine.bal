@@ -66,11 +66,11 @@ isolated class Engine {
     returns OutputObject {
         map<parser:Node> removedNodes = {};
         map<parser:SelectionNode> modifiedSelections = {};
-        // DefaultDirectiveProcessorVisitor defaultDirectiveProcessor = new (self.schema, removedNodes);
+        DefaultDirectiveProcessorVisitor defaultDirectiveProcessor = new (self.schema, removedNodes);
         DuplicateFieldRemoverVisitor duplicateFieldRemover = new(removedNodes, modifiedSelections);
 
         parser:Visitor[] updatingVisitors = [
-            // defaultDirectiveProcessor,
+            defaultDirectiveProcessor,
             duplicateFieldRemover
         ];
 
@@ -78,7 +78,7 @@ isolated class Engine {
             operationNode.accept(visitor);
         }
 
-        OperationNodeModifierVisitor operationNodeModifier = new(modifiedSelections);
+        OperationNodeModifierVisitor operationNodeModifier = new(modifiedSelections, removedNodes);
         operationNode.accept(operationNodeModifier);
         parser:OperationNode modifiedOperationNode = operationNodeModifier.getOperationNode();
 
