@@ -25,10 +25,10 @@ class VariableValidatorVisitor {
     private ErrorDetail[] errors;
     map<parser:VariableNode> variableDefinitions;
     private (string|int)[] argumentPath;
-    private map<parser:FragmentNode> modifiedFragments;
+    private map<parser:SelectionNode> modifiedSelections;
     private map<parser:ArgumentNode> modfiedArgumentNodes;
 
-    isolated function init(__Schema schema, map<json>? variableValues, map<parser:FragmentNode> modifiedFragments, map<parser:ArgumentNode> modfiedArgumentNodes) {
+    isolated function init(__Schema schema, map<json>? variableValues, map<parser:SelectionNode> modifiedSelections, map<parser:ArgumentNode> modfiedArgumentNodes) {
         self.schema = schema;
         self.visitedVariableDefinitions = [];
         self.errors = [];
@@ -36,7 +36,7 @@ class VariableValidatorVisitor {
         self.variableDefinitions = {};
         self.argumentPath = [];
         self.modfiedArgumentNodes = modfiedArgumentNodes;
-        self.modifiedFragments = modifiedFragments;
+        self.modifiedSelections = modifiedSelections;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -89,7 +89,7 @@ class VariableValidatorVisitor {
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
         string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
         self.validateDirectiveVariables(fragment);
         foreach parser:SelectionNode selection in fragment.getSelections() {
             selection.accept(self, data);

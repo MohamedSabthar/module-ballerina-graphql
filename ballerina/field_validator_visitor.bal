@@ -26,9 +26,9 @@ class FieldValidatorVisitor {
     private map<()> fragmentWithCycles;
     private map<()> unknowFragments;
     private map<parser:ArgumentNode> modfiedArgumentNodes;
-    private map<parser:FragmentNode> modifiedFragments;
+    private map<parser:SelectionNode> modifiedSelections;
 
-    isolated function init(__Schema schema, map<()> fragmentWithCycles, map<()> unknowFragments, map<parser:FragmentNode> modifiedFragments, map<parser:ArgumentNode> modfiedArgumentNodes) {
+    isolated function init(__Schema schema, map<()> fragmentWithCycles, map<()> unknowFragments, map<parser:SelectionNode> modifiedSelections, map<parser:ArgumentNode> modfiedArgumentNodes) {
         self.schema = schema;
         self.errors = [];
         self.usedFragments = {};
@@ -36,7 +36,7 @@ class FieldValidatorVisitor {
         self.fragmentWithCycles = fragmentWithCycles;
         self.unknowFragments = unknowFragments;
         self.modfiedArgumentNodes = modfiedArgumentNodes;
-        self.modifiedFragments = modifiedFragments;
+        self.modifiedSelections = modifiedSelections;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -88,7 +88,7 @@ class FieldValidatorVisitor {
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
         string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
         __Field parentField = <__Field>data;
         __Type parentType = <__Type>getOfType(parentField.'type);
         __Type? fragmentOnType = self.validateFragment(fragment, <string>parentType.name);

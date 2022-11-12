@@ -65,8 +65,9 @@ isolated class Engine {
     isolated function getResult(parser:OperationNode operationNode, Context context, any|error result = ())
     returns OutputObject {
         map<parser:Node> removedNodes = {};
+        map<parser:SelectionNode> modifiedSelections = {};
         // DefaultDirectiveProcessorVisitor defaultDirectiveProcessor = new (self.schema, removedNodes);
-        DuplicateFieldRemoverVisitor duplicateFieldRemover = new(removedNodes);
+        DuplicateFieldRemoverVisitor duplicateFieldRemover = new(removedNodes, modifiedSelections);
 
         parser:Visitor[] updatingVisitors = [
             // defaultDirectiveProcessor,
@@ -77,11 +78,15 @@ isolated class Engine {
             operationNode.accept(visitor);
         }
 
+        OperationNodeModifierVisitor operationNodeModifier = new(modifiedSelections);
+        operationNode.accept(operationNodeModifier);
+        parser:OperationNode modifiedOperationNode = operationNodeModifier.getOperationNode();
+
         ExecutorVisitor executor = new (self, self.schema, context, removedNodes, result);
-        operationNode.accept(executor);
+        modifiedOperationNode.accept(executor);
         OutputObject outputObject = executor.getOutput();
         ResponseFormatter responseFormatter = new (self.schema);
-        return responseFormatter.getCoercedOutputObject(outputObject, operationNode);
+        return responseFormatter.getCoercedOutputObject(outputObject, modifiedOperationNode);
     }
 
     isolated function parse(string documentString) returns parser:DocumentNode|OutputObject {
@@ -98,19 +103,19 @@ isolated class Engine {
         ErrorDetail[] validationErrors = []; // parser.getErrors should call somewhere
         map<()> fragmentWithCycles = {};
         map<()> unknowFragments = {};
-        map<parser:FragmentNode> modifiedFragments = {};
+        map<parser:SelectionNode> modifiedSelections = {};
         map<parser:ArgumentNode> modfiedArgumentNodes = {};
         ValidatorVisitor[] validators = [
             new FragmentCycleFinderVisitor(document.getFragments(), fragmentWithCycles), // no change
-            new FragmentValidatorVisitor(document.getFragments(), fragmentWithCycles, unknowFragments, modifiedFragments), // modify frag nodes
-            new QueryDepthValidatorVisitor(self.maxQueryDepth, modifiedFragments), // no change
-            new VariableValidatorVisitor(self.schema, variables, modifiedFragments, modfiedArgumentNodes), // modify arg nodes
-            new FieldValidatorVisitor(self.schema, fragmentWithCycles, unknowFragments, modifiedFragments, modfiedArgumentNodes), // modify arg node
-            new DirectiveValidatorVisitor(self.schema, modifiedFragments, modfiedArgumentNodes), // no change
-            new SubscriptionValidatorVisitor(modifiedFragments) // no change but uses modifed ones
+            new FragmentValidatorVisitor(document.getFragments(), fragmentWithCycles, unknowFragments, modifiedSelections), // modify frag nodes
+            new QueryDepthValidatorVisitor(self.maxQueryDepth, modifiedSelections), // no change
+            new VariableValidatorVisitor(self.schema, variables, modifiedSelections, modfiedArgumentNodes), // modify arg nodes
+            new FieldValidatorVisitor(self.schema, fragmentWithCycles, unknowFragments, modifiedSelections, modfiedArgumentNodes), // modify arg node
+            new DirectiveValidatorVisitor(self.schema, modifiedSelections, modfiedArgumentNodes), // no change
+            new SubscriptionValidatorVisitor(modifiedSelections) // no change but uses modifed ones
         ];
         if !self.introspection {
-            validators.push(new IntrospectionValidatorVisitor(self.introspection, modifiedFragments)); // no change
+            validators.push(new IntrospectionValidatorVisitor(self.introspection, modifiedSelections)); // no change
         }
 
         foreach ValidatorVisitor validator in validators {
@@ -123,7 +128,7 @@ isolated class Engine {
         if validationErrors.length() > 0 {
             return getOutputObjectFromErrorDetail(validationErrors);
         } else {
-            TreeModifierVisitor treeModifierVisitor = new(modifiedFragments, modfiedArgumentNodes);
+            TreeModifierVisitor treeModifierVisitor = new(modifiedSelections, modfiedArgumentNodes);
              document.accept(treeModifierVisitor);
              return treeModifierVisitor.getDocumentNode();
         }

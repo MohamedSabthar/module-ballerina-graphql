@@ -20,13 +20,13 @@ class TreeModifierVisitor {
     *parser:Visitor;
 
     private map<parser:ArgumentNode> modfiedArgumentNodes;
-    private map<parser:FragmentNode> modifiedFragments;
+    private map<parser:SelectionNode> modifiedSelections;
     private parser:DocumentNode? document;
     private map<parser:Node> modifiedNodes;
 
-    isolated function init(map<parser:FragmentNode> modifiedFragments, map<parser:ArgumentNode> modfiedArgumentNodes) {
+    isolated function init(map<parser:SelectionNode> modifiedSelections, map<parser:ArgumentNode> modfiedArgumentNodes) {
         self.modfiedArgumentNodes = modfiedArgumentNodes;
-        self.modifiedFragments = modifiedFragments;
+        self.modifiedSelections = modifiedSelections;
         self.modifiedNodes = {};
         self.document = ();
     }
@@ -88,7 +88,7 @@ class TreeModifierVisitor {
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
         string fragmentHashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedFragments.hasKey(fragmentHashCode) ? self.modifiedFragments.get(fragmentHashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.modifiedSelections.hasKey(fragmentHashCode) ? <parser:FragmentNode>self.modifiedSelections.get(fragmentHashCode) : fragmentNode;
         parser:SelectionNode[] selections = [];
         foreach parser:SelectionNode selectionNode in fragment.getSelections() {
             selectionNode.accept(self);

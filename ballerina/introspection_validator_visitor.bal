@@ -21,12 +21,12 @@ class IntrospectionValidatorVisitor {
 
     private final boolean introspection;
     private ErrorDetail[] errors;
-    private map<parser:FragmentNode> modifiedFragments;
+    private map<parser:SelectionNode> modifiedSelections;
 
-    isolated function init(boolean introspection, map<parser:FragmentNode> modifiedFragments) {
+    isolated function init(boolean introspection, map<parser:SelectionNode> modifiedSelections) {
         self.introspection = introspection;
         self.errors = [];
-        self.modifiedFragments = modifiedFragments;
+        self.modifiedSelections = modifiedSelections;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -56,7 +56,7 @@ class IntrospectionValidatorVisitor {
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
         string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
         foreach parser:SelectionNode selection in fragment.getSelections() {
             selection.accept(self, data);
         }

@@ -115,4 +115,8 @@ public readonly class FragmentNode {
     public isolated function replaceWith(SelectionNode[] selections, DirectiveNode[] directives) returns FragmentNode {
         return new (self.name, self.location, self.inlineFragment, self.spreadLocation, self.onType, directives, selections);
     }
+
+    public isolated function modifyWithSelections(SelectionNode[] selections) returns FragmentNode {
+        return new (self.name, self.location, self.inlineFragment, self.spreadLocation, self.onType, self.directives, selections);
+    }
 }

@@ -24,15 +24,15 @@ class DirectiveValidatorVisitor {
     private map<parser:DirectiveNode> visitedDirectives;
     private __InputValue[] missingArguments;
     private map<parser:ArgumentNode> modfiedArgumentNodes;
-    private map<parser:FragmentNode> modifiedFragments;
+    private map<parser:SelectionNode> modifiedSelections;
 
-    isolated function init(__Schema schema, map<parser:FragmentNode> modifiedFragments, map<parser:ArgumentNode> modfiedArgumentNodes) {
+    isolated function init(__Schema schema, map<parser:SelectionNode> modifiedSelections, map<parser:ArgumentNode> modfiedArgumentNodes) {
         self.schema = schema;
         self.errors = [];
         self.visitedDirectives = {};
         self.missingArguments = [];
         self.modfiedArgumentNodes = modfiedArgumentNodes;
-        self.modifiedFragments = modifiedFragments;
+        self.modifiedSelections = modifiedSelections;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -51,7 +51,7 @@ class DirectiveValidatorVisitor {
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
         string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
         self.validateDirectives(fragment);
     }
 

@@ -78,4 +78,8 @@ public readonly class FieldNode {
     public isolated function modifyWith(ArgumentNode[] arguments, SelectionNode[] selections, DirectiveNode[] directives) returns FieldNode {
         return new(self.name, self.location, self.alias, arguments, selections, directives);
     }
+
+    public isolated function modifyWithSelections(SelectionNode[] selections) returns FieldNode {
+        return new(self.name, self.location, self.alias, self.arguments, selections, self.directives);
+    }
 }

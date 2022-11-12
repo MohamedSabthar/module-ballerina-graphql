@@ -25,16 +25,16 @@ class FragmentValidatorVisitor {
     private map<parser:FragmentNode> fragments;
     private map<()> fragmentWithCycles;
     private map<()> unknowFragments;
-    private map<parser:FragmentNode> modifiedFragments;
+    private map<parser:SelectionNode> modifiedSelections;
 
     public isolated function init(map<parser:FragmentNode> fragments, map<()> fragmentWithCycles,
-     map<()> unknowFragments, map<parser:FragmentNode> modifiedFragments) {
+     map<()> unknowFragments, map<parser:SelectionNode> modifiedSelections) {
         self.errors = [];
         self.usedFragments = {};
         self.fragments = fragments;
         self.fragmentWithCycles = fragmentWithCycles;
         self.unknowFragments = unknowFragments;
-        self.modifiedFragments = modifiedFragments;
+        self.modifiedSelections = modifiedSelections;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -73,7 +73,7 @@ class FragmentValidatorVisitor {
         }
         self.appendNamedFragmentFields(fragmentNode);
         string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
         self.usedFragments[fragment.getName()] = fragment;
         foreach parser:SelectionNode selection in fragment.getSelections() {
             selection.accept(self);
@@ -104,7 +104,7 @@ class FragmentValidatorVisitor {
         // }
         parser:FragmentNode modifiedFragmentNode = fragmentNode.modifyWith(actualFragmentNode.getSelections(),
                                                     actualFragmentNode.getDirectives(), actualFragmentNode.getOnType());
-        self.modifiedFragments[parser:getHashCode(fragmentNode)] = modifiedFragmentNode;
+        self.modifiedSelections[parser:getHashCode(fragmentNode)] = modifiedFragmentNode;
     }
 
     public isolated function visitDirective(parser:DirectiveNode directiveNode, anydata data = ()) {}
