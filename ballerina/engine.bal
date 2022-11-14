@@ -48,12 +48,13 @@ isolated class Engine {
     isolated function validate(string documentString, string? operationName, map<json>? variables)
         returns parser:OperationNode|OutputObject {
 
-        parser:DocumentNode|OutputObject result = self.parse(documentString);
+        ParseResult|OutputObject result = self.parse(documentString);
         if result is OutputObject {
             return result;
         }
-        parser:DocumentNode document = <parser:DocumentNode>result;
-        OutputObject|parser:DocumentNode validationResult = self.validateDocument(document, variables);
+        parser:DocumentNode document = result.document;
+        ErrorDetail[] validationErrors = result.validationErrors;
+        OutputObject|parser:DocumentNode validationResult = self.validateDocument(document, variables, validationErrors);
         if validationResult is OutputObject {
             return validationResult;
         } else {
@@ -89,18 +90,18 @@ isolated class Engine {
         return responseFormatter.getCoercedOutputObject(outputObject, modifiedOperationNode);
     }
 
-    isolated function parse(string documentString) returns parser:DocumentNode|OutputObject {
+    isolated function parse(string documentString) returns ParseResult|OutputObject {
         parser:Parser parser = new (documentString);
         parser:DocumentNode|parser:Error parseResult = parser.parse();
         if parseResult is parser:DocumentNode {
-            return parseResult;
+            return {document: parseResult, validationErrors: parser.getErrors()};
         }
         ErrorDetail errorDetail = getErrorDetailFromError(<parser:Error>parseResult);
         return getOutputObjectFromErrorDetail(errorDetail);
     }
 
-    isolated function validateDocument(parser:DocumentNode document, map<json>? variables) returns OutputObject|parser:DocumentNode {
-        ErrorDetail[] validationErrors = []; // parser.getErrors should call somewhere
+    isolated function validateDocument(parser:DocumentNode document, map<json>? variables, ErrorDetail[] parserErrors) returns OutputObject|parser:DocumentNode {
+        ErrorDetail[] validationErrors = [...parserErrors]; // parser.getErrors should call somewhere
         map<()> fragmentWithCycles = {};
         map<()> unknowFragments = {};
         map<parser:SelectionNode> modifiedSelections = {};
