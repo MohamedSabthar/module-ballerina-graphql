@@ -18,13 +18,39 @@ import ballerina/lang.value;
 import ballerina/websocket;
 import graphql.parser;
 
+isolated class SubscriptionHandler {
+    private final string id;
+    private boolean isUnsubscribed;
+
+    isolated function init(string id) {
+        self.id = id;
+        self.isUnsubscribed = false;
+    }
+
+    isolated function getId() returns string {
+        return self.id;
+    }
+
+    isolated function setUnsubscribed() {
+        lock {
+            self.isUnsubscribed = true;
+        }
+    }
+
+    isolated function getUnsubscribed() returns boolean {
+        lock {
+            return self.isUnsubscribed;
+        }
+    }
+}
+
 isolated service class WsService {
     *websocket:Service;
 
     private final Engine engine;
     private final readonly & __Schema schema;
     private final Context context;
-    private map<()> activeConnections;
+    private map<SubscriptionHandler> activeConnections;
     private final readonly & map<string> customHeaders;
     private boolean initiatedConnection;
 
@@ -91,6 +117,7 @@ isolated service class WsService {
                 if connectionId is () {
                     return self.handleIdNotPresentInPayload(caller);
                 }
+                SubscriptionHandler subscriptionHandler = new(connectionId);
                 lock {
                     if !self.initiatedConnection {
                         closeConnection(caller, 4401, "Unauthorized");
@@ -100,9 +127,9 @@ isolated service class WsService {
                         closeConnection(caller, 4409, string `Subscriber for ${connectionId} already exists`);
                         return;
                     }
-                    self.activeConnections[connectionId] = ();
+                    self.activeConnections[connectionId] = subscriptionHandler;
                 }
-                return self.handleSubscriptionRequest(caller, wsPayload, connectionId);
+                return self.handleSubscriptionRequest(caller, wsPayload, subscriptionHandler);
             }
             WS_STOP|WS_COMPLETE => {
                 string? connectionId = wsPayload.id;
@@ -113,7 +140,8 @@ isolated service class WsService {
                     if !self.activeConnections.hasKey(connectionId) {
                         return;
                     }
-                    _ = self.activeConnections.remove(connectionId);
+                    SubscriptionHandler handler = self.activeConnections.remove(connectionId);
+                    handler.setUnsubscribed();
                 }
             }
             WS_PING => {
@@ -123,12 +151,13 @@ isolated service class WsService {
     }
 
     isolated function handleSubscriptionRequest(websocket:Caller caller, WSPayload|json wsPayload,
-                                                string? connectionId = ())
+                                                SubscriptionHandler? subscriptionHandler = ())
     returns websocket:Error? {
+        string? connectionId = subscriptionHandler is () ? () : subscriptionHandler.getId();
         parser:OperationNode|json node = validateSubscriptionPayload(wsPayload, self.engine);
         if node is parser:OperationNode {
             check executeOperation(self.engine, self.context, self.schema, self.customHeaders, caller, node,
-                                   connectionId);
+                                   subscriptionHandler);
         } else {
             check sendWebSocketResponse(caller, self.customHeaders, WS_ERROR, node, connectionId);
             if !self.customHeaders.hasKey(WS_SUB_PROTOCOL) {

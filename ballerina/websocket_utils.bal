@@ -19,33 +19,52 @@ import graphql.parser;
 
 isolated function executeOperation(Engine engine, Context context, readonly & __Schema schema,
                                    readonly & map<string> customHeaders, websocket:Caller caller,
-                                   parser:OperationNode node, string? connectionId) returns websocket:Error? {
+                                   parser:OperationNode node, SubscriptionHandler? subscriptionHandler) returns websocket:Error? {
     worker A returns websocket:Error? {
-    RootFieldVisitor rootFieldVisitor = new (node);
-    parser:FieldNode fieldNode = <parser:FieldNode>rootFieldVisitor.getRootFieldNode();
-    stream<any, error?>|json sourceStream = getSubscriptionResponse(engine, schema, context, fieldNode);
-    if sourceStream is stream<any, error?> {
-        record {|any value;|}|error? next = sourceStream.next();
-        while next !is () {
-            any|error resultValue = next is error ? next : next.value;
-            OutputObject outputObject = engine.getResult(node, context, resultValue);
-            if outputObject.hasKey(DATA_FIELD) || outputObject.hasKey(ERRORS_FIELD) {
-                check sendWebSocketResponse(caller, customHeaders, WS_NEXT, outputObject.toJson(), connectionId);
+        string? connectionId = (); 
+        if subscriptionHandler !is () {
+            connectionId = (<SubscriptionHandler>subscriptionHandler).getId();
+        } 
+        RootFieldVisitor rootFieldVisitor = new (node);
+        parser:FieldNode fieldNode = <parser:FieldNode>rootFieldVisitor.getRootFieldNode();
+        stream<any, error?>|json sourceStream = getSubscriptionResponse(engine, schema, context, fieldNode);
+        if sourceStream is stream<any, error?> {
+            record {|any value;|}|error? next = sourceStream.next();
+            while next !is () {
+                if subscriptionHandler !is () {
+                    if (<SubscriptionHandler>subscriptionHandler).getUnsubscribed() {
+                     return;
+                    }
+                }
+                any|error resultValue = next is error ? next : next.value;
+                OutputObject outputObject = engine.getResult(node, context, resultValue);
+                if outputObject.hasKey(DATA_FIELD) || outputObject.hasKey(ERRORS_FIELD) {
+                    check sendWebSocketResponse(caller, customHeaders, WS_NEXT, outputObject.toJson(), connectionId);
+                }
+                context.resetErrors(); //Remove previous event's errors before the next one
+                next = sourceStream.next();
             }
-            context.resetErrors(); //Remove previous event's errors before the next one
-            next = sourceStream.next();
-        }
-        if customHeaders.hasKey(WS_SUB_PROTOCOL) {
-            check sendWebSocketResponse(caller, customHeaders, WS_COMPLETE, null, connectionId);
+            if customHeaders.hasKey(WS_SUB_PROTOCOL) {
+                if subscriptionHandler !is () {
+                    if (<SubscriptionHandler>subscriptionHandler).getUnsubscribed() {
+                     return;
+                    }
+                }
+                check sendWebSocketResponse(caller, customHeaders, WS_COMPLETE, null, connectionId);
+            } else {
+                closeConnection(caller);
+            }
         } else {
-            closeConnection(caller);
+                if subscriptionHandler !is () {
+                    if (<SubscriptionHandler>subscriptionHandler).getUnsubscribed() {
+                     return;
+                    }
+                }
+            check sendWebSocketResponse(caller, customHeaders, WS_ERROR, sourceStream, connectionId);
+            if !customHeaders.hasKey(WS_SUB_PROTOCOL) {
+                closeConnection(caller);
+            }
         }
-    } else {
-        check sendWebSocketResponse(caller, customHeaders, WS_ERROR, sourceStream, connectionId);
-        if !customHeaders.hasKey(WS_SUB_PROTOCOL) {
-            closeConnection(caller);
-        }
-    }
     }
 }
 
