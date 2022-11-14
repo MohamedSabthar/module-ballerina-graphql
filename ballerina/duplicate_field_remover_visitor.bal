@@ -86,7 +86,7 @@ class DuplicateFieldRemoverVisitor {
             parser:SelectionNode selection = self.modifiedSelections.hasKey(hashCode) ? self.modifiedSelections.get(hashCode) : selections[i];
             if selection is parser:FragmentNode {
                 if visitedFragments.hasKey(selection.getOnType()) {
-                    self.appendDuplicates(selection, visitedFragments.get(selection.getOnType()), visitedFragments);
+                    self.appendDuplicates(selection, visitedFragments.get(selection.getOnType()));
                     // var node = selections.remove(i); // ????????????????
                     self.removedNodes[hashCode] = selection;
                     // i -= 1;
@@ -95,7 +95,7 @@ class DuplicateFieldRemoverVisitor {
                 }
             } else if selection is parser:FieldNode {
                 if visitedFields.hasKey(selection.getAlias()) {
-                    self.appendDuplicates(selection, visitedFields.get(selection.getAlias()), visitedFields);
+                    self.appendDuplicates(selection, visitedFields.get(selection.getAlias()));
                     // var node = selections.remove(i); // ?????????????????
                     self.removedNodes[hashCode] = selection;
                     // i -= 1;
@@ -109,14 +109,13 @@ class DuplicateFieldRemoverVisitor {
         }
     }
 
-    private isolated function appendDuplicates(parser:SelectionParentNode duplicate, parser:SelectionParentNode original,  map<parser:SelectionNode> visitedSelection) {
+    private isolated function appendDuplicates(parser:SelectionParentNode duplicate, parser:SelectionParentNode original) {
         if duplicate is parser:FieldNode && original is parser:FieldNode {
             string hashCode = parser:getHashCode(original);
             parser:FieldNode modifiedOriginalNode = self.modifiedSelections.hasKey(hashCode) ? <parser:FieldNode>self.modifiedSelections.get(hashCode) : original;
             parser:SelectionNode[] combinedSelections = [...modifiedOriginalNode.getSelections(), ...duplicate.getSelections()];
             parser:FieldNode latestModifiedOriginalNode = modifiedOriginalNode.modifyWithSelections(combinedSelections);
             self.modifiedSelections[hashCode] = latestModifiedOriginalNode;
-            visitedSelection[latestModifiedOriginalNode.getAlias()] =latestModifiedOriginalNode;
         }
         if duplicate is parser:FragmentNode && original is parser:FragmentNode {
             string hashCode = parser:getHashCode(original);
@@ -124,7 +123,6 @@ class DuplicateFieldRemoverVisitor {
             parser:SelectionNode[] combinedSelections = [...modifiedOriginalNode.getSelections(), ...duplicate.getSelections()];
             parser:FragmentNode latestModifiedOriginalNode = modifiedOriginalNode.modifyWithSelections(combinedSelections);
             self.modifiedSelections[hashCode] = latestModifiedOriginalNode;
-            visitedSelection[latestModifiedOriginalNode.getOnType()] =latestModifiedOriginalNode;
         }
         // foreach parser:SelectionNode selection in duplicate.getSelections() {
         //     // original.addSelection(selection); ?????????????????
