@@ -62,8 +62,8 @@ class OperationNodeModifierVisitor {
     }
 
     public isolated function visitField(parser:FieldNode fieldNode, anydata data = ()) {
-        string fragmentHashCode = parser:getHashCode(fieldNode);
-        parser:FieldNode 'field = self.modifiedSelections.hasKey(fragmentHashCode) ? <parser:FieldNode>self.modifiedSelections.get(fragmentHashCode) : fieldNode;
+        string fieldHashCode = parser:getHashCode(fieldNode);
+        parser:FieldNode 'field = self.modifiedSelections.hasKey(fieldHashCode) ? <parser:FieldNode>self.modifiedSelections.get(fieldHashCode) : fieldNode;
         // parser:ArgumentNode[] arguments = [];
         // foreach parser:ArgumentNode argumentNode in 'field.getArguments() {
         //     argumentNode.accept(self);
@@ -86,8 +86,7 @@ class OperationNodeModifierVisitor {
         //     parser:DirectiveNode directive = <parser:DirectiveNode>self.getModifiedNode(directiveNode);
         //     directives.push(directive);
         // }
-        string hashCode = parser:getHashCode('field);
-        self.modifiedNodes[hashCode] = 'field.modifyWith('field.getArguments(), selections, 'field.getDirectives());
+        self.modifiedNodes[fieldHashCode] = 'field.modifyWith('field.getArguments(), selections, 'field.getDirectives());
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {

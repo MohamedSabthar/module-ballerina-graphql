@@ -134,7 +134,7 @@ isolated function testDuplicateDirectivesInSameLocation() returns error? {
 }
 
 @test:Config {
-    groups: ["directives", "variables", "a"]
+    groups: ["directives", "variables"]
 }
 isolated function testDirectivesWithDuplicateFields() returns error? {
     string document = check getGraphQLDocumentFromFile("directives_with_duplicate_fields.graphql");
