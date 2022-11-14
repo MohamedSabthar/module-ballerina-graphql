@@ -253,16 +253,19 @@ class VariableValidatorVisitor {
 
     isolated function setArgumentValue(json value, parser:ArgumentNode argument, string variableTypeName,
                                        __Type variableType) {
+        string hashCode = parser:getHashCode(argument);
+        parser:ArgumentNode modifiedArgNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argument;
+        
         if getOfType(variableType).name == UPLOAD {
             return;
-        } else if value !is () && (argument.getKind() == parser:T_INPUT_OBJECT ||
-            argument.getKind() == parser:T_LIST || argument.getKind() == parser:T_IDENTIFIER) {
+        } else if value !is () && (modifiedArgNode.getKind() == parser:T_INPUT_OBJECT ||
+            modifiedArgNode.getKind() == parser:T_LIST || modifiedArgNode.getKind() == parser:T_IDENTIFIER) {
             // argument.setVariableValue(value);
             self.modifyArgumentNode(argument, variableValue = value);
-        } else if value is Scalar && getTypeNameFromScalarValue(<Scalar>value) == getTypeName(argument) {
+        } else if value is Scalar && getTypeNameFromScalarValue(<Scalar>value) == getTypeName(modifiedArgNode) {
             // argument.setVariableValue(value);
             self.modifyArgumentNode(argument, variableValue = value);
-        } else if getTypeName(argument) == FLOAT && value is decimal|int {
+        } else if getTypeName(modifiedArgNode) == FLOAT && value is decimal|int {
             // argument.setVariableValue(value);
             self.modifyArgumentNode(argument, variableValue = value);
         } else if value is () && variableType.kind != NON_NULL {
@@ -270,9 +273,9 @@ class VariableValidatorVisitor {
             self.modifyArgumentNode(argument, variableValue = value);
         } else {
             string invalidValue = value is () ? "null": value.toString();
-            string message = string `Variable ${<string> argument.getVariableName()} expected value of type ` +
+            string message = string `Variable ${<string> modifiedArgNode.getVariableName()} expected value of type ` +
                              string `"${variableTypeName}", found ${invalidValue}`;
-            self.errors.push(getErrorDetailRecord(message, argument.getLocation()));
+            self.errors.push(getErrorDetailRecord(message, modifiedArgNode.getLocation()));
             // argument.setInvalidVariableValue();
             self.modifyArgumentNode(argument, containsInvalidValue = true);
             }
@@ -281,13 +284,15 @@ class VariableValidatorVisitor {
     isolated function checkVariableUsageCompatibility(__Type varType, __InputValue[] inputValues,
                                                       parser:VariableNode variable,
                                                       parser:ArgumentNode argNode) {
-        __InputValue? inputValue = getInputValueFromArray(inputValues, argNode.getName());
+        string hashCode = parser:getHashCode(argNode);
+        parser:ArgumentNode modifiedArgNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argNode;
+        __InputValue? inputValue = getInputValueFromArray(inputValues, modifiedArgNode.getName());
         if inputValue is __InputValue {
             if !self.isVariableUsageAllowed(varType, variable, inputValue) {
-                string message = string `Variable "${<string>argNode.getVariableName()}" of type `+
+                string message = string `Variable "${<string>modifiedArgNode.getVariableName()}" of type `+
                                  string `"${variable.getTypeName()}" used in position expecting type `+
                                  string `"${getTypeNameFromType(inputValue.'type)}".`;
-                self.errors.push(getErrorDetailRecord(message, argNode.getLocation()));
+                self.errors.push(getErrorDetailRecord(message, modifiedArgNode.getLocation()));
                 // argNode.setInvalidVariableValue();
                 self.modifyArgumentNode(argNode, containsInvalidValue = true);
             }
