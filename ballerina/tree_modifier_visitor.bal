@@ -108,7 +108,26 @@ class TreeModifierVisitor {
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {
         string hashCode = parser:getHashCode(argumentNode);
         parser:ArgumentNode argument = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argumentNode;
-        self.modifiedNodes[hashCode] = argument;
+        parser:ArgumentValue|parser:ArgumentValue[] argumentValue = argument.getValue();
+        if argumentValue is parser:ArgumentValue[] {
+                parser:ArgumentValue[] value = [];
+                foreach parser:ArgumentValue argField in argumentValue {
+                    if argField is parser:ArgumentNode {
+                        argField.accept(self);
+                        var argNode = <parser:ArgumentNode>self.getModifiedNode(argField);
+                        value.push(argNode);
+                    } else {
+                        value.push(argField);
+                    }
+                }
+                self.modifiedNodes[hashCode] = argument.modifyWithValue(value);
+            } else if argumentValue is parser:ArgumentNode {
+                    argumentValue.accept(self);
+                    var argNode = <parser:ArgumentNode>self.getModifiedNode(argumentValue);
+                    self.modifiedNodes[hashCode] = argument.modifyWithValue(argNode);
+            } else {
+                self.modifiedNodes[hashCode] = argument;
+            }
     }
 
     public isolated function visitDirective(parser:DirectiveNode directiveNode, anydata data = ()) {

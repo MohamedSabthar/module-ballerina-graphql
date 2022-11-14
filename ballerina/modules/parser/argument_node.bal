@@ -130,4 +130,9 @@ public readonly class ArgumentNode {
         return new (self.name, self.location, modfiedKind, variableDefinition, modifeidValueLocation,
                     modifedValue, modfiedVariableName, modifiedContainsInvalidValue, modifiedVariableValue);
     }
+
+    public isolated function modifyWithValue(ArgumentValue|ArgumentValue[] value) returns ArgumentNode {
+        return new (self.name, self.location, self.kind, self.variableDefinition, self.valueLocation,
+                    value, self.variableName, self.containsInvalidValue, self.variableValue);
+    }
 }

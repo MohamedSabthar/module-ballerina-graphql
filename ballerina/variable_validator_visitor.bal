@@ -206,7 +206,7 @@ class VariableValidatorVisitor {
         } else if defaultValue.getKind() == parser:T_INT &&
             getArgumentTypeIdentifierFromType(variableType) == parser:T_FLOAT {
             // defaultValue.setValue(defaultValue.getValue()); // *******
-            // self.modifyArgumentNode(defaultValue, value = defaultValue.getValue());
+            self.modifyArgumentNode(defaultValue, value = defaultValue.getValue());
             return false;
         } else if defaultValue.getValue() is () && variableType.kind != NON_NULL {
             return false;
