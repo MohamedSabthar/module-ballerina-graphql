@@ -23,13 +23,13 @@ class FragmentCycleFinderVisitor {
     private map<parser:FragmentNode> fragments;
     private map<parser:FragmentNode> visitedSpreads;
     private map<parser:FragmentNode> visitedFragments;
-    private map<()> fragmentWithCycles;
-    isolated function init(map<parser:FragmentNode> fragments, map<()> fragmentWithCycles) {
+    private NodeModifierContext nodeModifierContext;
+    isolated function init(map<parser:FragmentNode> fragments, NodeModifierContext nodeModifierContext) {
         self.errors = [];
         self.fragments = fragments;
         self.visitedSpreads = {};
         self.visitedFragments = {};
-        self.fragmentWithCycles = fragmentWithCycles;
+        self.nodeModifierContext = nodeModifierContext;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data) {
@@ -60,7 +60,7 @@ class FragmentCycleFinderVisitor {
         if self.visitedSpreads.hasKey(fragmentNode.getName()) {
             ErrorDetail errorDetail = getCycleRecursiveFragmentError(fragmentNode, self.visitedSpreads);
             self.errors.push(errorDetail);
-            self.fragmentWithCycles[parser:getHashCode(fragmentNode)] = ();
+            self.nodeModifierContext.addFragmentWithCycles(fragmentNode);
         } else {
             self.visitedFragments[fragmentNode.getName()] = fragmentNode;
             self.visitedSpreads[fragmentNode.getName()] = fragmentNode;

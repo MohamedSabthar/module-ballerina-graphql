@@ -23,16 +23,14 @@ class DirectiveValidatorVisitor {
     private ErrorDetail[] errors;
     private map<parser:DirectiveNode> visitedDirectives;
     private __InputValue[] missingArguments;
-    private map<parser:ArgumentNode> modfiedArgumentNodes;
-    private map<parser:SelectionNode> modifiedSelections;
+    private NodeModifierContext nodeModifierContext;
 
-    isolated function init(__Schema schema, map<parser:SelectionNode> modifiedSelections, map<parser:ArgumentNode> modfiedArgumentNodes) {
+    isolated function init(__Schema schema, NodeModifierContext nodeModifierContext) {
         self.schema = schema;
         self.errors = [];
         self.visitedDirectives = {};
         self.missingArguments = [];
-        self.modfiedArgumentNodes = modfiedArgumentNodes;
-        self.modifiedSelections = modifiedSelections;
+        self.nodeModifierContext = nodeModifierContext;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -50,8 +48,7 @@ class DirectiveValidatorVisitor {
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
         self.validateDirectives(fragment);
     }
 
@@ -67,8 +64,7 @@ class DirectiveValidatorVisitor {
 
     // TODO: Check invalid argument type for valid argument name
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {
-        string hashCode = parser:getHashCode(argumentNode);
-        parser:ArgumentNode argNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argumentNode;
+        parser:ArgumentNode argNode = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
         __Directive directive = <__Directive>data;
         string argumentName = argumentNode.getName();
         __InputValue? inputValue = getInputValueFromArray(directive.args, argumentName);

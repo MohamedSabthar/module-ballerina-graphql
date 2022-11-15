@@ -23,23 +23,14 @@ class FieldValidatorVisitor {
     private ErrorDetail[] errors;
     private map<string> usedFragments;
     private (string|int)[] argumentPath;
-    private map<()> fragmentWithCycles;
-    private map<()> unknowFragments;
-    private map<parser:ArgumentNode> modfiedArgumentNodes;
-    private map<parser:SelectionNode> modifiedSelections;
-    private map<()> nonConfiguredOperationNodesInSchema;
+    private NodeModifierContext nodeModifierContext;
 
-    isolated function init(__Schema schema, map<()> fragmentWithCycles, map<()> unknowFragments, map<parser:SelectionNode> modifiedSelections,
-     map<parser:ArgumentNode> modfiedArgumentNodes, map<()> nonConfiguredOperationNodesInSchema) {
+    isolated function init(__Schema schema, NodeModifierContext nodeModifierContext) {
         self.schema = schema;
         self.errors = [];
         self.usedFragments = {};
         self.argumentPath = [];
-        self.fragmentWithCycles = fragmentWithCycles;
-        self.unknowFragments = unknowFragments;
-        self.modfiedArgumentNodes = modfiedArgumentNodes;
-        self.modifiedSelections = modifiedSelections;
-        self.nonConfiguredOperationNodesInSchema = nonConfiguredOperationNodesInSchema;
+        self.nodeModifierContext = nodeModifierContext;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -49,7 +40,7 @@ class FieldValidatorVisitor {
     }
 
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
-        __Field? operationField = createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors, self.nonConfiguredOperationNodesInSchema);
+        __Field? operationField = createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors, self.nodeModifierContext);
         if operationField is __Field {
             foreach parser:SelectionNode selection in operationNode.getSelections() {
                 selection.accept(self, operationField);
@@ -90,8 +81,7 @@ class FieldValidatorVisitor {
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
         __Field parentField = <__Field>data;
         __Type parentType = <__Type>getOfType(parentField.'type);
         __Type? fragmentOnType = self.validateFragment(fragment, <string>parentType.name);
@@ -106,8 +96,7 @@ class FieldValidatorVisitor {
     }
 
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {
-        string hashCode = parser:getHashCode(argumentNode);
-        parser:ArgumentNode argNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argumentNode;
+        parser:ArgumentNode argNode = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
         if argNode.hasInvalidVariableValue() {
             // This argument node is already validated to have an invalid value. No further validation is needed.
             return;
@@ -132,8 +121,7 @@ class FieldValidatorVisitor {
     }
 
     isolated function visitInputObject(parser:ArgumentNode argNode, __InputValue schemaArg, string fieldName) {
-        string hashCode = parser:getHashCode(argNode);
-        parser:ArgumentNode argumentNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argNode;
+        parser:ArgumentNode argumentNode = self.nodeModifierContext.getModifiedArgumentNode(argNode);
         __Type argType = getOfType(schemaArg.'type);
         __InputValue[]? inputFields = argType?.inputFields;
         if inputFields is __InputValue[] && getTypeKind(schemaArg.'type) == INPUT_OBJECT {
@@ -149,8 +137,7 @@ class FieldValidatorVisitor {
                     if fieldValue is parser:ArgumentNode && fieldValue.getName() == inputField.name {
                         fieldValue.accept(self, {input: subInputValue, fieldName: fieldName});
                         isProvidedField = true;
-                        string hash = parser:getHashCode(fieldValue);
-                        var node = self.modfiedArgumentNodes.hasKey(hash) ? self.modfiedArgumentNodes.get(hash)  : fieldValue;
+                        var node = self.nodeModifierContext.getModifiedArgumentNode(fieldValue);
                         value.push(node);
                     } else {
                         value.push(fieldValue);
@@ -177,8 +164,7 @@ class FieldValidatorVisitor {
     }
 
     isolated function visitListValue(parser:ArgumentNode argumentNode, __InputValue schemaArg, string fieldName) {
-        string hashCode = parser:getHashCode(argumentNode);
-        parser:ArgumentNode argNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argumentNode;
+        parser:ArgumentNode argNode = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
         self.updatePath(argNode.getName());
         if getTypeKind(schemaArg.'type) == LIST {
             parser:ArgumentValue|parser:ArgumentValue[] listItems = argNode.getValue();
@@ -210,8 +196,7 @@ class FieldValidatorVisitor {
     }
 
     isolated function validateVariableValue(parser:ArgumentNode argumentNode, __InputValue schemaArg, string fieldName) {
-        string hashCode = parser:getHashCode(argumentNode);
-        parser:ArgumentNode argNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argumentNode;
+        parser:ArgumentNode argNode = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
         anydata variableValue = argNode.getVariableValue();
         if getOfType(schemaArg.'type).name == UPLOAD {
             return;
@@ -374,8 +359,7 @@ class FieldValidatorVisitor {
     }
 
     isolated function coerceArgumentNodeValue(parser:ArgumentNode argumentNode, __InputValue schemaArg) {
-        string hashCode = parser:getHashCode(argumentNode);
-        parser:ArgumentNode argNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argumentNode;
+        parser:ArgumentNode argNode = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
         string expectedTypeName = getOfTypeName(schemaArg.'type);
         if argNode.isVariableDefinition() && argNode.getVariableValue() is Scalar {
             Scalar value = <Scalar>argNode.getVariableValue();
@@ -469,9 +453,8 @@ class FieldValidatorVisitor {
     }
 
     isolated function validateFragment(parser:FragmentNode fragmentNode, string schemaTypeName) returns __Type? {
-        string hashCode = parser:getHashCode(fragmentNode);
-        if self.unknowFragments.hasKey(hashCode) 
-            || self.fragmentWithCycles.hasKey(hashCode) {
+        if self.nodeModifierContext.isUnknownFragment(fragmentNode)
+            || self.nodeModifierContext.isFragmentWithCycles(fragmentNode) {
             return;
         }
         string fragmentOnTypeName = fragmentNode.getOnType();
@@ -581,7 +564,7 @@ class FieldValidatorVisitor {
         return self.errors.length() > 0 ? self.errors : ();
     }
 
-    public isolated function modifyArgumentNode(parser:ArgumentNode argumentNode,
+    public isolated function modifyArgumentNode(parser:ArgumentNode originalNode,
         parser:ArgumentType? kind = (),
         string? variableName = (),
         parser:ArgumentValue|parser:ArgumentValue[] value = (),
@@ -589,24 +572,29 @@ class FieldValidatorVisitor {
         boolean? isVarDef = (),
         anydata variableValue = (),
         boolean? containsInvalidValue = ()) {
-        string hashCode = parser:getHashCode(argumentNode);
-        if self.modfiedArgumentNodes.hasKey(hashCode) {
-            parser:ArgumentNode previouslyModifiedNode = self.modfiedArgumentNodes.get(hashCode);
-            self.modfiedArgumentNodes[hashCode] = previouslyModifiedNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
-            return;
-        }
-        self.modfiedArgumentNodes[hashCode] = argumentNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+
+        parser:ArgumentNode previouslyModifiedNode = self.nodeModifierContext.getModifiedArgumentNode(originalNode);
+        parser:ArgumentNode newModifiedNode = previouslyModifiedNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+        self.nodeModifierContext.addModifiedArgumentNode(originalNode, newModifiedNode);
+
+
+        // string hashCode = parser:getHashCode(argumentNode);
+        // if self.modfiedArgumentNodes.hasKey(hashCode) {
+        //     parser:ArgumentNode previouslyModifiedNode = self.modfiedArgumentNodes.get(hashCode);
+        //     self.modfiedArgumentNodes[hashCode] = previouslyModifiedNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+        //     return;
+        // }
+        // self.modfiedArgumentNodes[hashCode] = argumentNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
         return;
     }
 }
 
 isolated function createSchemaFieldFromOperation(__Type[] typeArray, parser:OperationNode operationNode,
-                                                 ErrorDetail[] errors, map<()> nonConfiguredOperationNodesInSchema) returns __Field? {
+                                                 ErrorDetail[] errors, NodeModifierContext nodeModifierContext) returns __Field? {
     // if !operationNode.isConfiguredOperationInSchema() {
     //     return;
     // }
-    string hashCode = parser:getHashCode(operationNode);
-    if nonConfiguredOperationNodesInSchema.hasKey(hashCode) {
+    if nodeModifierContext.isNonConfiguredOperation(operationNode) {
         return;
     }
     parser:RootOperationType operationType = operationNode.getKind();
@@ -616,7 +604,7 @@ isolated function createSchemaFieldFromOperation(__Type[] typeArray, parser:Oper
         string message = string `Schema is not configured for ${operationType.toString()}s.`;
         errors.push(getErrorDetailRecord(message, operationNode.getLocation()));
         // operationNode.setNotConfiguredOperationInSchema(); // #################
-        nonConfiguredOperationNodesInSchema[hashCode] = ();
+        nodeModifierContext.addNonConfiguredOperation(operationNode);
     } else {
         return createField(operationTypeName, 'type);
     }

@@ -19,14 +19,12 @@ import graphql.parser;
 class TreeModifierVisitor {
     *parser:Visitor;
 
-    private map<parser:ArgumentNode> modfiedArgumentNodes;
-    private map<parser:SelectionNode> modifiedSelections;
+    private NodeModifierContext nodeModifierContext;
     private parser:DocumentNode? document;
     private map<parser:Node> modifiedNodes;
 
-    isolated function init(map<parser:SelectionNode> modifiedSelections, map<parser:ArgumentNode> modfiedArgumentNodes) {
-        self.modfiedArgumentNodes = modfiedArgumentNodes;
-        self.modifiedSelections = modifiedSelections;
+    isolated function init(NodeModifierContext nodeModifierContext) {
+        self.nodeModifierContext = nodeModifierContext;
         self.modifiedNodes = {};
         self.document = ();
     }
@@ -88,7 +86,7 @@ class TreeModifierVisitor {
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
         string fragmentHashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedSelections.hasKey(fragmentHashCode) ? <parser:FragmentNode>self.modifiedSelections.get(fragmentHashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
         parser:SelectionNode[] selections = [];
         foreach parser:SelectionNode selectionNode in fragment.getSelections() {
             selectionNode.accept(self);
@@ -107,7 +105,7 @@ class TreeModifierVisitor {
     // TODO: Check invalid argument type for valid argument name
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {
         string hashCode = parser:getHashCode(argumentNode);
-        parser:ArgumentNode argument = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argumentNode;
+        parser:ArgumentNode argument = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
         parser:ArgumentValue|parser:ArgumentValue[] argumentValue = argument.getValue();
         if argumentValue is parser:ArgumentValue[] {
                 parser:ArgumentValue[] value = [];

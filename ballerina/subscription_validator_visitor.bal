@@ -20,10 +20,10 @@ class SubscriptionValidatorVisitor {
     *ValidatorVisitor;
 
     private ErrorDetail[] errors;
-    private map<parser:SelectionNode> modifiedSelections;
-    public isolated function init(map<parser:SelectionNode> modifiedSelections) {
+    private NodeModifierContext nodeModifierContext;
+    public isolated function init(NodeModifierContext nodeModifierContext) {
         self.errors = [];
-        self.modifiedSelections = modifiedSelections;
+        self.nodeModifierContext = nodeModifierContext;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -54,8 +54,7 @@ class SubscriptionValidatorVisitor {
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
         if fragment.getSelections().length() == 0 {
             return;
         }

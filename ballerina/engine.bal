@@ -18,6 +18,86 @@ import ballerina/jballerina.java;
 
 import graphql.parser;
 
+public isolated class NodeModifierContext {
+    private map<()> fragmentWithCycles = {};
+    private map<()> unknowFragments = {};
+    private map<parser:FragmentNode> modifiedFragments = {};
+    private map<parser:ArgumentNode> modfiedArgumentNodes = {};
+    private map<()> nonConfiguredOperations = {};
+
+    isolated function addFragmentWithCycles(parser:FragmentNode fragmentNode) {
+        lock {
+        string hashCode = parser:getHashCode(fragmentNode);
+        self.fragmentWithCycles[hashCode] = ();
+        }
+    }
+
+    isolated function isFragmentWithCycles(parser:FragmentNode fragmentNode) returns boolean {
+        lock {
+            string hashCode = parser:getHashCode(fragmentNode);
+            return self.fragmentWithCycles.hasKey(hashCode);
+        }
+    }
+
+    isolated function addUnknownFragment(parser:FragmentNode fragmentNode) {
+        lock {
+        string hashCode = parser:getHashCode(fragmentNode);
+        self.unknowFragments[hashCode] = ();
+        }
+    }
+
+    isolated function isUnknownFragment(parser:FragmentNode fragmentNode) returns boolean {
+        lock {
+            string hashCode = parser:getHashCode(fragmentNode);
+            return self.unknowFragments.hasKey(hashCode);
+        }
+    }
+
+     isolated function addNonConfiguredOperation(parser:OperationNode operationNode) {
+        lock {
+        string hashCode = parser:getHashCode(operationNode);
+        self.nonConfiguredOperations[hashCode] = ();
+        }
+    }
+
+    isolated function isNonConfiguredOperation(parser:OperationNode operationNode) returns boolean {
+        lock {
+            string hashCode = parser:getHashCode(operationNode);
+            return self.nonConfiguredOperations.hasKey(hashCode);
+        }
+    }
+
+    isolated function addModifiedArgumentNode(parser:ArgumentNode originalNode, parser:ArgumentNode modifiedNode) {
+        lock {
+        string hashCode = parser:getHashCode(originalNode);
+        self.modfiedArgumentNodes[hashCode] = modifiedNode;
+        }
+    }
+
+    isolated function getModifiedArgumentNode(parser:ArgumentNode originalNode) returns parser:ArgumentNode {
+        lock {
+            string hashCode = parser:getHashCode(originalNode);
+            return self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : originalNode;
+        }
+    }
+
+    isolated function addModifiedFragmentNode(parser:FragmentNode originalNode, parser:FragmentNode modifiedNode) {
+        lock {
+        string hashCode = parser:getHashCode(originalNode);
+        self.modifiedFragments[hashCode] = modifiedNode;
+        }
+    }
+
+    isolated function getModifiedFragmentNode(parser:FragmentNode originalNode) returns parser:FragmentNode {
+        lock {
+            string hashCode = parser:getHashCode(originalNode);
+            return self.modifiedFragments.hasKey(hashCode) ? self.modifiedFragments.get(hashCode) : originalNode;
+        }
+    }
+
+}
+
+
 isolated class Engine {
     private final readonly & __Schema schema;
     private final int? maxQueryDepth;
@@ -102,22 +182,23 @@ isolated class Engine {
 
     isolated function validateDocument(parser:DocumentNode document, map<json>? variables, ErrorDetail[] parserErrors) returns OutputObject|parser:DocumentNode {
         ErrorDetail[] validationErrors = [...parserErrors]; // parser.getErrors should call somewhere
-        map<()> fragmentWithCycles = {};
-        map<()> unknowFragments = {};
-        map<parser:SelectionNode> modifiedSelections = {};
-        map<parser:ArgumentNode> modfiedArgumentNodes = {};
-        map<()> nonConfiguredOperationNodesInSchema = {};
+        // map<()> fragmentWithCycles = {};
+        // map<()> unknowFragments = {};
+        // map<parser:SelectionNode> modifiedSelections = {};
+        // map<parser:ArgumentNode> modfiedArgumentNodes = {};
+        // map<()> nonConfiguredOperationNodesInSchema = {};
+        NodeModifierContext nodeModifierContext = new;
         ValidatorVisitor[] validators = [
-            new FragmentCycleFinderVisitor(document.getFragments(), fragmentWithCycles), // no change
-            new FragmentValidatorVisitor(document.getFragments(), fragmentWithCycles, unknowFragments, modifiedSelections), // modify frag nodes
-            new QueryDepthValidatorVisitor(self.maxQueryDepth, modifiedSelections), // no change
-            new VariableValidatorVisitor(self.schema, variables, modifiedSelections, modfiedArgumentNodes, nonConfiguredOperationNodesInSchema), // modify arg nodes
-            new FieldValidatorVisitor(self.schema, fragmentWithCycles, unknowFragments, modifiedSelections, modfiedArgumentNodes, nonConfiguredOperationNodesInSchema), // modify arg node
-            new DirectiveValidatorVisitor(self.schema, modifiedSelections, modfiedArgumentNodes), // no change
-            new SubscriptionValidatorVisitor(modifiedSelections) // no change but uses modifed ones
+            new FragmentCycleFinderVisitor(document.getFragments(), nodeModifierContext), // no change
+            new FragmentValidatorVisitor(document.getFragments(), nodeModifierContext), // modify frag nodes
+            new QueryDepthValidatorVisitor(self.maxQueryDepth, nodeModifierContext), // no change
+            new VariableValidatorVisitor(self.schema, variables, nodeModifierContext), // modify arg nodes
+            new FieldValidatorVisitor(self.schema, nodeModifierContext), // modify arg node
+            new DirectiveValidatorVisitor(self.schema, nodeModifierContext), // no change
+            new SubscriptionValidatorVisitor(nodeModifierContext) // no change but uses modifed ones
         ];
         if !self.introspection {
-            validators.push(new IntrospectionValidatorVisitor(self.introspection, modifiedSelections)); // no change
+            validators.push(new IntrospectionValidatorVisitor(self.introspection, nodeModifierContext)); // no change
         }
 
         foreach ValidatorVisitor validator in validators {
@@ -130,7 +211,7 @@ isolated class Engine {
         if validationErrors.length() > 0 {
             return getOutputObjectFromErrorDetail(validationErrors);
         } else {
-            TreeModifierVisitor treeModifierVisitor = new(modifiedSelections, modfiedArgumentNodes);
+            TreeModifierVisitor treeModifierVisitor = new(nodeModifierContext);
              document.accept(treeModifierVisitor);
              return treeModifierVisitor.getDocumentNode();
         }

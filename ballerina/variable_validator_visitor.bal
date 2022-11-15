@@ -25,22 +25,18 @@ class VariableValidatorVisitor {
     private ErrorDetail[] errors;
     map<parser:VariableNode> variableDefinitions;
     private (string|int)[] argumentPath;
-    private map<parser:SelectionNode> modifiedSelections;
-    private map<parser:ArgumentNode> modfiedArgumentNodes;
-    private map<()> nonConfiguredOperationNodesInSchema;
+    private NodeModifierContext nodeModifierContext;
     
 
-    isolated function init(__Schema schema, map<json>? variableValues, map<parser:SelectionNode> modifiedSelections,
-        map<parser:ArgumentNode> modfiedArgumentNodes, map<()> nonConfiguredOperationNodesInSchema) {
+    isolated function init(__Schema schema, map<json>? variableValues,
+         NodeModifierContext nodeModifierContext) {
         self.schema = schema;
         self.visitedVariableDefinitions = [];
         self.errors = [];
         self.variables = variableValues == () ? {} : variableValues;
         self.variableDefinitions = {};
         self.argumentPath = [];
-        self.modfiedArgumentNodes = modfiedArgumentNodes;
-        self.modifiedSelections = modifiedSelections;
-        self.nonConfiguredOperationNodesInSchema = nonConfiguredOperationNodesInSchema;
+        self.nodeModifierContext = nodeModifierContext;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -53,7 +49,7 @@ class VariableValidatorVisitor {
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
         self.variableDefinitions = operationNode.getVaribleDefinitions();
         __Field? schemaFieldForOperation =
-            createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors, self.nonConfiguredOperationNodesInSchema);
+            createSchemaFieldFromOperation(self.schema.types, operationNode, self.errors, self.nodeModifierContext);
         // foreach ErrorDetail errorDetail in operationNode.getErrors() {
         //     self.errors.push(errorDetail);
         // }
@@ -92,8 +88,7 @@ class VariableValidatorVisitor {
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
         self.validateDirectiveVariables(fragment);
         foreach parser:SelectionNode selection in fragment.getSelections() {
             selection.accept(self, data);
@@ -147,8 +142,7 @@ class VariableValidatorVisitor {
                 foreach parser:ArgumentValue argField in <parser:ArgumentValue[]>argumentNode.getValue() {
                     if argField is parser:ArgumentNode {
                         argField.accept(self, inputValues);
-                        string hashCode = parser:getHashCode(argField);
-                        var argNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argField;
+                        var argNode = self.nodeModifierContext.getModifiedArgumentNode(argField);
                         value.push(argNode);
                     } else {
                         value.push(argField);
@@ -253,9 +247,7 @@ class VariableValidatorVisitor {
 
     isolated function setArgumentValue(json value, parser:ArgumentNode argument, string variableTypeName,
                                        __Type variableType) {
-        string hashCode = parser:getHashCode(argument);
-        parser:ArgumentNode modifiedArgNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argument;
-        
+        parser:ArgumentNode modifiedArgNode = self.nodeModifierContext.getModifiedArgumentNode(argument);
         if getOfType(variableType).name == UPLOAD {
             return;
         } else if value !is () && (modifiedArgNode.getKind() == parser:T_INPUT_OBJECT ||
@@ -284,8 +276,7 @@ class VariableValidatorVisitor {
     isolated function checkVariableUsageCompatibility(__Type varType, __InputValue[] inputValues,
                                                       parser:VariableNode variable,
                                                       parser:ArgumentNode argNode) {
-        string hashCode = parser:getHashCode(argNode);
-        parser:ArgumentNode modifiedArgNode = self.modfiedArgumentNodes.hasKey(hashCode) ? self.modfiedArgumentNodes.get(hashCode) : argNode;
+        parser:ArgumentNode modifiedArgNode = self.nodeModifierContext.getModifiedArgumentNode(argNode);
         __InputValue? inputValue = getInputValueFromArray(inputValues, modifiedArgNode.getName());
         if inputValue is __InputValue {
             if !self.isVariableUsageAllowed(varType, variable, inputValue) {
@@ -402,7 +393,7 @@ class VariableValidatorVisitor {
         return self.errors.length() > 0 ? self.errors : ();
     }
 
-    public isolated function modifyArgumentNode(parser:ArgumentNode argumentNode,
+    public isolated function modifyArgumentNode(parser:ArgumentNode originalNode,
         parser:ArgumentType? kind = (),
         string? variableName = (),
         parser:ArgumentValue|parser:ArgumentValue[] value = (),
@@ -411,13 +402,18 @@ class VariableValidatorVisitor {
         anydata variableValue = (),
         boolean? containsInvalidValue = ()) {
 
-        string hashCode = parser:getHashCode(argumentNode);
-        if self.modfiedArgumentNodes.hasKey(hashCode) {
-            parser:ArgumentNode previouslyModifiedNode = self.modfiedArgumentNodes.get(hashCode);
-            self.modfiedArgumentNodes[hashCode] = previouslyModifiedNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
-            return;
-        }
-        self.modfiedArgumentNodes[hashCode] = argumentNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+
+        parser:ArgumentNode previouslyModifiedNode = self.nodeModifierContext.getModifiedArgumentNode(originalNode);
+        parser:ArgumentNode newModifiedNode = previouslyModifiedNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+        self.nodeModifierContext.addModifiedArgumentNode(originalNode, newModifiedNode);
+
+        // string hashCode = parser:getHashCode();
+        // if self.nodeModifierContext.hasModifiedArgumentNode(argumentNode) {
+        //     parser:ArgumentNode previouslyModifiedNode = self.modfiedArgumentNodes.get(hashCode);
+        //     self.modfiedArgumentNodes[hashCode] = previouslyModifiedNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
+        //     return;
+        // }
+        // self.modfiedArgumentNodes[hashCode] = argumentNode.modifyWith(kind, variableName, value, valueLocation, isVarDef, variableValue, containsInvalidValue);
         return;
     }
 }

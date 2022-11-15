@@ -23,18 +23,13 @@ class FragmentValidatorVisitor {
     private ErrorDetail[] errors;
     private map<parser:FragmentNode> usedFragments;
     private map<parser:FragmentNode> fragments;
-    private map<()> fragmentWithCycles;
-    private map<()> unknowFragments;
-    private map<parser:SelectionNode> modifiedSelections;
+    private NodeModifierContext nodeModifierContext;
 
-    public isolated function init(map<parser:FragmentNode> fragments, map<()> fragmentWithCycles,
-     map<()> unknowFragments, map<parser:SelectionNode> modifiedSelections) {
+    public isolated function init(map<parser:FragmentNode> fragments, NodeModifierContext nodeModifierContext) {
         self.errors = [];
         self.usedFragments = {};
         self.fragments = fragments;
-        self.fragmentWithCycles = fragmentWithCycles;
-        self.unknowFragments = unknowFragments;
-        self.modifiedSelections = modifiedSelections;
+        self.nodeModifierContext = nodeModifierContext;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {
@@ -68,12 +63,11 @@ class FragmentValidatorVisitor {
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {}
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        if self.fragmentWithCycles.hasKey(parser:getHashCode(fragmentNode)) {
+        if self.nodeModifierContext.isFragmentWithCycles(fragmentNode) {
             return;
         }
         self.appendNamedFragmentFields(fragmentNode);
-        string hashCode = parser:getHashCode(fragmentNode);
-        parser:FragmentNode fragment = self.modifiedSelections.hasKey(hashCode) ? <parser:FragmentNode>self.modifiedSelections.get(hashCode) : fragmentNode;
+        parser:FragmentNode fragment = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
         self.usedFragments[fragment.getName()] = fragment;
         foreach parser:SelectionNode selection in fragment.getSelections() {
             selection.accept(self);
@@ -90,7 +84,7 @@ class FragmentValidatorVisitor {
             string message = string`Unknown fragment "${fragmentNode.getName()}".`;
             ErrorDetail errorDetail = getErrorDetailRecord(message, fragmentNode.getLocation());
             self.errors.push(errorDetail);
-            self.unknowFragments[parser:getHashCode(fragmentNode)] = ();
+            self.nodeModifierContext.addUnknownFragment(fragmentNode);
         }
     }
 
@@ -104,7 +98,8 @@ class FragmentValidatorVisitor {
         // }
         parser:FragmentNode modifiedFragmentNode = fragmentNode.modifyWith(actualFragmentNode.getSelections(),
                                                     actualFragmentNode.getDirectives(), actualFragmentNode.getOnType());
-        self.modifiedSelections[parser:getHashCode(fragmentNode)] = modifiedFragmentNode;
+        // self.modifiedSelections[parser:getHashCode(fragmentNode)] = modifiedFragmentNode;
+        self.nodeModifierContext.addModifiedFragmentNode(fragmentNode, modifiedFragmentNode);
     }
 
     public isolated function visitDirective(parser:DirectiveNode directiveNode, anydata data = ()) {}
