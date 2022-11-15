@@ -24,15 +24,13 @@ class ResponseGenerator {
     private ErrorDetail[] errors;
     private (string|int)[] path;
     private final __Type fieldType;
-    private map<parser:Node> removedNodes;
 
-    isolated function init(Engine engine, Context context, __Type fieldType, (string|int)[] path = [], map<parser:Node> removedNodes = {}) {
+    isolated function init(Engine engine, Context context, __Type fieldType, (string|int)[] path = []) {
         self.engine = engine;
         self.context = context;
         self.errors = [];
         self.path = path;
         self.fieldType = fieldType;
-        self.removedNodes = removedNodes;
     }
 
     isolated function getResult(any|error parentValue, parser:FieldNode parentNode) returns anydata {
@@ -43,9 +41,6 @@ class ResponseGenerator {
             return self.addError(parentValue, parentNode);
         }
         if parentValue is Scalar || parentValue is Scalar[] {
-            // if !includeField(parentNode.getDirectives()) || self.removedNodes.hasKey(parser:getHashCode(parentNode)) {
-            //     return;
-            // }
             return parentValue;
         }
         if parentValue is map<any> {
@@ -81,7 +76,7 @@ class ResponseGenerator {
             (string|int)[] path = self.path.clone();
             path.push(fieldNode.getName());
             __Type fieldType = getFieldTypeFromParentType(self.fieldType, self.engine.getSchema().types, fieldNode);
-            Field 'field = new (fieldNode, fieldType, parentValue, path, removedNodes = self.removedNodes);
+            Field 'field = new (fieldNode, fieldType, parentValue, path);
             self.context.resetInterceptorCount();
             return self.engine.resolve(self.context, 'field);
         }
@@ -118,12 +113,6 @@ class ResponseGenerator {
     isolated function getResultFromRecord(map<any> parentValue, parser:FieldNode parentNode) returns anydata {
         Data result = {};
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            // if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-            //     continue;
-            // }
-            // if !includeField(selection.getDirectives()) {
-            //     continue;
-            // }
             if selection is parser:FieldNode {
                 anydata fieldValue = self.getRecordResult(parentValue, selection);
                 result[selection.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
@@ -140,7 +129,7 @@ class ResponseGenerator {
         }
         any fieldValue = parentValue.hasKey(fieldNode.getName()) ? parentValue.get(fieldNode.getName()): ();
         __Type fieldType = getFieldTypeFromParentType(self.fieldType, self.engine.getSchema().types, fieldNode);
-        Field 'field = new (fieldNode, fieldType, path = self.path, fieldValue = fieldValue, removedNodes = self.removedNodes);
+        Field 'field = new (fieldNode, fieldType, path = self.path, fieldValue = fieldValue);
         self.context.resetInterceptorCount();
         return self.engine.resolve(self.context, 'field);
     }
@@ -179,12 +168,6 @@ class ResponseGenerator {
     returns anydata {
         Data result = {};
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            // if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-            //     continue;
-            // }
-            // if !includeField(selection.getDirectives()) {
-            //     continue;
-            // }
             if selection is parser:FieldNode {
                 anydata selectionValue = self.getResultFromObject(serviceObject, selection);
                 result[selection.getAlias()] = selectionValue is ErrorDetail ? () : selectionValue;
@@ -202,12 +185,6 @@ class ResponseGenerator {
             return;
         }
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            // if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-            //     continue;
-            // }
-            // if !includeField(selection.getDirectives()) {
-            //     continue;
-            // }
             if selection is parser:FieldNode {
                 anydata fieldValue = self.getRecordResult(parentValue, selection);
                 result[selection.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
@@ -224,12 +201,6 @@ class ResponseGenerator {
             return;
         }
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            // if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-            //     continue;
-            // }
-            // if !includeField(selection.getDirectives()) {
-            //     continue;
-            // }
             if selection is parser:FieldNode {
                 anydata selectionValue = self.getResultFromObject(parentValue, selection);
                 result[selection.getAlias()] = selectionValue is ErrorDetail ? () : selectionValue;
@@ -265,26 +236,3 @@ class ResponseGenerator {
         }
     }
 }
-
-// isolated function includeField(parser:DirectiveNode[] directives) returns boolean {
-//     boolean isSkipped = false;
-//     boolean isIncluded = true;
-//     foreach parser:DirectiveNode directive in directives {
-//         if directive.getName() == SKIP {
-//             isSkipped = getDirectiveArgumentValue(directive);
-//         } else if directive.getName() == INCLUDE {
-//             isIncluded = getDirectiveArgumentValue(directive);
-//         }
-//     }
-//     return !isSkipped && isIncluded;
-// }
-
-// isolated function getDirectiveArgumentValue(parser:DirectiveNode directiveNode) returns boolean {
-//     parser:ArgumentNode argumentNode = directiveNode.getArguments()[0];
-//     if argumentNode.isVariableDefinition() {
-//         return <boolean>argumentNode.getVariableValue();
-//     } else {
-//         parser:ArgumentValue value = <parser:ArgumentValue> argumentNode.getValue();
-//         return <boolean>value;
-//     }
-// }

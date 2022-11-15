@@ -163,7 +163,7 @@ isolated class Engine {
         operationNode.accept(operationNodeModifier);
         parser:OperationNode modifiedOperationNode = operationNodeModifier.getOperationNode();
 
-        ExecutorVisitor executor = new (self, self.schema, context, removedNodes, result);
+        ExecutorVisitor executor = new (self, self.schema, context, result);
         modifiedOperationNode.accept(executor);
         OutputObject outputObject = executor.getOutput();
         ResponseFormatter responseFormatter = new (self.schema);
@@ -291,7 +291,7 @@ isolated class Engine {
                 }
             }
         }
-        ResponseGenerator responseGenerator = new (self, context, fieldType, 'field.getPath().clone(), 'field.getRemovedNodesMap());
+        ResponseGenerator responseGenerator = new (self, context, fieldType, 'field.getPath().clone());
         return responseGenerator.getResult(fieldValue, fieldNode);
     }
 

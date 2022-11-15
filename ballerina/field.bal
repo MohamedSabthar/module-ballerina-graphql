@@ -25,12 +25,11 @@ public class Field {
     private final __Type fieldType;
     private (string|int)[] path;
     private string[] resourcePath;
-    private map<parser:Node> removedNodes;
      
 
     isolated function init(parser:FieldNode internalNode, __Type fieldType, service object {}? serviceObject = (),
                            (string|int)[] path = [], parser:RootOperationType operationType = parser:OPERATION_QUERY,
-                           string[] resourcePath = [], any|error fieldValue = (), map<parser:Node> removedNodes = {}) {
+                           string[] resourcePath = [], any|error fieldValue = ()) {
         self.internalNode = internalNode;
         self.serviceObject = serviceObject;
         self.fieldType = fieldType;
@@ -39,7 +38,6 @@ public class Field {
         self.resourcePath = resourcePath;
         self.fieldValue = fieldValue;
         self.resourcePath.push(internalNode.getName());
-        self.removedNodes = removedNodes;
     }
 
     # Returns the name of the field.
@@ -80,9 +78,5 @@ public class Field {
 
     isolated function getFieldValue() returns any|error {
         return self.fieldValue;
-    }
-
-    isolated function getRemovedNodesMap() returns map<parser:Node> {
-        return self.removedNodes;
     }
 }

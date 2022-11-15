@@ -25,25 +25,20 @@ class ExecutorVisitor {
     private ErrorDetail[] errors;
     private Context context;
     private any|error result;
-    private map<parser:Node> removedNodes;
 
-    isolated function init(Engine engine, __Schema schema, Context context,map<parser:Node> removedNodes, any|error result = ()) {
+    isolated function init(Engine engine, __Schema schema, Context context, any|error result = ()) {
         self.engine = engine;
         self.schema = schema;
         self.context = context;
         self.data = {};
         self.result = result;
         self.errors = [];
-        self.removedNodes = removedNodes;
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {}
 
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
         foreach parser:SelectionNode selection in operationNode.getSelections() {
-            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-                continue;
-            }
             selection.accept(self, operationNode.getKind());
         }
     }
@@ -79,9 +74,6 @@ class ExecutorVisitor {
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
         foreach parser:SelectionNode selection in fragmentNode.getSelections() {
-            if self.removedNodes.hasKey(parser:getHashCode(selection)) {
-                continue;
-            }
             selection.accept(self, data);
         }
     }
@@ -95,7 +87,7 @@ class ExecutorVisitor {
         string operationTypeName = getOperationTypeNameFromOperationType(operationType);
         __Type parentType = <__Type>getTypeFromTypeArray(self.schema.types, operationTypeName);
         __Type fieldType = getFieldTypeFromParentType(parentType, self.schema.types, fieldNode);
-        Field 'field = new (fieldNode, fieldType, self.engine.getService(), path, operationType, removedNodes = self.removedNodes);
+        Field 'field = new (fieldNode, fieldType, self.engine.getService(), path, operationType);
         self.context.resetInterceptorCount();
         var result = self.engine.resolve(self.context, 'field);
         self.errors = self.context.getErrors();
@@ -107,7 +99,7 @@ class ExecutorVisitor {
         string operationTypeName = getOperationTypeNameFromOperationType(operationType);
         __Type parentType = <__Type>getTypeFromTypeArray(self.schema.types, operationTypeName);
         __Type fieldType = getFieldTypeFromParentType(parentType, self.schema.types, fieldNode);
-        Field 'field = new (fieldNode, fieldType, self.engine.getService(), path, operationType, removedNodes=self.removedNodes);
+        Field 'field = new (fieldNode, fieldType, self.engine.getService(), path, operationType);
         self.context.resetInterceptorCount();
         var result = self.engine.resolve(self.context, 'field);
         self.errors = self.context.getErrors();
@@ -120,7 +112,7 @@ class ExecutorVisitor {
         string operationTypeName = getOperationTypeNameFromOperationType(operationType);
         __Type parentType = <__Type>getTypeFromTypeArray(self.schema.types, operationTypeName);
         __Type fieldType = getFieldTypeFromParentType(parentType, self.schema.types, fieldNode);
-        Field 'field = new (fieldNode, fieldType, path = path, operationType = operationType, fieldValue = fieldValue, removedNodes = self.removedNodes);
+        Field 'field = new (fieldNode, fieldType, path = path, operationType = operationType, fieldValue = fieldValue);
         self.context.resetInterceptorCount();
         var result = self.engine.resolve(self.context, 'field);
         self.errors = self.context.getErrors();
