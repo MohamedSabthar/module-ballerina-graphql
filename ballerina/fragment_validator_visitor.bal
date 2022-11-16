@@ -87,10 +87,10 @@ class FragmentValidatorVisitor {
     }
 
     isolated function appendFields(parser:FragmentNode actualFragmentNode, parser:FragmentNode fragmentNode) {
-        parser:SelectionNode[] selections = [...fragmentNode.getSelections(), ...actualFragmentNode.getSelections()];
-        parser:DirectiveNode[] directives = [...fragmentNode.getDirectives(), ...actualFragmentNode.getDirectives()];
-        parser:FragmentNode modifiedFragmentNode = fragmentNode.modifyWith(actualFragmentNode.getSelections(),
-                                                                            actualFragmentNode.getDirectives());
+        parser:SelectionNode[] selections = [...actualFragmentNode.getSelections(), ...fragmentNode.getSelections()];
+        parser:DirectiveNode[] directives = [...actualFragmentNode.getDirectives(), ...fragmentNode.getDirectives()];
+        parser:FragmentNode modifiedFragmentNode = fragmentNode.modifyWith(selections, directives,
+                                                                            actualFragmentNode.getOnType());
         self.nodeModifierContext.addModifiedFragmentNode(fragmentNode, modifiedFragmentNode);
     }
 

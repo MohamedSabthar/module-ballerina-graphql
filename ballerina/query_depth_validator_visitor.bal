@@ -77,8 +77,8 @@ class QueryDepthValidatorVisitor {
     }
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
-        parser:FragmentNode fragment = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
-        foreach parser:SelectionNode selection in fragment.getSelections() {
+        parser:FragmentNode modifiedFragmentNode = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
+        foreach parser:SelectionNode selection in modifiedFragmentNode.getSelections() {
             selection.accept(self);
         }
     }

@@ -48,13 +48,4 @@ public readonly class VariableNode {
     public isolated function getDefaultValue() returns ArgumentNode? {
         return self.defaultValue;
     }
-
-    // public isolated function setDefaultValue(ArgumentNode defaultValue) {
-    //     self.defaultValue = defaultValue;
-    // }
-
-    // public isolated function modifyWith(ArgumentNode? defaultValue) returns VariableNode {
-    //     return new(self.name, self.typeName, self.location, defaultValue);
-    // }
-
 }
