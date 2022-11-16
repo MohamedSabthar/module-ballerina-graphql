@@ -65,9 +65,9 @@ class FragmentValidatorVisitor {
             return;
         }
         self.appendNamedFragmentFields(fragmentNode);
-        parser:FragmentNode fragment = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
-        self.usedFragments[fragment.getName()] = fragment;
-        foreach parser:SelectionNode selection in fragment.getSelections() {
+        parser:FragmentNode modifiedFragmentNode = self.nodeModifierContext.getModifiedFragmentNode(fragmentNode);
+        self.usedFragments[modifiedFragmentNode.getName()] = modifiedFragmentNode;
+        foreach parser:SelectionNode selection in modifiedFragmentNode.getSelections() {
             selection.accept(self);
         }
     }
