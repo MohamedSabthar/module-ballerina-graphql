@@ -26,8 +26,8 @@ public readonly class OperationNode {
     private boolean cofiguredInSchema;
 
     public isolated function init(string name, RootOperationType kind, Location location,
-            SelectionNode[] selections = [], map<VariableNode> variables = {},
-            DirectiveNode[] directives = []) {
+                                  map<VariableNode> variables = {}, SelectionNode[] selections = [], 
+                                  DirectiveNode[] directives = []) {
         self.name = name;
         self.kind = kind;
         self.location = location.cloneReadOnly();
@@ -71,6 +71,6 @@ public readonly class OperationNode {
 
     public isolated function modifyWith(map<VariableNode> variables, SelectionNode[] selections,
                                         DirectiveNode[] directives) returns OperationNode {
-        return new (self.name, self.kind, self.location, selections, variables, directives);
+        return new (self.name, self.kind, self.location, variables, selections, directives);
     }
 }
