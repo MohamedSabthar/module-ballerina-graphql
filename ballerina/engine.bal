@@ -65,7 +65,7 @@ isolated class Engine {
 
     isolated function getResult(parser:OperationNode operationNode, Context context, any|error result = ())
     returns OutputObject {
-        map<parser:Node> removedNodes = {};
+        map<()> removedNodes = {};
         map<parser:SelectionNode> modifiedSelections = {};
         DefaultDirectiveProcessorVisitor defaultDirectiveProcessor = new (self.schema, removedNodes);
         DuplicateFieldRemoverVisitor duplicateFieldRemover = new (removedNodes, modifiedSelections);

@@ -20,9 +20,9 @@ class DefaultDirectiveProcessorVisitor {
     *parser:Visitor;
 
     private final __Schema schema;
-    private map<parser:Node> removedNodes;
+    private map<()> removedNodes;
 
-    isolated function init(__Schema schema,map<parser:Node> removedNodes) {
+    isolated function init(__Schema schema,map<()> removedNodes) {
         self.schema = schema;
         self.removedNodes = removedNodes;
     }
@@ -50,13 +50,17 @@ class DefaultDirectiveProcessorVisitor {
             if isIncluded {
                 selections[i].accept(self);
             } else {
-                self.removedNodes[parser:getHashCode(selections[i])] = selections[i];
+                self.removeNode(selections[i]);
             }
             i += 1;
         }
     }
 
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {}
+
+    public isolated function visitDirective(parser:DirectiveNode directiveNode, anydata data = ()) {}
+
+    public isolated function visitVariable(parser:VariableNode variableNode, anydata data = ()) {}
 
     private isolated function includeField(parser:DirectiveNode[] directives) returns boolean {
         boolean isSkipped = false;
@@ -81,7 +85,7 @@ class DefaultDirectiveProcessorVisitor {
         }
     }
 
-    public isolated function visitDirective(parser:DirectiveNode directiveNode, anydata data = ()) {}
-
-    public isolated function visitVariable(parser:VariableNode variableNode, anydata data = ()) {}
+    private isolated function removeNode(parser:Node node) {
+        self.removedNodes[parser:getHashCode(node)] = ();
+    }
 }
