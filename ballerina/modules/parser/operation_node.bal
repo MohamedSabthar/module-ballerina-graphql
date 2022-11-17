@@ -73,4 +73,8 @@ public readonly class OperationNode {
                                         DirectiveNode[] directives) returns OperationNode {
         return new (self.name, self.kind, self.location, variables, selections, directives);
     }
+
+    public isolated function modifyWithSelections(SelectionNode[] selections) returns OperationNode {
+        return new (self.name, self.kind, self.location, self.variables, selections, self.directives);
+    }
 }
