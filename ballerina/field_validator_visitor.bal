@@ -158,7 +158,8 @@ class FieldValidatorVisitor {
             self.removePath();
         } else {
             string listError = getListElementError(self.argumentPath);
-            string message = getInvalidArgumentValueError(listError, getTypeNameFromType(schemaArg.'type), modifiedArgumentNode);
+            string message = getInvalidArgumentValueError(listError, getTypeNameFromType(schemaArg.'type),
+                                                          modifiedArgumentNode);
             ErrorDetail errorDetail = getErrorDetailRecord(message, modifiedArgumentNode.getLocation());
             self.errors.push(errorDetail);
         }
@@ -189,7 +190,8 @@ class FieldValidatorVisitor {
             }
         } else {
             string listError = getListElementError(self.argumentPath);
-            string message = getInvalidArgumentValueError(listError, getTypeNameFromType(schemaArg.'type), modifiedArgNode);
+            string message = getInvalidArgumentValueError(listError, getTypeNameFromType(schemaArg.'type),
+                                                          modifiedArgNode);
             ErrorDetail errorDetail = getErrorDetailRecord(message, modifiedArgNode.getLocation());
             self.errors.push(errorDetail);
         }
@@ -201,19 +203,28 @@ class FieldValidatorVisitor {
         anydata variableValue = modifiedArgNode.getVariableValue();
         if getOfType(schemaArg.'type).name == UPLOAD {
             return;
-        } else if variableValue is Scalar && (getTypeKind(schemaArg.'type) == SCALAR || getTypeKind(schemaArg.'type) == ENUM) {
+        } else if variableValue is Scalar && (getTypeKind(schemaArg.'type) == SCALAR 
+                  || getTypeKind(schemaArg.'type) == ENUM) {
             self.coerceArgumentNodeValue(argumentNode, schemaArg);
-            self.validateArgumentValue(variableValue, modifiedArgNode.getValueLocation(), getTypeName(modifiedArgNode), schemaArg);
+            self.validateArgumentValue(variableValue, modifiedArgNode.getValueLocation(), getTypeName(modifiedArgNode),
+                                       schemaArg);
         } else if variableValue is map<anydata> && getTypeKind(schemaArg.'type) == INPUT_OBJECT {
             self.updatePath(modifiedArgNode.getName());
-            self.validateInputObjectVariableValue(variableValue, schemaArg, modifiedArgNode.getValueLocation(), fieldName);
+            var variableValueClone = variableValue.clone();
+            self.validateInputObjectVariableValue(variableValueClone, schemaArg, modifiedArgNode.getValueLocation(),
+                                                  fieldName);
+            self.modifyArgumentNode(argumentNode, variableValue = variableValueClone);
             self.removePath();
         } else if variableValue is anydata[] && getTypeKind(schemaArg.'type) == LIST {
             self.updatePath(modifiedArgNode.getName());
-            self.validateListVariableValue(variableValue, schemaArg, modifiedArgNode.getValueLocation(), fieldName);
+            var clonedVariableValue = variableValue.clone();
+            self.validateListVariableValue(clonedVariableValue, schemaArg, modifiedArgNode.getValueLocation(),
+                                           fieldName);
+            self.modifyArgumentNode(argumentNode, variableValue = clonedVariableValue);
             self.removePath();
         } else if variableValue is () {
-            self.validateArgumentValue(variableValue, modifiedArgNode.getValueLocation(), getTypeName(modifiedArgNode), schemaArg);
+            self.validateArgumentValue(variableValue, modifiedArgNode.getValueLocation(), getTypeName(modifiedArgNode),
+                                       schemaArg);
         } else {
             string expectedTypeName = getOfTypeName(schemaArg.'type);
             string listError = getListElementError(self.argumentPath);
@@ -285,11 +296,15 @@ class FieldValidatorVisitor {
                         }
                     } else if fieldValue is map<anydata> {
                         self.updatePath(subInputValue.name);
-                        self.validateInputObjectVariableValue(fieldValue, subInputValue, location, fieldName);
+                        var fieldValueClone = fieldValue.clone();
+                        self.validateInputObjectVariableValue(fieldValueClone, subInputValue, location, fieldName);
+                        variableValues[subInputValue.name] = fieldValueClone;
                         self.removePath();
                     } else if fieldValue is anydata[] {
                         self.updatePath(subInputValue.name);
-                        self.validateListVariableValue(fieldValue, subInputValue, location, fieldName);
+                        var fieldValueClone = fieldValue.clone();
+                        self.validateListVariableValue(fieldValueClone, subInputValue, location, fieldName);
+                        variableValues[subInputValue.name] = fieldValueClone;
                         self.removePath();
                     } else if fieldValue is () {
                         string expectedTypeName = getOfTypeName(inputValue.'type);
@@ -337,11 +352,16 @@ class FieldValidatorVisitor {
                         }
                     } else if listItemValue is map<json> {
                         self.updatePath(listItemInputValue.name);
-                        self.validateInputObjectVariableValue(listItemValue, listItemInputValue, location, fieldName);
+                        var listItemValueClone = listItemValue.clone();
+                        self.validateInputObjectVariableValue(listItemValueClone, listItemInputValue, location,
+                                                              fieldName);
+                        variableValues[i] = listItemValueClone;
                         self.removePath();
                     } else if listItemValue is json[] {
                         self.updatePath(listItemInputValue.name);
-                        self.validateListVariableValue(listItemValue, listItemInputValue, location, fieldName);
+                        var listItemValueClone = listItemValue.clone();
+                        self.validateListVariableValue(listItemValueClone, listItemInputValue, location, fieldName);
+                        variableValues[i] = listItemValueClone;
                         self.removePath();
                     } else if listItemValue is () {
                         string expectedTypeName = getOfTypeName(listItemInputValue.'type);
@@ -441,7 +461,8 @@ class FieldValidatorVisitor {
         }
 
         foreach __InputValue inputValue in notFoundInputValues {
-            if inputValue.'type.kind == NON_NULL && inputValue?.defaultValue is () && getOfType(inputValue.'type).name != UPLOAD {
+            if inputValue.'type.kind == NON_NULL && inputValue?.defaultValue is () 
+               && getOfType(inputValue.'type).name != UPLOAD {
                 string message = getMissingRequiredArgError(fieldNode, inputValue);
                 self.errors.push(getErrorDetailRecord(message, fieldNode.getLocation()));
             }
@@ -561,9 +582,11 @@ class FieldValidatorVisitor {
     }
 
     private isolated function modifyArgumentNode(parser:ArgumentNode originalNode, parser:ArgumentType? kind = (),
-                                                 parser:ArgumentValue|parser:ArgumentValue[] value = ()) {
+                                                 parser:ArgumentValue|parser:ArgumentValue[] value = (),
+                                                 anydata variableValue=()) {
         parser:ArgumentNode previouslyModifiedNode = self.nodeModifierContext.getModifiedArgumentNode(originalNode);
-        parser:ArgumentNode newModifiedNode = previouslyModifiedNode.modifyWith(kind = kind, value = value);
+        parser:ArgumentNode newModifiedNode = previouslyModifiedNode.modifyWith(kind = kind, value = value,
+                                                                                variableValue = variableValue);
         self.nodeModifierContext.addModifiedArgumentNode(originalNode, newModifiedNode);
         return;
     }
