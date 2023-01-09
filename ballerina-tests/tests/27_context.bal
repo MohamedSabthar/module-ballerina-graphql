@@ -305,17 +305,18 @@ isolated function testContextWithSubscriptions() returns error? {
     websocket:ClientConfiguration configs = {
         customHeaders: {
             "scope": "admin"
-        }
+        },
+        subProtocols: [GRAPHQL_TRANSPORT_WS]
     };
     websocket:Client wsClient = check new (url, configs);
 
     check initiateConnectionInitMessage(wsClient);
     check validateConnectionInitMessage(wsClient);
-    
+
     check writeWebSocketTextMessage(wsClient, "1", document);
     foreach int i in 1 ..< 4 {
         json expectedPayload = {data: {messages: i}};
-        check validateWebSocketResponse(wsClient, expectedPayload);
+        check validateWebSocketResponse(wsClient, {'type:"next", id:"1", payload:expectedPayload});
     }
 }
 
@@ -328,19 +329,20 @@ isolated function testContextWithInvalidScopeInSubscriptions() returns error? {
     websocket:ClientConfiguration configs = {
         customHeaders: {
             "scope": "user"
-        }
+        },
+        subProtocols: [GRAPHQL_TRANSPORT_WS]
     };
     websocket:Client wsClient = check new (url, configs);
     check initiateConnectionInitMessage(wsClient);
     check validateConnectionInitMessage(wsClient);
 
     check writeWebSocketTextMessage(wsClient, "1", document);
-    json expectedPayload = {
+    json expectedPayload = {'type:"error", id:"1", payload:{
         errors:[
             {
                 message: "You don't have permission to retrieve data"
             }
         ]
-    };
+    }};
     check validateWebSocketResponse(wsClient, expectedPayload);
 }

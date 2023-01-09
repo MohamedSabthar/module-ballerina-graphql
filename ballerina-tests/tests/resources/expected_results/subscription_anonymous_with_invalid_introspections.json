@@ -1,13 +1,17 @@
 {
-    "errors": [
-        {
-            "message": "Anonymous Subscription must not select an introspection top level field.",
-            "locations": [
-                {
-                    "line": 1,
-                    "column": 16
-                }
-            ]
-        }
-    ]
+    "type": "error",
+    "id": "1",
+    "payload": {
+        "errors": [
+            {
+                "message": "Anonymous Subscription must not select an introspection top level field.",
+                "locations": [
+                    {
+                        "line": 1,
+                        "column": 16
+                    }
+                ]
+            }
+        ]
+    }
 }

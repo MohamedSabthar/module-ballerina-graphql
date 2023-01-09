@@ -1,13 +1,17 @@
 {
-    "errors": [
-        {
-            "message": "Cannot query field \"invalidField\" on type \"Subscription\".",
-            "locations": [
-                {
-                    "line": 1,
-                    "column": 16
-                }
-            ]
-        }
-    ]
+    "type": "error",
+    "id": "1",
+    "payload": {
+        "errors": [
+            {
+                "message": "Cannot query field \"invalidField\" on type \"Subscription\".",
+                "locations": [
+                    {
+                        "line": 1,
+                        "column": 16
+                    }
+                ]
+            }
+        ]
+    }
 }
