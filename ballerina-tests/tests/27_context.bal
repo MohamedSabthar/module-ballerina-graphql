@@ -308,7 +308,11 @@ isolated function testContextWithSubscriptions() returns error? {
         }
     };
     websocket:Client wsClient = check new (url, configs);
-    check writeWebSocketTextMessage(document, wsClient);
+
+    check initiateConnectionInitMessage(wsClient);
+    check validateConnectionInitMessage(wsClient);
+    
+    check writeWebSocketTextMessage(wsClient, "1", document);
     foreach int i in 1 ..< 4 {
         json expectedPayload = {data: {messages: i}};
         check validateWebSocketResponse(wsClient, expectedPayload);
@@ -327,7 +331,10 @@ isolated function testContextWithInvalidScopeInSubscriptions() returns error? {
         }
     };
     websocket:Client wsClient = check new (url, configs);
-    check writeWebSocketTextMessage(document, wsClient);
+    check initiateConnectionInitMessage(wsClient);
+    check validateConnectionInitMessage(wsClient);
+
+    check writeWebSocketTextMessage(wsClient, "1", document);
     json expectedPayload = {
         errors:[
             {

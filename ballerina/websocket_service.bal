@@ -46,10 +46,10 @@ isolated service class WsService {
         }
     }
 
-    isolated remote function onTextMessage(websocket:Caller caller, string text) returns websocket:Error? {
+    isolated remote function onMessage(websocket:Caller caller, string text) returns websocket:Error? {
         error? validatedSubProtocol = validateSubProtocol(caller, self.customHeaders);
         if validatedSubProtocol is error {
-            closeConnection(caller, 4406, "Subprotocol not acceptable");
+            closeConnection(caller, 4406, validatedSubProtocol.message());
             return;
         }
         json|error wsText = value:fromJsonString(text);
@@ -60,8 +60,7 @@ isolated service class WsService {
             return;
         }
 
-        WSPayload|json|error wsPayload = self.customHeaders != {}
-                                        ? wsText.cloneWithType(WSPayload) : value:fromJsonString(text);
+        WSPayload|json|error wsPayload = wsText.cloneWithType(WSPayload);
         if wsPayload is error {
             json payload = {errors: [{message: "Invalid format in WebSocket payload: " + wsPayload.message()}]};
             check sendWebSocketResponse(caller, self.customHeaders, WS_ERROR, payload);

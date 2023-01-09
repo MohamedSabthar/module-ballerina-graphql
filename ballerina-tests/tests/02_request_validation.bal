@@ -151,7 +151,10 @@ isolated function testInvalidWebSocketRequestWithEmptyQuery() returns error? {
     string document = "";
     string url = "ws://localhost:9099/subscriptions";
     websocket:Client wsClient = check new(url);
-    check writeWebSocketTextMessage(document, wsClient);
+
+    check initiateConnectionInitMessage(wsClient);
+    check validateConnectionInitMessage(wsClient);
+    check writeWebSocketTextMessage(wsClient, "1", document);
     json expectedPayload = {errors: [{message: "An empty query is found"}]};
     check validateWebSocketResponse(wsClient, expectedPayload);
 }
@@ -188,7 +191,10 @@ isolated function testInvalidVariableInWebSocketPayload() returns error? {
     json variables = [];
     string url = "ws://localhost:9099/subscriptions";
     websocket:Client wsClient = check new(url);
-    check writeWebSocketTextMessage(document, wsClient, variables);
+
+    check initiateConnectionInitMessage(wsClient);
+    check validateConnectionInitMessage(wsClient);
+    check writeWebSocketTextMessage(wsClient, "1", document, variables);
     json expectedPayload = {errors: [{message: "Invalid format in request parameter: `variables`"}]};
     check validateWebSocketResponse(wsClient, expectedPayload);
 }
@@ -211,10 +217,10 @@ isolated function testEmptyWebSocketPayload() returns error? {
 }
 isolated function testInvalidWebSocketPayload() returns error? {
     string url = "ws://localhost:9099/subscriptions";
-    websocket:Client wsClient = check new (url, {subProtocols: ["graphql-ws"]});
+    websocket:Client wsClient = check new (url, {subProtocols: [GRAPHQL_TRANSPORT_WS]});
     json payload = {payload: {query: ()}};
     check wsClient->writeMessage(payload);
     string expectedErrorMessage = "Invalid format in WebSocket payload: {ballerina/lang.value}ConversionError";
-    json expectedPayload = {'type: "data", payload: {errors: [{message: expectedErrorMessage}]}};
+    json expectedPayload = {'type: WS_ERROR, payload: {errors: [{message: expectedErrorMessage}]}};
     check validateWebSocketResponse(wsClient, expectedPayload);
 }

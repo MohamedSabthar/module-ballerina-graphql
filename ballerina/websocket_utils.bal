@@ -120,18 +120,8 @@ isolated function getSubscriptionResponse(Engine engine, __Schema schema, Contex
 
 isolated function sendWebSocketResponse(websocket:Caller caller, map<string> & readonly customHeaders, string wsType,
                                         json payload, string? id = ()) returns websocket:Error? {
-    if customHeaders.hasKey(WS_SUB_PROTOCOL) {
-        string 'type = wsType;
-        if customHeaders.get(WS_SUB_PROTOCOL) == GRAPHQL_WS {
-            if wsType == WS_ERROR || wsType == WS_NEXT {
-                'type = WS_DATA;
-            }
-        }
-        json jsonResponse = id != () ? {'type: 'type, id: id, payload: payload} : {'type: 'type, payload: payload};
-        check caller->writeMessage(jsonResponse);
-    } else {
-        check caller->writeMessage(payload);
-    }
+        json jsonResponse = {'type: wsType, id: id, payload: payload};
+        return caller->writeMessage(jsonResponse);
 }
 
 isolated function closeConnection(websocket:Caller caller, int statusCode = 1000, string reason = "Normal Closure") {
@@ -142,11 +132,12 @@ isolated function closeConnection(websocket:Caller caller, int statusCode = 1000
 }
 
 isolated function validateSubProtocol(websocket:Caller caller, readonly & map<string> customHeaders) returns error? {
-    if customHeaders.hasKey(WS_SUB_PROTOCOL) {
-        string subProtocol = customHeaders.get(WS_SUB_PROTOCOL);
-        if subProtocol != GRAPHQL_WS && subProtocol != GRAPHQL_TRANSPORT_WS {
-            return error("Subprotocol not acceptable");
-        }
+    if !customHeaders.hasKey(WS_SUB_PROTOCOL) {
+        return error("Subprotocol header not found");
+    }
+    string subProtocol = customHeaders.get(WS_SUB_PROTOCOL);
+    if  subProtocol != GRAPHQL_TRANSPORT_WS {
+        return error(string `Unsupported subprotocol "${subProtocol}" requested by the client`);
     }
     return;
 }

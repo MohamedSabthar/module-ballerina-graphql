@@ -113,18 +113,12 @@ isolated function validateWebSocketResponse(websocket:Client wsClient, json expe
     assertJsonValuesWithOrder(actualPayload, expectedPayload);
 }
 
-isolated function writeWebSocketTextMessage(string? document, websocket:Client wsClient, json? variables = {},
-                                            string? operationName = (), string? id = (), string? subProtocol = ())
+isolated function writeWebSocketTextMessage(websocket:Client wsClient, string id, string document, json? variables = {},
+                                            string? operationName = ())
                                             returns websocket:Error? {
     json payload = {query: document, variables: variables, operationName: operationName};
-    if subProtocol !is () && id !is () {
-        json wsPayload = subProtocol == GRAPHQL_WS
-                        ? {"type": WS_START, id: id, payload: payload}
-                        : {"type": WS_SUBSCRIBE, id: id, payload: payload};
-        check wsClient->writeMessage(wsPayload);
-    } else {
-        check wsClient->writeMessage(payload);
-    }
+    json wsPayload = {"type": WS_SUBSCRIBE, id: id, payload: payload};
+    return wsClient->writeMessage(wsPayload);
 }
 
 isolated function validateConnectionInitMessage(websocket:Client wsClient) returns websocket:Error?|error {

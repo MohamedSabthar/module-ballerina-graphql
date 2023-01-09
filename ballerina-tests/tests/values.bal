@@ -261,5 +261,5 @@ const WS_STOP = "stop";
 const WS_COMPLETE = "complete";
 
 // WebSocket Sub Protocols
-const GRAPHQL_WS = "graphql-ws";
+const GRAPHQL_TRANSPORT_WS = "graphql-transport-ws";
 const WS_SUB_PROTOCOL = "Sec-WebSocket-Protocol";
