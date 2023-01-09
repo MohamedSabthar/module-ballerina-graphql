@@ -14,7 +14,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/lang.value;
 import ballerina/websocket;
 import graphql.parser;
 
@@ -46,86 +45,58 @@ isolated service class WsService {
         }
     }
 
-    isolated remote function onMessage(websocket:Caller caller, string text) returns websocket:Error? {
+    isolated remote function onMessage(websocket:Caller caller, ConnectionInitMessage|PingMessage|PongMessage|SubscribeMessage|CompleteMessage message) returns websocket:Error? {
         error? validatedSubProtocol = validateSubProtocol(caller, self.customHeaders);
         if validatedSubProtocol is error {
             closeConnection(caller, 4406, validatedSubProtocol.message());
             return;
         }
-        json|error wsText = value:fromJsonString(text);
-        if wsText is error {
-            json payload = {errors: [{message: "Invalid format in WebSocket payload: " + wsText.message()}]};
-            check sendWebSocketResponse(caller, self.customHeaders, WS_ERROR, payload);
-            closeConnection(caller);
+        if message is ConnectionInitMessage {
+            lock {
+                if self.initiatedConnection {
+                    closeConnection(caller, 4429, "Too many initialisation requests");
+                    return;
+                }
+                check caller->writeMessage({"type": WS_ACK});
+                self.initiatedConnection = true;
+            }
+            return;
+        }
+        if message is SubscribeMessage {
+            SubscriptionHandler handler = new(message.id);
+            lock {
+                if !self.initiatedConnection {
+                    closeConnection(caller, 4401, "Unauthorized");
+                    return;
+                }
+                if self.activeConnections.hasKey(message.id) {
+                    closeConnection(caller, 4409, string `Subscriber for ${message.id} already exists`);
+                    return;
+                }
+                self.activeConnections[message.id] = handler;
+            }
+            return self.handleSubscriptionRequest(caller, message, handler);
+        }
+
+        if message is CompleteMessage {
+            lock {
+                if !self.activeConnections.hasKey(message.id) {
+                    return;
+                }
+                SubscriptionHandler handler = self.activeConnections.remove(message.id);
+                handler.setUnsubscribed();
+            }
             return;
         }
 
-        WSPayload|json|error wsPayload = wsText.cloneWithType(WSPayload);
-        if wsPayload is error {
-            json payload = {errors: [{message: "Invalid format in WebSocket payload: " + wsPayload.message()}]};
-            check sendWebSocketResponse(caller, self.customHeaders, WS_ERROR, payload);
-            closeConnection(caller);
-            return;
-        }
-        if !self.customHeaders.hasKey(WS_SUB_PROTOCOL) {
-            return self.handleSubscriptionRequest(caller, wsPayload);
-        }
-        if wsPayload !is WSPayload {
-            return;
-        }
-
-        match wsPayload.'type {
-            WS_INIT => {
-                lock {
-                    if self.initiatedConnection {
-                        closeConnection(caller, 4429, "Too many initialisation requests");
-                        return;
-                    }
-                    check caller->writeMessage({"type": WS_ACK});
-                    self.initiatedConnection = true;
-                }
-            }
-            WS_SUBSCRIBE|WS_START => {
-                string? connectionId = wsPayload.id;
-                if connectionId is () {
-                    return self.handleIdNotPresentInPayload(caller);
-                }
-                SubscriptionHandler handler = new(connectionId);
-                lock {
-                    if !self.initiatedConnection {
-                        closeConnection(caller, 4401, "Unauthorized");
-                        return;
-                    }
-                    if self.activeConnections.hasKey(connectionId) {
-                        closeConnection(caller, 4409, string `Subscriber for ${connectionId} already exists`);
-                        return;
-                    }
-                    self.activeConnections[connectionId] = handler;
-                }
-                return self.handleSubscriptionRequest(caller, wsPayload, handler);
-            }
-            WS_STOP|WS_COMPLETE => {
-                string? connectionId = wsPayload.id;
-                if connectionId is () {
-                    return self.handleIdNotPresentInPayload(caller);
-                }
-                lock {
-                    if !self.activeConnections.hasKey(connectionId) {
-                        return;
-                    }
-                    SubscriptionHandler handler = self.activeConnections.remove(connectionId);
-                    handler.setUnsubscribed();
-                }
-            }
-            WS_PING => {
-                check caller->writeMessage({"type": WS_PONG});
-            }
+        if message is PingMessage {
+            return caller->writeMessage({"type": WS_PONG});
         }
     }
 
-    isolated function handleSubscriptionRequest(websocket:Caller caller, WSPayload|json wsPayload, 
-                                                SubscriptionHandler? handler = ()) returns websocket:Error? {
-        string? connectionId = handler is () ? () : handler.getId();
+    isolated function handleSubscriptionRequest(websocket:Caller caller, SubscribeMessage wsPayload, 
+                                                SubscriptionHandler handler) returns websocket:Error? {
+        string connectionId = handler.getId();
         parser:OperationNode|json node = validateSubscriptionPayload(wsPayload, self.engine);
         if node is parser:OperationNode {
             _ = start executeOperation(self.engine, self.context, self.schema, self.customHeaders, caller, node, handler);
@@ -135,12 +106,6 @@ isolated service class WsService {
                 closeConnection(caller);
             }
         }
-    }
-
-    isolated function handleError(websocket:Caller caller, error err) returns websocket:Error? {
-        json payload = {errors: [{message: "Invalid format in WebSocket payload: " + err.message()}]};
-        check sendWebSocketResponse(caller, self.customHeaders, WS_ERROR, payload);
-        closeConnection(caller);
     }
 
     isolated function handleIdNotPresentInPayload(websocket:Caller caller) {

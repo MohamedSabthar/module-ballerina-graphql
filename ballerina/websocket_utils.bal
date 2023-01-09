@@ -20,18 +20,18 @@ import graphql.parser;
 
 isolated function executeOperation(Engine engine, Context context, readonly & __Schema schema,
         readonly & map<string> customHeaders, websocket:Caller caller,
-        parser:OperationNode node, SubscriptionHandler? subscriptionHandler) {
+        parser:OperationNode node, SubscriptionHandler subscriptionHandler) {
     stream<any, error?>|json sourceStream;
     do {
-        SubscriptionHandler? handler = subscriptionHandler;
-        string? connectionId = handler is () ? () : handler.getId();
+        SubscriptionHandler handler = subscriptionHandler;
+        string connectionId = handler.getId();
         RootFieldVisitor rootFieldVisitor = new (node);
         parser:FieldNode fieldNode = <parser:FieldNode>rootFieldVisitor.getRootFieldNode();
         sourceStream = getSubscriptionResponse(engine, schema, context, fieldNode);
         if sourceStream is stream<any, error?> {
             record {|any value;|}|error? next = sourceStream.next();
             while next !is () {
-                if handler !is () && handler.getUnsubscribed() {
+                if handler.getUnsubscribed() {
                     closeStream(sourceStream);
                     return;
                 }
@@ -56,52 +56,33 @@ isolated function executeOperation(Engine engine, Context context, readonly & __
 }
 
 isolated function handleStreamCompletion(readonly & map<string> customHeaders, websocket:Caller caller,
-                                         SubscriptionHandler? handler, stream<any, error?> sourceStream)
+                                         SubscriptionHandler handler, stream<any, error?> sourceStream)
 returns websocket:Error? {
-    if customHeaders.hasKey(WS_SUB_PROTOCOL) {
-        if handler is () || handler.getUnsubscribed() {
-            closeStream(sourceStream);
-            return;
-        }
-        check sendWebSocketResponse(caller, customHeaders, WS_COMPLETE, (), handler.getId());
-    } else {
-        closeConnection(caller);
+    if handler.getUnsubscribed() {
+        closeStream(sourceStream);
+        return;
     }
+    check sendWebSocketResponse(caller, customHeaders, WS_COMPLETE, (), handler.getId());
     closeStream(sourceStream);
 }
 
 isolated function handleStreamCreationError(readonly & map<string> customHeaders, websocket:Caller caller,
-                                            SubscriptionHandler? handler, json errors) returns websocket:Error? {
-    if handler !is () && handler.getUnsubscribed() {
+                                            SubscriptionHandler handler, json errors) returns websocket:Error? {
+    if handler.getUnsubscribed() {
         return;
     }
-    string? connectionId = handler is () ? () : handler.getId();
+    string connectionId = handler.getId();
     check sendWebSocketResponse(caller, customHeaders, WS_ERROR, errors, connectionId);
-    if !customHeaders.hasKey(WS_SUB_PROTOCOL) {
-        closeConnection(caller);
-    }
 }
 
-isolated function validateSubscriptionPayload(json|WSPayload data, Engine engine) returns parser:OperationNode|json {
-    json|error payload = data is WSPayload ? data?.payload : data;
-    if payload is error {
-        return {errors: [{message: "Invalid format in WebSocket payload: " + payload.message()}]};
-    }
-    json|error document = payload.query;
-    if document is error {
-        return {errors: [{message: "Unable to find the query: " + document.message()}]};
-    }
-    if document !is string {
-        return {errors: [{message: "Invalid format in request parameter: `query`"}]};
-    }
+isolated function validateSubscriptionPayload(SubscribeMessage data, Engine engine) returns parser:OperationNode|json {
+    string document = data.payload.query;
     if document == "" {
         return {errors: [{message: "An empty query is found"}]};
     }
-    json|error variables = payload?.variables;
-    if variables is error || variables !is map<json>? {
-        return {errors: [{message: "Invalid format in request parameter: `variables`"}]};
-    }
-    parser:OperationNode|OutputObject result = engine.validate(document, getOperationName(payload), variables);
+    string? operationName = data.payload?.operationName;
+    map<json>? variables = data.payload?.variables;
+    parser:OperationNode|OutputObject result = engine.validate(document, operationName, variables);
     if result is parser:OperationNode {
         return result;
     }
@@ -119,7 +100,7 @@ isolated function getSubscriptionResponse(Engine engine, __Schema schema, Contex
 }
 
 isolated function sendWebSocketResponse(websocket:Caller caller, map<string> & readonly customHeaders, string wsType,
-                                        json payload, string? id = ()) returns websocket:Error? {
+                                        json payload, string id) returns websocket:Error? {
         json jsonResponse = {'type: wsType, id: id, payload: payload};
         return caller->writeMessage(jsonResponse);
 }
