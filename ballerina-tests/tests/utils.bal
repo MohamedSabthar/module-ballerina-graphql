@@ -113,28 +113,18 @@ isolated function validateWebSocketResponse(websocket:Client wsClient, json expe
     assertJsonValuesWithOrder(actualPayload, expectedPayload);
 }
 
-isolated function writeWebSocketTextMessage(string? document, websocket:Client wsClient, json? variables = {},
-                                            string? operationName = (), string? id = (), string? subProtocol = ())
-                                            returns websocket:Error? {
+isolated function sendSubscriptionMessage(websocket:Client wsClient, string document, string id = "1",
+                                          json? variables = {}, string? operationName = ()) returns websocket:Error? {
     json payload = {query: document, variables: variables, operationName: operationName};
-    if subProtocol !is () && id !is () {
-        json wsPayload = subProtocol == GRAPHQL_WS
-                        ? {"type": WS_START, id: id, payload: payload}
-                        : {"type": WS_SUBSCRIBE, id: id, payload: payload};
-        check wsClient->writeMessage(wsPayload);
-    } else {
-        check wsClient->writeMessage(payload);
-    }
+    json wsPayload = {'type: WS_SUBSCRIBE, id: id, payload: payload};
+    return wsClient->writeMessage(wsPayload);
 }
 
-isolated function validateConnectionInitMessage(websocket:Client wsClient) returns websocket:Error?|error {
-    string expectedPayload = WS_ACK;
-    json jsonPayload = check wsClient->readMessage();
-    WSPayload wsPayload = check jsonPayload.cloneWithType(WSPayload);
-    string actualType = wsPayload.'type;
-    test:assertEquals(actualType, expectedPayload);
+isolated function validateConnectionAckMessage(websocket:Client wsClient) returns websocket:Error?|error {
+    json response = check wsClient->readMessage();
+    test:assertEquals(response.'type, WS_ACK);
 }
 
-isolated function initiateConnectionInitMessage(websocket:Client wsClient) returns websocket:Error? {
-    check wsClient->writeMessage({"type": WS_INIT});
+isolated function sendConnectionInitMessage(websocket:Client wsClient) returns websocket:Error? {
+    check wsClient->writeMessage({'type: WS_INIT});
 }
