@@ -1,13 +1,17 @@
 {
-    "errors": [
-        {
-            "message": "Subscription \"sub\" must not select an introspection top level field.",
-            "locations": [
-                {
-                    "line": 2,
-                    "column": 5
-                }
-            ]
-        }
-    ]
+    "type": "error",
+    "id": "1",
+    "payload": {
+        "errors": [
+            {
+                "message": "Subscription \"sub\" must not select an introspection top level field.",
+                "locations": [
+                    {
+                        "line": 2,
+                        "column": 5
+                    }
+                ]
+            }
+        ]
+    }
 }
