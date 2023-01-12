@@ -16,6 +16,7 @@
 
 import ballerina/log;
 import ballerina/websocket;
+import ballerina/lang.value;
 import graphql.parser;
 
 isolated function executeOperation(Engine engine, Context context, readonly & __Schema schema, websocket:Caller caller,
@@ -119,7 +120,23 @@ returns SubscriptionError? {
 isolated function closeStream(stream<any, error?> sourceStream) {
     error? result = sourceStream.close();
     if result is error {
-        error err = error("Failed to close stream", result);
-        log:printError(err.message(), stackTrace = err.stackTrace());
+        logError("Failed to close stream", result);
     }
+}
+
+isolated function castToMessage(string text) returns Message|SubscriptionError {
+    do {
+        json jsonValue = check value:fromJsonString(text);
+        Message message = check jsonValue.cloneWithType();
+        return message;
+    } on fail {
+        string detail = "payload does not conform to the format required by the '" +
+            GRAPHQL_TRANSPORT_WS + "' subprotocol";
+        return error(string `Invalid format: ${detail}`, code = 1003);
+    }
+}
+
+isolated function logError(string message, error cause) {
+    error err = error(message, cause);
+    log:printError(err.message(), stackTrace = err.stackTrace());
 }
