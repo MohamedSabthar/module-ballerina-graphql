@@ -109,13 +109,13 @@ isolated function closeConnection(websocket:Caller caller, SubscriptionError cau
     }
 }
 
-isolated function validateSubProtocol(websocket:Caller caller, readonly & map<string> customHeaders)
-returns SubscriptionError? {
-    string subProtocol = customHeaders.get(WS_SUB_PROTOCOL).trim();
-    if subProtocol != GRAPHQL_TRANSPORT_WS {
-        return error(string `Unsupported subprotocol "${subProtocol}" requested by the client`, code = 4406);
-    }
-}
+// isolated function validateSubProtocol(websocket:Caller caller, readonly & map<string> customHeaders)
+// returns SubscriptionError? {
+//     string subProtocol = customHeaders.get(WS_SUB_PROTOCOL).trim();
+//     if subProtocol != GRAPHQL_TRANSPORT_WS {
+//         return error(string `Unsupported subprotocol "${subProtocol}" requested by the client`, code = 4406);
+//     }
+// }
 
 isolated function closeStream(stream<any, error?> sourceStream) {
     error? result = sourceStream.close();

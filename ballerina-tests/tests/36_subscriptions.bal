@@ -511,3 +511,19 @@ isolated function testSubscriptionMultiplexing() returns error? {
         test:assertEquals(actualPayload, expectedPayload);
     }
 }
+
+@test:Config {
+    groups: ["subscriptions", "recrods", "service"]
+}
+isolated function testConnectionClousureWhenPongNotRecived() returns error? {
+    string document = "subscription { live { product { id } score } }";
+    string url = "ws://localhost:9090/reviews";
+    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
+    websocket:Client wsClient = check new (url, config);
+    check initiateGraphqlWsConnection(wsClient);
+    json response = check wsClient->readMessage();
+    test:assertTrue(response.'type == WS_PING);
+    json|error pong = wsClient->readMessage();
+    test:assertTrue(pong is error, "Expected connection clousure error");
+    test:assertEquals((<error>pong).message(), "Expected connection clousure error");
+}
