@@ -18,6 +18,7 @@
 
 package io.ballerina.stdlib.graphql.compiler.schema.generator;
 
+import io.ballerina.compiler.api.symbols.AnnotationSymbol;
 import io.ballerina.compiler.api.symbols.ArrayTypeSymbol;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.ConstantSymbol;
@@ -68,6 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.removeEscapeCharacter;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
@@ -93,12 +95,14 @@ public class SchemaGenerator {
     private static final String IF_ARG_NAME = "if";
     private static final String REASON_ARG_NAME = "reason";
     private static final String DEFAULT_VALUE = "\"\"";
+    private static final String KEY = "Key";
 
     private final Node serviceNode;
     private final InterfaceFinder interfaceFinder;
     private final Schema schema;
     private final SyntaxNodeAnalysisContext context;
     private final List<Type> visitedInterfaces;
+    private final Map<String, Type> entities;
 
     public SchemaGenerator(SyntaxNodeAnalysisContext context, Node serviceNode, InterfaceFinder interfaceFinder,
                            String description) {
@@ -107,12 +111,24 @@ public class SchemaGenerator {
         this.interfaceFinder = interfaceFinder;
         this.schema = new Schema(description);
         this.visitedInterfaces = new ArrayList<>();
+        this.entities = new HashMap<>();
     }
 
     public Schema generate() {
         findRootTypes(this.serviceNode);
         findIntrospectionTypes();
         return this.schema;
+    }
+
+    public Map<String, Type> getEntities() {
+        return this.entities;
+    }
+
+    private void addEntity(Type entity) {
+        if (this.entities.containsKey(entity.getName())) {
+            return;
+        }
+        this.entities.put(entity.getName(), entity);
     }
 
     private void findIntrospectionTypes() {
@@ -310,6 +326,7 @@ public class SchemaGenerator {
         if (definitionSymbol.kind() == SymbolKind.TYPE_DEFINITION) {
             return getType(name, (TypeDefinitionSymbol) definitionSymbol);
         } else if (definitionSymbol.kind() == SymbolKind.CLASS) {
+            // TODO: check for @key annotation and add entire Type to serviceConfig
             return getType(name, (ClassSymbol) definitionSymbol);
         } else if (definitionSymbol.kind() == SymbolKind.ENUM) {
             return getType(name, (EnumSymbol) definitionSymbol);
@@ -331,6 +348,7 @@ public class SchemaGenerator {
             parameterMap = typeDefinitionSymbol.documentation().get().parameterMap();
         }
         if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.RECORD) {
+            // TODO: check for @key annotation and add entire Type to serviceConfig
             RecordTypeSymbol recordType = (RecordTypeSymbol) typeDefinitionSymbol.typeDescriptor();
             return getType(name, description, parameterMap, recordType);
         } else if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.UNION) {
@@ -362,7 +380,19 @@ public class SchemaGenerator {
     private Type getType(String name, ClassSymbol classSymbol) {
         String description = getDescription(classSymbol);
         Type objectType = addType(name, TypeKind.OBJECT, description);
-
+        List<AnnotationSymbol> annotations = classSymbol.annotations();
+        for (AnnotationSymbol annotation : annotations) {
+            if (!isGraphqlModuleSymbol(annotation)) {
+                continue;
+            }
+            if (annotation.getName().isEmpty()) {
+                continue;
+            }
+            if (annotation.getName().get().equals(KEY)) {
+                addEntity(objectType);
+                break;
+            }
+        }
         for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
             if (isResourceMethod(methodSymbol)) {
                 objectType.addField(getField((ResourceMethodSymbol) methodSymbol));

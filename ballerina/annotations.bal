@@ -37,3 +37,14 @@ public type GraphqlServiceConfig record {|
 
 # The annotation to configure a GraphQL service.
 public annotation GraphqlServiceConfig ServiceConfig on service;
+
+# Represents the input arguments of Key annotation
+# + fields - GraphQL fields and subfields that contribute to the entity's primary key
+# + resolvable - Indicates to the graph router that this subgraph define a reference resolver for this entity or not
+type FederatedKey record {|
+   string fields;
+   boolean resolvable = true;
+|};
+
+# The annotation to designates an object type as an entity.
+public annotation FederatedKey Key on class, type;
