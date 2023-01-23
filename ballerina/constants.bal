@@ -75,3 +75,43 @@ const WS_COMPLETE = "complete";
 const GRAPHQL_WS = "graphql-ws";
 const GRAPHQL_TRANSPORT_WS = "graphql-transport-ws";
 const WS_SUB_PROTOCOL = "Sec-WebSocket-Protocol";
+
+// Constants used in subgraph schema addition
+// Scalars
+const ANY = "_Any";
+const FIELD_SET = "FieldSet";
+const LINK_IMPORT = "link__Import";
+
+// Enums
+const LINK_PURPOSE = "link__Purpose";
+
+// OBJECTS
+const ENTITY = "_Entity";
+const SERVICE = "_Service";
+
+// Directive
+const EXTERNAL_DIRECTIVE = "external";
+const REQUIRES_DIRECTIVE = "requires";
+const PROVIDES_DIRECTIVE = "provides";
+const KEY_DIRECTIVE = "key";
+const LINK_DIRECTIVE = "link";
+const SHAREABLE_DIRECTIVE = "shareable";
+const INACCESSIBLE_DIRECTIVE = "inaccessible";
+const TAG_DIRECTIVE = "tag";
+const OVERRIDE_DIRECTIVE = "override";
+const COMPOSE_DIRECTIVE = "composeDirective";
+const EXTENDS_DIRECTIVE = "extends";
+
+// Fields
+const SDL_FEILD = "sdl";
+const ENTITIES_FEILD = "_entities";
+const SERVICE_FIELD = "_service";
+
+// Input args
+const REPRESENTATIONS = "representations";
+const URL = "url";
+const AS = "as";
+const FROM = "from";
+const RESOLVABLE = "resolvable";
+const FIELDS = "fields";
+const NAME = "name";
