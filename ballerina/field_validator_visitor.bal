@@ -234,7 +234,7 @@ class FieldValidatorVisitor {
     }
 
     isolated function validateArgumentValue(parser:ArgumentValue value, Location valueLocation, string actualTypeName,
-                                            __InputValue schemaArg) {
+                                            __InputValue schemaArg) {                  
         if value is () {
             if schemaArg.'type.kind == NON_NULL {
                 string listError = getListElementError(self.argumentPath);
@@ -316,6 +316,8 @@ class FieldValidatorVisitor {
                     }
                 }
             }
+        } if argType.name == "_Any" {
+            return;
         } else {
             string expectedTypeName = getOfTypeName(inputValue.'type);
             string listError = getListElementError(self.argumentPath);

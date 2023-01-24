@@ -15,6 +15,7 @@
 // under the License.
 
 import graphql.parser;
+import ballerina/io;
 
 class ExecutorVisitor {
     *parser:Visitor;
@@ -59,7 +60,12 @@ class ExecutorVisitor {
             } else {
                 self.data[fieldNode.getAlias()] = SUBSCRIPTION_TYPE_NAME;
             }
-        } else {
+        } else if fieldNode.getName() == "_service" {
+            self.data[fieldNode.getAlias()] = "type User @key(fields: \"email\") {\n  email: String!\n  name: String!\n}\n\ntype Query {\n  me: User\n}\n";
+        } else if fieldNode.getName() == "_entities" {
+            self.data[fieldNode.getAlias()] = "data";
+        } else
+        {
             if operationType == parser:OPERATION_QUERY {
                 self.executeQuery(fieldNode, operationType);
             } else if operationType == parser:OPERATION_MUTATION {
@@ -89,7 +95,9 @@ class ExecutorVisitor {
         __Type fieldType = getFieldTypeFromParentType(parentType, self.schema.types, fieldNode);
         Field 'field = new (fieldNode, fieldType, self.engine.getService(), path, operationType);
         self.context.resetInterceptorCount();
+        io:println("Path.....: ", path);
         var result = self.engine.resolve(self.context, 'field);
+        io:println("Result.....: ", result);
         self.errors = self.context.getErrors();
         self.data[fieldNode.getAlias()] = result is ErrorDetail ? () : result;
     }

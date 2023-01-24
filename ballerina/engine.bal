@@ -15,11 +15,12 @@
 // under the License.
 
 import ballerina/jballerina.java;
-
+import ballerina/io;
 import graphql.parser;
 
 isolated class Engine {
     private final readonly & __Schema schema;
+    private final readonly & string[] entities;
     private final int? maxQueryDepth;
     private final readonly & (readonly & Interceptor)[] interceptors;
     private final readonly & boolean introspection;
@@ -32,6 +33,8 @@ isolated class Engine {
         }
         self.maxQueryDepth = maxQueryDepth;
         self.schema = check createSchema(schemaString);
+        self.entities = check getFederatedEntities(schemaString);
+        io:println("Entities.........: ", self.entities);
         self.interceptors = interceptors;
         self.introspection = introspection;
         self.addService(s);
@@ -271,6 +274,7 @@ isolated class Engine {
 
     isolated function resolveResourceMethod(Context context, Field 'field) returns any|error {
         service object {}? serviceObject = 'field.getServiceObject();
+        io:println("Service.......: ", serviceObject);
         if serviceObject is service object {} {
             handle? resourceMethod = self.getResourceMethod(serviceObject, 'field.getResourcePath());
             if resourceMethod == () {

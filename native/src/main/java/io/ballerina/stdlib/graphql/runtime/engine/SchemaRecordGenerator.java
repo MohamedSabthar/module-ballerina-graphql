@@ -80,14 +80,17 @@ import static io.ballerina.stdlib.graphql.runtime.utils.ModuleUtils.getModule;
  * This class is used to generate a Ballerina {@code __Schema} record from the {@code Schema} object.
  */
 public class SchemaRecordGenerator {
+    private final boolean isSubgraphSchema;
     private final Schema schema;
     private final Map<String, BMap<BString, Object>> typeRecords;
 
-    public SchemaRecordGenerator(Schema schema) {
+    public SchemaRecordGenerator(Schema schema, boolean isSubgraphSchema) {
+        this.isSubgraphSchema = isSubgraphSchema;
         this.schema = schema;
         this.typeRecords = new HashMap<>();
         this.populateTypeRecordMap();
         this.populateFieldsOfTypes();
+        this.populateSubgraphSchemaAdditions();
     }
 
     public BMap<BString, Object> getSchemaRecord() {
@@ -104,6 +107,14 @@ public class SchemaRecordGenerator {
         schemaRecord.put(DIRECTIVES_FIELD, getDirectives());
         schemaRecord.freezeDirect();
         return schemaRecord;
+    }
+
+    private void populateSubgraphSchemaAdditions() {
+        if (!this.isSubgraphSchema) {
+            return;
+        }
+        Type unionType = this.schema.addType("_Entity", TypeKind.UNION, null);
+        this.schema.getEntities().forEach(unionType::addPossibleType);
     }
 
     private void populateTypeRecordMap() {

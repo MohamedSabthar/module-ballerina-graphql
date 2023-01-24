@@ -24,6 +24,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.ARGUMENT_DEFINITION;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.ENUM;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.ENUM_VALUE;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.FIELD_DEFINITION;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.INPUT_FIELD_DEFINITION;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.INPUT_OBJECT;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.INTERFACE;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.OBJECT;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.SCALAR;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.SCHEMA;
+import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.UNION;
+
 /**
  * Represents the {@code Schema} type in GraphQL schema.
  */
@@ -32,6 +44,7 @@ public class Schema implements Serializable {
     private final String description;
     private final Map<String, Type> types;
     private final List<Directive> directives;
+    private final List<Type> entities;
     private Type queryType;
     private Type mutationType = null;
     private Type subscriptionType = null;
@@ -45,6 +58,7 @@ public class Schema implements Serializable {
         this.description = description;
         this.types = new LinkedHashMap<>();
         this.directives = new ArrayList<>();
+        this.entities = new ArrayList<>();
     }
 
     /**
@@ -129,5 +143,98 @@ public class Schema implements Serializable {
 
     public List<Directive> getDirectives() {
         return this.directives;
+    }
+
+    public void addEntities(Map<String, Type> federatedEntities) {
+        this.entities.addAll(federatedEntities.values());
+
+
+        Type entity = addType("_Entity", TypeKind.UNION, null);
+        this.entities.forEach(entity::addPossibleType);
+        this.types.put("_Entity", entity);
+
+        Type any = addType("_Any", TypeKind.SCALAR, null);
+        Type fieldSet = addType("FieldSet", TypeKind.SCALAR, null);
+        Type linkImport = addType("link__Import", TypeKind.SCALAR, null);
+
+        Type linkPurpose = addType("link__Purpose", TypeKind.ENUM, null);
+        linkPurpose.addEnumValue(new EnumValue("SECURITY", "`SECURITY` features provide"
+                + " metadata necessary to securely resolve fields."));
+        linkPurpose.addEnumValue(new EnumValue("EXECUTION", "`EXECUTION` features provide"
+                + " metadata necessary for operation execution."));
+
+        Type string = getType("String");
+        Type nonNullableString = new Type(TypeKind.NON_NULL, string);
+
+        Type service = addType("_Service", TypeKind.OBJECT, null);
+        service.addField(new Field("sdl", nonNullableString));
+
+        Field entities = new Field("_entities", new Type(TypeKind.NON_NULL, new Type(TypeKind.LIST, entity)));
+        entities.addArg(new InputValue("representations", new Type(TypeKind.NON_NULL, new Type(TypeKind.LIST, new Type(
+                TypeKind.NON_NULL, any))), null, null));
+        Field serviceField = new Field("_service", new Type(TypeKind.NON_NULL, service));
+
+        Type query = getQueryType();
+        query.addField(entities);
+        query.addField(serviceField);
+
+        Directive external = new Directive("external", null, List.of(FIELD_DEFINITION, OBJECT));
+        addDirective(external);
+
+        Directive requires = new Directive("requires", null, List.of(FIELD_DEFINITION));
+        InputValue fields = new InputValue("fields", new Type(TypeKind.NON_NULL, fieldSet), null, null);
+        requires.addArg(fields);
+        addDirective(requires);
+
+        Directive provides = new Directive("provides", null, List.of(FIELD_DEFINITION));
+        provides.addArg(fields);
+        addDirective(provides);
+
+        Directive key = new Directive("key", null, List.of(OBJECT, INTERFACE));
+        key.addArg(fields);
+        InputValue resolvable = new InputValue("resolvable", getType("Boolean"), null, "true");
+        key.addArg(resolvable);
+        addDirective(key);
+
+        Directive link = new Directive("link", null, List.of(SCHEMA));
+        InputValue url = new InputValue("url", nonNullableString, null, null);
+        link.addArg(url);
+        InputValue as = new InputValue("as", string, null, null);
+        link.addArg(as);
+        InputValue forInput = new InputValue("for", linkPurpose, null, null);
+        link.addArg(forInput);
+        InputValue importInput = new InputValue("import", new Type(TypeKind.LIST, linkImport), null, null);
+        link.addArg(importInput);
+        addDirective(link);
+
+        Directive shareable = new Directive("shareable", null, List.of(OBJECT, FIELD_DEFINITION));
+        addDirective(shareable);
+
+        Directive inaccessible = new Directive("inaccessible", null,
+                                               List.of(FIELD_DEFINITION, OBJECT, INTERFACE, UNION, ARGUMENT_DEFINITION,
+                                                       SCALAR, ENUM, ENUM_VALUE, INPUT_OBJECT, INPUT_FIELD_DEFINITION));
+        addDirective(inaccessible);
+
+        Directive tag = new Directive("tag", null,
+                                      List.of(FIELD_DEFINITION, INTERFACE, OBJECT, UNION, ARGUMENT_DEFINITION, SCALAR,
+                                              ENUM, ENUM_VALUE, INPUT_OBJECT, INPUT_FIELD_DEFINITION));
+        InputValue name = new InputValue("name", nonNullableString, null, null);
+        tag.addArg(name);
+        addDirective(tag);
+
+        Directive override = new Directive("override", null, List.of(FIELD_DEFINITION));
+        override.addArg(name);
+        addDirective(override);
+
+        Directive composeDirective = new Directive("composeDirective", null, List.of(SCHEMA));
+        composeDirective.addArg(name);
+        addDirective(composeDirective);
+
+        Directive extendsDirective = new Directive("extends", null, List.of(OBJECT, INTERFACE));
+        addDirective(extendsDirective);
+    }
+
+    public List<Type> getEntities() {
+        return this.entities;
     }
 }

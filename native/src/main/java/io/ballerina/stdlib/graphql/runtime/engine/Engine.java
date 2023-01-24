@@ -23,6 +23,7 @@ import io.ballerina.runtime.api.Future;
 import io.ballerina.runtime.api.PredefinedTypes;
 import io.ballerina.runtime.api.creators.ErrorCreator;
 import io.ballerina.runtime.api.creators.TypeCreator;
+import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.types.ObjectType;
 import io.ballerina.runtime.api.types.RemoteMethodType;
 import io.ballerina.runtime.api.types.ResourceMethodType;
@@ -66,12 +67,25 @@ public class Engine {
     public static Object createSchema(BString schemaString) {
         try {
             Schema schema = getDecodedSchema(schemaString);
-            SchemaRecordGenerator schemaRecordGenerator = new SchemaRecordGenerator(schema);
+            SchemaRecordGenerator schemaRecordGenerator = new SchemaRecordGenerator(schema, false);
             return schemaRecordGenerator.getSchemaRecord();
         } catch (BError e) {
             return createError("Error occurred while creating the schema", ERROR_TYPE, e);
         } catch (NullPointerException e) {
             return createError("Failed to generate schema", ERROR_TYPE);
+        }
+    }
+
+    public static Object getFederatedEntities(BString schemaString) {
+        try {
+            Schema schema = getDecodedSchema(schemaString);
+            BArray entities = ValueCreator.createArrayValue(
+                    schema.getEntities().stream().map(entity -> StringUtils.fromString(entity.getName()))
+                            .toArray(BString[]::new));
+            entities.freezeDirect();
+            return entities;
+        } catch (BError e) {
+            return createError("Failed to obtain federated entities", ERROR_TYPE, e);
         }
     }
 

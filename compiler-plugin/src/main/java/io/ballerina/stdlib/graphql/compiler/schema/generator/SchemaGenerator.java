@@ -117,11 +117,8 @@ public class SchemaGenerator {
     public Schema generate() {
         findRootTypes(this.serviceNode);
         findIntrospectionTypes();
+        this.schema.addEntities(this.entities);
         return this.schema;
-    }
-
-    public Map<String, Type> getEntities() {
-        return this.entities;
     }
 
     private void addEntity(Type entity) {
@@ -326,7 +323,6 @@ public class SchemaGenerator {
         if (definitionSymbol.kind() == SymbolKind.TYPE_DEFINITION) {
             return getType(name, (TypeDefinitionSymbol) definitionSymbol);
         } else if (definitionSymbol.kind() == SymbolKind.CLASS) {
-            // TODO: check for @key annotation and add entire Type to serviceConfig
             return getType(name, (ClassSymbol) definitionSymbol);
         } else if (definitionSymbol.kind() == SymbolKind.ENUM) {
             return getType(name, (EnumSymbol) definitionSymbol);
@@ -348,9 +344,9 @@ public class SchemaGenerator {
             parameterMap = typeDefinitionSymbol.documentation().get().parameterMap();
         }
         if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.RECORD) {
-            // TODO: check for @key annotation and add entire Type to serviceConfig
+            List<AnnotationSymbol> annotations = typeDefinitionSymbol.annotations();
             RecordTypeSymbol recordType = (RecordTypeSymbol) typeDefinitionSymbol.typeDescriptor();
-            return getType(name, description, parameterMap, recordType);
+            return getType(name, description, parameterMap, recordType, annotations);
         } else if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.UNION) {
             return getType(name, description, (UnionTypeSymbol) typeDefinitionSymbol.typeDescriptor());
         } else if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.INTERSECTION) {
@@ -377,10 +373,7 @@ public class SchemaGenerator {
         return objectType;
     }
 
-    private Type getType(String name, ClassSymbol classSymbol) {
-        String description = getDescription(classSymbol);
-        Type objectType = addType(name, TypeKind.OBJECT, description);
-        List<AnnotationSymbol> annotations = classSymbol.annotations();
+    private boolean hasFederatedKeyAnnotation(List<AnnotationSymbol> annotations) {
         for (AnnotationSymbol annotation : annotations) {
             if (!isGraphqlModuleSymbol(annotation)) {
                 continue;
@@ -389,10 +382,22 @@ public class SchemaGenerator {
                 continue;
             }
             if (annotation.getName().get().equals(KEY)) {
-                addEntity(objectType);
-                break;
+                return true;
             }
         }
+        return false;
+    }
+
+    private void addTypeToEntityMapIfFederatedEntity(Type objectType, List<AnnotationSymbol> annotations) {
+        if (hasFederatedKeyAnnotation(annotations)) {
+            addEntity(objectType);
+        }
+    }
+
+    private Type getType(String name, ClassSymbol classSymbol) {
+        String description = getDescription(classSymbol);
+        Type objectType = addType(name, TypeKind.OBJECT, description);
+        addTypeToEntityMapIfFederatedEntity(objectType, classSymbol.annotations());
         for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
             if (isResourceMethod(methodSymbol)) {
                 objectType.addField(getField((ResourceMethodSymbol) methodSymbol));
@@ -452,7 +457,13 @@ public class SchemaGenerator {
 
     private Type getType(String name, String description, Map<String, String> fieldMap,
                          RecordTypeSymbol recordTypeSymbol) {
+        return getType(name, description, fieldMap, recordTypeSymbol, List.of());
+    }
+
+    private Type getType(String name, String description, Map<String, String> fieldMap,
+                         RecordTypeSymbol recordTypeSymbol, List<AnnotationSymbol> annotations) {
         Type objectType = addType(name, TypeKind.OBJECT, description);
+        addTypeToEntityMapIfFederatedEntity(objectType, annotations);
         for (RecordFieldSymbol recordFieldSymbol : recordTypeSymbol.fieldDescriptors().values()) {
             if (recordFieldSymbol.getName().isEmpty()) {
                 continue;

@@ -18,15 +18,13 @@ import ballerina/graphql;
 
 service on new graphql:Listener(9090) {
     resource function get human() returns Human {
-        return new;
+        return {};
     }
 }
 
 @graphql:Key{
     fields: "name"
 }
-distinct service class Human {
-    resource function get name() returns string {
-        return "sabthar";
-    }
-}
+type Human readonly & record {
+    string name = "sabthar";
+};
