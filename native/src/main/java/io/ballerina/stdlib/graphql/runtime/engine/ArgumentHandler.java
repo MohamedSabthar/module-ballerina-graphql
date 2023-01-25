@@ -80,6 +80,7 @@ public class ArgumentHandler {
         for (int i = 0; i < argumentArray.size(); i++) {
             BObject argumentNode = (BObject) argumentArray.get(i);
             BString argumentName = argumentNode.getStringValue(NAME_FIELD);
+            stream.println("argumentName: " + argumentName);
             Parameter parameter = Objects.requireNonNull(getParameterForArgumentNode(argumentName));
             stream.println("parameter");
             stream.println(parameter);
@@ -104,7 +105,8 @@ public class ArgumentHandler {
             return this.getUnionTypeArgument(argumentNode, (UnionType) parameterType);
         } else if (parameterType.getTag() == TypeTags.TYPE_REFERENCED_TYPE_TAG) {
             return this.getArgumentValue(argumentNode, TypeUtils.getReferredType(parameterType));
-        } else if (parameterType.getTag() == TypeTags.JSON_TAG) {
+        } else if (parameterType.getTag() == TypeTags.JSON_TAG && argumentNode.getStringValue(
+                StringUtils.fromString("name")).getValue().equals("representations")) {
             return this.getJsonArgument(argumentNode);
         } else {
             return this.getScalarArgumentValue(argumentNode);
@@ -141,9 +143,13 @@ public class ArgumentHandler {
         var stream = System.out;
         stream.println("getJsonArgument");
         if (argumentNode.getBooleanValue(VARIABLE_DEFINITION)) {
-            return argumentNode.get(VARIABLE_VALUE_FIELD);
+            return null;
         }
-        return argumentNode.getArrayValue(VALUE_FIELD);
+        var obj = argumentNode.get(VALUE_FIELD);
+        long kind = argumentNode.getIntValue(StringUtils.fromString("kind"));
+        stream.println("kind:" + kind);
+        stream.println("json:" + obj);
+        return obj;
     }
 
     private Object getIntersectionTypeArgument(BObject argumentNode, IntersectionType intersectionType) {
@@ -168,12 +174,13 @@ public class ArgumentHandler {
             return (BArray) JsonUtils.convertJSON(argumentsArray, arrayType);
         }
         BArray argumentArray = argumentNode.getArrayValue(VALUE_FIELD);
+        stream.println("argumentArray");
+        stream.println(argumentArray);
         for (int i = 0; i < argumentArray.size(); i++) {
             BObject argumentElementNode = (BObject) argumentArray.get(i);
             Object elementValue = getArgumentValue(argumentElementNode, arrayType.getElementType());
             valueArray.append(elementValue);
         }
-        stream.println(argumentArray);
         return valueArray;
     }
 

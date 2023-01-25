@@ -75,3 +75,10 @@ isolated function getIntrospection(GraphqlServiceConfig? serviceConfig) returns 
     }
     return true;
 }
+
+isolated function getSubgraph(GraphqlServiceConfig? serviceConfig) returns boolean {
+    if serviceConfig is GraphqlServiceConfig {
+        return serviceConfig.isSubgraph;
+    }
+    return false;
+}

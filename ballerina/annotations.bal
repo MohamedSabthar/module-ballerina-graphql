@@ -33,6 +33,7 @@ public type GraphqlServiceConfig record {|
     readonly string schemaString = "";
     readonly readonly & Interceptor[] interceptors = [];
     boolean introspection = true;
+    boolean isSubgraph = false;
 |};
 
 # The annotation to configure a GraphQL service.
@@ -41,7 +42,7 @@ public annotation GraphqlServiceConfig ServiceConfig on service;
 # Represents the input arguments of Key annotation
 # + fields - GraphQL fields and subfields that contribute to the entity's primary key
 # + resolvable - Indicates to the graph router that this subgraph define a reference resolver for this entity or not
-type FederatedKey record {|
+public type FederatedKey record {|
    string fields;
    boolean resolvable = true;
 |};
