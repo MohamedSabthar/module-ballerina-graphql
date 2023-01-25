@@ -73,17 +73,25 @@ public class ArgumentHandler {
     }
 
     private void populateArgumentsMap(BObject fieldNode) {
+        var stream = System.out;
+        stream.println("populateArgumentsMap");
         BArray argumentArray = fieldNode.getArrayValue(ARGUMENTS_FIELD);
+        stream.println(argumentArray);
         for (int i = 0; i < argumentArray.size(); i++) {
             BObject argumentNode = (BObject) argumentArray.get(i);
             BString argumentName = argumentNode.getStringValue(NAME_FIELD);
             Parameter parameter = Objects.requireNonNull(getParameterForArgumentNode(argumentName));
+            stream.println("parameter");
+            stream.println(parameter);
             Object argumentValue = this.getArgumentValue(argumentNode, parameter.type);
+            stream.println(argumentValue);
             this.argumentsMap.put(argumentName, argumentValue);
         }
     }
 
     private Object getArgumentValue(BObject argumentNode, Type parameterType) {
+        var stream = System.out;
+        stream.println("getArgumentValue");
         if (isFileUpload(parameterType)) {
             return getFileUploadParameter(argumentNode, parameterType);
         } else if (parameterType.getTag() == TypeTags.RECORD_TYPE_TAG) {
@@ -96,6 +104,8 @@ public class ArgumentHandler {
             return this.getUnionTypeArgument(argumentNode, (UnionType) parameterType);
         } else if (parameterType.getTag() == TypeTags.TYPE_REFERENCED_TYPE_TAG) {
             return this.getArgumentValue(argumentNode, TypeUtils.getReferredType(parameterType));
+        } else if (parameterType.getTag() == TypeTags.JSON_TAG) {
+            return this.getJsonArgument(argumentNode);
         } else {
             return this.getScalarArgumentValue(argumentNode);
         }
@@ -127,6 +137,15 @@ public class ArgumentHandler {
         return recordValue;
     }
 
+    private Object getJsonArgument(BObject argumentNode) {
+        var stream = System.out;
+        stream.println("getJsonArgument");
+        if (argumentNode.getBooleanValue(VARIABLE_DEFINITION)) {
+            return argumentNode.get(VARIABLE_VALUE_FIELD);
+        }
+        return argumentNode.getArrayValue(VALUE_FIELD);
+    }
+
     private Object getIntersectionTypeArgument(BObject argumentNode, IntersectionType intersectionType) {
         Type effectiveType = TypeUtils.getReferredType(getEffectiveType(intersectionType));
         if (effectiveType.getTag() == TypeTags.ARRAY_TAG) {
@@ -140,9 +159,12 @@ public class ArgumentHandler {
     }
 
     private BArray getArrayTypeArgument(BObject argumentNode, ArrayType arrayType) {
+        var stream = System.out;
+        stream.println("getArrayTypeArgument");
         BArray valueArray = ValueCreator.createArrayValue(arrayType);
         if (argumentNode.getBooleanValue(VARIABLE_DEFINITION)) {
             BArray argumentsArray = argumentNode.getArrayValue(VARIABLE_VALUE_FIELD);
+            stream.println(argumentsArray);
             return (BArray) JsonUtils.convertJSON(argumentsArray, arrayType);
         }
         BArray argumentArray = argumentNode.getArrayValue(VALUE_FIELD);
@@ -151,6 +173,7 @@ public class ArgumentHandler {
             Object elementValue = getArgumentValue(argumentElementNode, arrayType.getElementType());
             valueArray.append(elementValue);
         }
+        stream.println(argumentArray);
         return valueArray;
     }
 
@@ -176,11 +199,14 @@ public class ArgumentHandler {
     }
 
     private Parameter getParameterForArgumentNode(BString paramName) {
+        var stream = System.out;
+        stream.println("getParameterForArgumentNode");
         for (Parameter parameter : this.method.getParameters()) {
             if (parameter.name.equals(paramName.getValue())) {
                 return parameter;
             }
         }
+        stream.println("null");
         return null;
     }
 

@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getObjectTypeSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectDefinition;
@@ -65,6 +66,9 @@ public class InterfaceFinder {
                 continue;
             }
             if (typeSymbol.getName().isEmpty()) {
+                continue;
+            }
+            if (isGraphqlModuleSymbol(typeSymbol) && typeSymbol.getName().get().equals("Entity")) {
                 continue;
             }
             String interfaceName = typeSymbol.getName().get();

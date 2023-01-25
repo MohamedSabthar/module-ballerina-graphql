@@ -134,6 +134,14 @@ public class SchemaGenerator {
         addDefaultDirectives();
     }
 
+    private boolean hasExpectedResourcePath(ResourceMethodSymbol resourceMethodSymbol, String expectedPath) {
+        List<PathSegment> pathSegments = ((PathSegmentList) resourceMethodSymbol.resourcePath()).list();
+        if (pathSegments.size() > 1) {
+            return false;
+        }
+        return pathSegments.get(0).signature().equals(expectedPath);
+    }
+
     private void findRootTypes(Node serviceNode) {
         Type queryType = addType(TypeName.QUERY);
         for (MethodSymbol methodSymbol : getMethods(serviceNode)) {
@@ -141,6 +149,9 @@ public class SchemaGenerator {
                 ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) methodSymbol;
                 String accessor = getAccessor(resourceMethodSymbol);
                 if (RESOURCE_FUNCTION_GET.equals(accessor)) {
+                    if (hasExpectedResourcePath(resourceMethodSymbol, "_entities")) {
+                        continue;
+                    }
                     queryType.addField(getField((resourceMethodSymbol)));
                 } else {
                     Type subscriptionType = addType(TypeName.SUBSCRIPTION);
@@ -400,6 +411,9 @@ public class SchemaGenerator {
         addTypeToEntityMapIfFederatedEntity(objectType, classSymbol.annotations());
         for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
             if (isResourceMethod(methodSymbol)) {
+                if (hasExpectedResourcePath((ResourceMethodSymbol) methodSymbol, "resolveReference")) {
+                    continue;
+                }
                 objectType.addField(getField((ResourceMethodSymbol) methodSymbol));
             }
         }

@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
@@ -137,13 +138,19 @@ public class Engine {
 
     public static Object executeQueryResource(Environment environment, BObject context, BObject service,
                                               ResourceMethodType resourceMethod, BObject fieldNode) {
+        var stream = System.out;
+        stream.println("sat");
         Future future = environment.markAsync();
         ExecutionCallback executionCallback = new ExecutionCallback(future);
         ServiceType serviceType = (ServiceType) service.getType();
         Type returnType = TypeCreator.createUnionType(PredefinedTypes.TYPE_ANY, PredefinedTypes.TYPE_NULL);
+        stream.println("hit");
+
+        stream.println(resourceMethod);
         if (resourceMethod != null) {
             ArgumentHandler argumentHandler = new ArgumentHandler(resourceMethod, context);
             Object[] arguments = argumentHandler.getArguments(fieldNode);
+            stream.println(Arrays.toString(arguments));
             if (serviceType.isIsolated() && serviceType.isIsolated(resourceMethod.getName())) {
                 environment.getRuntime().invokeMethodAsyncConcurrently(service, resourceMethod.getName(), null,
                                                                        RESOURCE_EXECUTION_STRAND, executionCallback,

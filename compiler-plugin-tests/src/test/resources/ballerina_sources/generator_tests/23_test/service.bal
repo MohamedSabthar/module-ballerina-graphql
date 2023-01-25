@@ -14,17 +14,55 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/io;
 import ballerina/graphql;
 
+@graphql:ServiceConfig{
+    graphiql: {
+        enabled: true
+    },
+    cors: {allowOrigins: ["*"]}
+}
 service on new graphql:Listener(9090) {
-    resource function get human() returns Human {
-        return {};
+    resource function get me() returns User {
+        return new;
+    }
+
+    resource function get temp(int[] data) returns int[] {
+        return data;
+    }
+
+    resource function get _entities(json[] representation) returns graphql:Entity?[]|error{
+        io:println(representation);
+        graphql:Entity?[] entities = [];
+        foreach json rep in representation {
+            match rep.__typename {
+                "User" => {
+                    entities.push(new User());
+                }
+                _ => {
+                    entities.push(());
+                }
+            }
+        }
+        return entities;
     }
 }
 
 @graphql:Key{
-    fields: "name"
+    fields: "email"
 }
-type Human readonly & record {
-    string name = "sabthar";
-};
+distinct service class User {
+    *graphql:Entity;
+    resource function get email() returns string {
+        return "sabthar@wso2.com";
+    }
+
+    resource function get name() returns string {
+        return "sabthar";
+    }
+
+    resource function get resolveReference(json representation) returns error|User? {
+        return new;
+    }
+}

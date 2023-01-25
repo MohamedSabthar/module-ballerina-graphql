@@ -278,6 +278,10 @@ isolated class Engine {
         if serviceObject is service object {} {
             handle? resourceMethod = self.getResourceMethod(serviceObject, 'field.getResourcePath());
             if resourceMethod == () {
+                // if 'field.getName() == "_entities" {
+                //     'field.
+                //     // How to get the service object here?
+                // }
                 return self.resolveHierarchicalResource(context, 'field);
             }
             return self.executeQueryResource(context, serviceObject, resourceMethod, 'field.getInternalNode());

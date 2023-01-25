@@ -153,6 +153,8 @@ class FieldValidatorVisitor {
                 self.removePath();
             }
             self.removePath();
+        } if argType.name == "_Any" {
+            return;
         } else {
             string listError = getListElementError(self.argumentPath);
             string message = getInvalidArgumentValueError(listError, getTypeNameFromType(schemaArg.'type),

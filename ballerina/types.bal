@@ -106,3 +106,7 @@ public const COMPRESSION_NEVER = "NEVER";
 
 # Options to compress using gzip or deflate.
 public type Compression COMPRESSION_AUTO|COMPRESSION_ALWAYS|COMPRESSION_NEVER;
+
+public type Entity service object {
+    resource function get resolveReference(json representation) returns error|Entity?;
+};

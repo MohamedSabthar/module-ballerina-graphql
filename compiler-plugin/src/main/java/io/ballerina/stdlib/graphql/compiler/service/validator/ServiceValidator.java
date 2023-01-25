@@ -171,6 +171,9 @@ public class ServiceValidator {
             validateSubscribeResource(methodSymbol, location);
             this.currentFieldPath.remove(TypeName.SUBSCRIPTION.getName());
         } else if (RESOURCE_FUNCTION_GET.equals(accessor)) {
+            if (getFieldPath(methodSymbol).equals("_entities")) {
+                return;
+            }
             this.currentFieldPath.add(TypeName.QUERY.getName());
             this.hasQueryType = true;
             validateGetResource(methodSymbol, location);
@@ -185,6 +188,9 @@ public class ServiceValidator {
 
     private void validateResourceMethod(ResourceMethodSymbol methodSymbol, Location location) {
         String accessor = getAccessor(methodSymbol);
+        if (getFieldPath(methodSymbol).equals("resolveReference")) {
+            return;
+        }
         if (!RESOURCE_FUNCTION_GET.equals(accessor)) {
             Location accessorLocation = getLocation(methodSymbol, location);
             addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR, accessorLocation, accessor,

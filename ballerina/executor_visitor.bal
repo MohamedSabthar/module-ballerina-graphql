@@ -62,10 +62,7 @@ class ExecutorVisitor {
             }
         } else if fieldNode.getName() == "_service" {
             self.data[fieldNode.getAlias()] = "type User @key(fields: \"email\") {\n  email: String!\n  name: String!\n}\n\ntype Query {\n  me: User\n}\n";
-        } else if fieldNode.getName() == "_entities" {
-            self.data[fieldNode.getAlias()] = "data";
-        } else
-        {
+        } else {
             if operationType == parser:OPERATION_QUERY {
                 self.executeQuery(fieldNode, operationType);
             } else if operationType == parser:OPERATION_MUTATION {
