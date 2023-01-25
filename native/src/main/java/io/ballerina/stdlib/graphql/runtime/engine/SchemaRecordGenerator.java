@@ -87,10 +87,10 @@ public class SchemaRecordGenerator {
     public SchemaRecordGenerator(Schema schema, boolean isSubgraphSchema) {
         this.isSubgraphSchema = isSubgraphSchema;
         this.schema = schema;
+        this.populateSubgraphSchemaAdditions();
         this.typeRecords = new HashMap<>();
         this.populateTypeRecordMap();
         this.populateFieldsOfTypes();
-        this.populateSubgraphSchemaAdditions();
     }
 
     public BMap<BString, Object> getSchemaRecord() {
@@ -113,8 +113,7 @@ public class SchemaRecordGenerator {
         if (!this.isSubgraphSchema) {
             return;
         }
-        Type unionType = this.schema.addType("_Entity", TypeKind.UNION, null);
-        this.schema.getEntities().forEach(unionType::addPossibleType);
+        this.schema.addSubgraphSchemaAdditions();
     }
 
     private void populateTypeRecordMap() {

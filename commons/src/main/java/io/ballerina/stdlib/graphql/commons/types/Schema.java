@@ -147,8 +147,9 @@ public class Schema implements Serializable {
 
     public void addEntities(Map<String, Type> federatedEntities) {
         this.entities.addAll(federatedEntities.values());
+    }
 
-
+    public void addSubgraphSchemaAdditions() {
         Type entity = addType("_Entity", TypeKind.UNION, null);
         this.entities.forEach(entity::addPossibleType);
         this.types.put("_Entity", entity);

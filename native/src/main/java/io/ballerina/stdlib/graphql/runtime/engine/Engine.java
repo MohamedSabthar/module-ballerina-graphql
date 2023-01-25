@@ -68,7 +68,7 @@ public class Engine {
     public static Object createSchema(BString schemaString) {
         try {
             Schema schema = getDecodedSchema(schemaString);
-            SchemaRecordGenerator schemaRecordGenerator = new SchemaRecordGenerator(schema, false);
+            SchemaRecordGenerator schemaRecordGenerator = new SchemaRecordGenerator(schema, true);
             return schemaRecordGenerator.getSchemaRecord();
         } catch (BError e) {
             return createError("Error occurred while creating the schema", ERROR_TYPE, e);
