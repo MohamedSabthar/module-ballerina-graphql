@@ -15,7 +15,6 @@
 // under the License.
 
 import graphql.parser;
-import ballerina/io;
 
 class FieldValidatorVisitor {
     *ValidatorVisitor;
@@ -108,7 +107,6 @@ class FieldValidatorVisitor {
         } else if modifiedArgNode.getKind() == parser:T_INPUT_OBJECT {
             self.visitInputObject(argumentNode, schemaArg, fieldName);
         } else if modifiedArgNode.getKind() == parser:T_LIST {
-            io:println("visitArgument", parser:T_LIST);
             self.visitListValue(argumentNode, schemaArg, fieldName);
         } else {
             parser:ArgumentValue|parser:ArgumentValue[] fieldValue = modifiedArgNode.getValue();
@@ -132,7 +130,6 @@ class FieldValidatorVisitor {
             parser:ArgumentValue[] fields = <parser:ArgumentValue[]>modifiedArgumentNode.getValue();
             self.validateInputObjectFields(modifiedArgumentNode, inputFields);
             foreach __InputValue inputField in inputFields {
-                io:println("loop");
                 self.updatePath(inputField.name);
                 __InputValue subInputValue = inputField;
                 boolean isProvidedField = false;
@@ -169,9 +166,7 @@ class FieldValidatorVisitor {
     }
 
     isolated function visitListValue(parser:ArgumentNode argumentNode, __InputValue schemaArg, string fieldName) {
-        io:println("visitListValue", schemaArg.'type);
         parser:ArgumentNode modifiedArgNode = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
-        io:println("value: ", modifiedArgNode.getValue());
         if schemaArg.'type.name == "_Any" {
             return;
         }
@@ -180,7 +175,6 @@ class FieldValidatorVisitor {
             parser:ArgumentValue|parser:ArgumentValue[] listItems = modifiedArgNode.getValue();
             if listItems is parser:ArgumentValue[] {
                 __InputValue listItemInputValue = createInputValueForListItem(schemaArg);
-                io:println("list ip", listItemInputValue);
                 if listItems.length() > 0 {
                     foreach int i in 0 ..< listItems.length() {
                         parser:ArgumentValue|parser:ArgumentValue[] item = listItems[i];
@@ -208,7 +202,6 @@ class FieldValidatorVisitor {
     }
 
     isolated function validateVariableValue(parser:ArgumentNode argumentNode, __InputValue schemaArg, string fieldName) {
-        io:println("validateVariableValue");
         parser:ArgumentNode modifiedArgNode = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
         json variableValue = modifiedArgNode.getVariableValue();
         if getOfType(schemaArg.'type).name == UPLOAD {
@@ -226,7 +219,6 @@ class FieldValidatorVisitor {
             self.modifyArgumentNode(argumentNode, variableValue = variableValueClone);
             self.removePath();
         } else if variableValue is json[] && getTypeKind(schemaArg.'type) == LIST {
-            io:println("validateVariableValue", LIST);
             self.updatePath(modifiedArgNode.getName());
             json[] clonedVariableValue = [...variableValue];
             self.validateListVariableValue(clonedVariableValue, schemaArg, modifiedArgNode.getValueLocation(),
@@ -262,7 +254,6 @@ class FieldValidatorVisitor {
         if getTypeKind(schemaArg.'type) == ENUM {
             self.validateEnumArgument(value, valueLocation, actualTypeName, schemaArg);
         } else if getTypeKind(schemaArg.'type) == SCALAR {
-            io:println("validateArgumentValue", actualTypeName);
             string expectedTypeName = getOfTypeName(schemaArg.'type);
             if expectedTypeName == "_Any" {
                 return;
@@ -345,16 +336,13 @@ class FieldValidatorVisitor {
 
     isolated function validateListVariableValue(json[] variableValues, __InputValue inputValue,
                                                 Location location, string fieldName) {
-        io:println("validateListVariableValue");
         if getTypeKind(inputValue.'type) == LIST {
-            io:println("validateListVariableValue", LIST);
             __InputValue listItemInputValue = createInputValueForListItem(inputValue);
             if getOfType(listItemInputValue.'type).name == UPLOAD {
                 return;
             }
             if variableValues.length() > 0 {
                 foreach int i in 0 ..< variableValues.length() {
-                    io:println("oftype", getOfTypeName(listItemInputValue.'type));
                     self.updatePath(i);
                     json listItemValue = variableValues[i];
                     if listItemValue is () {
@@ -367,7 +355,6 @@ class FieldValidatorVisitor {
                         if getOfType(listItemInputValue.'type).kind == ENUM {
                             self.validateEnumArgument(listItemValue, location, ENUM, listItemInputValue);
                         } else {
-                            io:println("validateListVariableValue", Scalar);
                             string expectedTypeName = getOfTypeName(listItemInputValue.'type);
                             string actualTypeName = getTypeNameFromScalarValue(listItemValue);
                             variableValues[i] = self.coerceValue(listItemValue, expectedTypeName, actualTypeName,

@@ -85,10 +85,6 @@ isolated function createSchema(string schemaString, boolean isSubgraph) returns 
     'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
 } external;
 
-isolated function getFederatedEntities(string schemaString) returns readonly & string[]|Error = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
-} external;
-
 isolated function isMap(map<any> value) returns boolean = @java:Method {
     'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
 } external;

@@ -23,7 +23,6 @@ import io.ballerina.runtime.api.Future;
 import io.ballerina.runtime.api.PredefinedTypes;
 import io.ballerina.runtime.api.creators.ErrorCreator;
 import io.ballerina.runtime.api.creators.TypeCreator;
-import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.types.ObjectType;
 import io.ballerina.runtime.api.types.RemoteMethodType;
 import io.ballerina.runtime.api.types.ResourceMethodType;
@@ -43,7 +42,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
@@ -74,20 +72,6 @@ public class Engine {
             return createError("Error occurred while creating the schema", ERROR_TYPE, e);
         } catch (NullPointerException e) {
             return createError("Failed to generate schema", ERROR_TYPE);
-        }
-    }
-
-    // this function is only for testing remove
-    public static Object getFederatedEntities(BString schemaString) {
-        try {
-            Schema schema = getDecodedSchema(schemaString);
-            BArray entities = ValueCreator.createArrayValue(
-                    schema.getEntities().stream().map(entity -> StringUtils.fromString(entity.getName()))
-                            .toArray(BString[]::new));
-            entities.freezeDirect();
-            return entities;
-        } catch (BError e) {
-            return createError("Failed to obtain federated entities", ERROR_TYPE, e);
         }
     }
 
@@ -139,19 +123,14 @@ public class Engine {
 
     public static Object executeQueryResource(Environment environment, BObject context, BObject service,
                                               ResourceMethodType resourceMethod, BObject fieldNode) {
-        var stream = System.out;
-        stream.println("sat");
         Future future = environment.markAsync();
         ExecutionCallback executionCallback = new ExecutionCallback(future);
         ServiceType serviceType = (ServiceType) service.getType();
         Type returnType = TypeCreator.createUnionType(PredefinedTypes.TYPE_ANY, PredefinedTypes.TYPE_NULL);
-        stream.println("hit");
 
-        stream.println(resourceMethod);
         if (resourceMethod != null) {
             ArgumentHandler argumentHandler = new ArgumentHandler(resourceMethod, context);
             Object[] arguments = argumentHandler.getArguments(fieldNode);
-            stream.println(Arrays.toString(arguments));
             if (serviceType.isIsolated() && serviceType.isIsolated(resourceMethod.getName())) {
                 environment.getRuntime().invokeMethodAsyncConcurrently(service, resourceMethod.getName(), null,
                                                                        RESOURCE_EXECUTION_STRAND, executionCallback,

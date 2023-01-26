@@ -33,15 +33,11 @@ public class ExecutionCallback implements Callback {
     }
     @Override
     public void notifySuccess(Object o) {
-        var stream = System.out;
-        stream.println(o);
         this.future.complete(o);
     }
 
     @Override
     public void notifyFailure(BError bError) {
-        var stream = System.out;
-        stream.println(bError);
         this.future.complete(bError);
     }
 }

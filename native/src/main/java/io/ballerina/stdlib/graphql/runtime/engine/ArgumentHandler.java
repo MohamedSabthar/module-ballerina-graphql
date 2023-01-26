@@ -75,26 +75,17 @@ public class ArgumentHandler {
     }
 
     private void populateArgumentsMap(BObject fieldNode) {
-        var stream = System.out;
-        stream.println("populateArgumentsMap");
         BArray argumentArray = fieldNode.getArrayValue(ARGUMENTS_FIELD);
-        stream.println(argumentArray);
         for (int i = 0; i < argumentArray.size(); i++) {
             BObject argumentNode = (BObject) argumentArray.get(i);
             BString argumentName = argumentNode.getStringValue(NAME_FIELD);
-            stream.println("argumentName: " + argumentName);
             Parameter parameter = Objects.requireNonNull(getParameterForArgumentNode(argumentName));
-            stream.println("parameter");
-            stream.println(parameter);
             Object argumentValue = this.getArgumentValue(argumentNode, parameter.type);
-            stream.println(argumentValue);
             this.argumentsMap.put(argumentName, argumentValue);
         }
     }
 
     private Object getArgumentValue(BObject argumentNode, Type parameterType) {
-        var stream = System.out;
-        stream.println("getArgumentValue");
         if (isFileUpload(parameterType)) {
             return getFileUploadParameter(argumentNode, parameterType);
         } else if (parameterType.getTag() == TypeTags.RECORD_TYPE_TAG) {
@@ -142,33 +133,26 @@ public class ArgumentHandler {
     }
 
     private Object getJsonArgument(BObject argumentNode) {
-        var stream = System.out;
-        stream.println("getJsonArgument");
         int kind = (int) argumentNode.getIntValue(StringUtils.fromString("kind"));
-        var obj = argumentNode.get(VALUE_FIELD);
-        stream.println("kind " + kind);
+        Object valueField = argumentNode.get(VALUE_FIELD);
         switch (kind) {
             case 2: // string
             case 3: // int
             case 4: // float
             case 5: // boolean
-                return JsonUtils.convertToJson(obj, List.of());
+                return JsonUtils.convertToJson(valueField, List.of());
             case 22: {
                 BMap<BString, Object> mapValue = ValueCreator.createMapValue();
                 BArray inputObjectFields = argumentNode.getArrayValue(VALUE_FIELD);
                 for (int i = 0; i < inputObjectFields.size(); i++) {
                     BObject inputObjectField = (BObject) inputObjectFields.get(i);
                     BString inputObjectFieldName = inputObjectField.getStringValue(NAME_FIELD);
-                    stream.println("call");
                     Object fieldValue = getJsonArgument(inputObjectField);
-                    stream.println("after call");
                     mapValue.put(inputObjectFieldName, fieldValue);
                 }
-                stream.println(mapValue);
                 return JsonUtils.parse(mapValue, PredefinedTypes.TYPE_JSON);
             }
             case 23: {
-                stream.println("case 23");
                 BArray valueArray = ValueCreator.createArrayValue(PredefinedTypes.TYPE_JSON_ARRAY);
                 BArray argumentArray = argumentNode.getArrayValue(VALUE_FIELD);
                 for (int i = 0; i < argumentArray.size(); i++) {
@@ -176,7 +160,6 @@ public class ArgumentHandler {
                     Object elementValue = getJsonArgument(argumentElementNode);
                     valueArray.append(elementValue);
                 }
-                stream.println(valueArray);
                 return JsonUtils.parse(valueArray);
             }
         }
@@ -196,25 +179,17 @@ public class ArgumentHandler {
     }
 
     private BArray getArrayTypeArgument(BObject argumentNode, ArrayType arrayType) {
-        var stream = System.out;
-        stream.println("getArrayTypeArgument");
         BArray valueArray = ValueCreator.createArrayValue(arrayType);
         if (argumentNode.getBooleanValue(VARIABLE_DEFINITION)) {
             BArray argumentsArray = argumentNode.getArrayValue(VARIABLE_VALUE_FIELD);
-            stream.println(argumentsArray);
             return (BArray) JsonUtils.convertJSON(argumentsArray, arrayType);
         }
         BArray argumentArray = argumentNode.getArrayValue(VALUE_FIELD);
-        stream.println("argumentArray");
-        stream.println(argumentArray);
         for (int i = 0; i < argumentArray.size(); i++) {
             BObject argumentElementNode = (BObject) argumentArray.get(i);
             Object elementValue = getArgumentValue(argumentElementNode, arrayType.getElementType());
-            stream.println("before append");
             valueArray.append(elementValue);
-            stream.println("after append");
         }
-        stream.println(valueArray);
         return valueArray;
     }
 
@@ -240,14 +215,11 @@ public class ArgumentHandler {
     }
 
     private Parameter getParameterForArgumentNode(BString paramName) {
-        var stream = System.out;
-        stream.println("getParameterForArgumentNode");
         for (Parameter parameter : this.method.getParameters()) {
             if (parameter.name.equals(paramName.getValue())) {
                 return parameter;
             }
         }
-        stream.println("null");
         return null;
     }
 
