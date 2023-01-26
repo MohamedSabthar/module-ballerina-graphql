@@ -37,6 +37,7 @@ import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
+import java.util.List;
 import java.util.Objects;
 
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.ARGUMENTS_FIELD;
@@ -150,8 +151,8 @@ public class ArgumentHandler {
             case 2: // string
             case 3: // int
             case 4: // float
-            case 5:
-                return obj; // boolean
+            case 5: // boolean
+                return JsonUtils.convertToJson(obj, List.of());
             case 22: {
                 BMap<BString, Object> mapValue = ValueCreator.createMapValue();
                 BArray inputObjectFields = argumentNode.getArrayValue(VALUE_FIELD);
