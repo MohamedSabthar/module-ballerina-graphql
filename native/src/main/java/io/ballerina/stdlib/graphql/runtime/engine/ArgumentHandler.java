@@ -18,6 +18,7 @@
 
 package io.ballerina.stdlib.graphql.runtime.engine;
 
+import io.ballerina.runtime.api.PredefinedTypes;
 import io.ballerina.runtime.api.TypeTags;
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.types.ArrayType;
@@ -142,14 +143,43 @@ public class ArgumentHandler {
     private Object getJsonArgument(BObject argumentNode) {
         var stream = System.out;
         stream.println("getJsonArgument");
-        if (argumentNode.getBooleanValue(VARIABLE_DEFINITION)) {
-            return null;
-        }
+        int kind = (int) argumentNode.getIntValue(StringUtils.fromString("kind"));
         var obj = argumentNode.get(VALUE_FIELD);
-        long kind = argumentNode.getIntValue(StringUtils.fromString("kind"));
-        stream.println("kind:" + kind);
-        stream.println("json:" + obj);
-        return obj;
+        stream.println("kind " + kind);
+        switch (kind) {
+            case 2: // string
+            case 3: // int
+            case 4: // float
+            case 5:
+                return obj; // boolean
+            case 22: {
+                BMap<BString, Object> mapValue = ValueCreator.createMapValue();
+                BArray inputObjectFields = argumentNode.getArrayValue(VALUE_FIELD);
+                for (int i = 0; i < inputObjectFields.size(); i++) {
+                    BObject inputObjectField = (BObject) inputObjectFields.get(i);
+                    BString inputObjectFieldName = inputObjectField.getStringValue(NAME_FIELD);
+                    stream.println("call");
+                    Object fieldValue = getJsonArgument(inputObjectField);
+                    stream.println("after call");
+                    mapValue.put(inputObjectFieldName, fieldValue);
+                }
+                stream.println(mapValue);
+                return JsonUtils.parse(mapValue, PredefinedTypes.TYPE_JSON);
+            }
+            case 23: {
+                stream.println("case 23");
+                BArray valueArray = ValueCreator.createArrayValue(PredefinedTypes.TYPE_JSON_ARRAY);
+                BArray argumentArray = argumentNode.getArrayValue(VALUE_FIELD);
+                for (int i = 0; i < argumentArray.size(); i++) {
+                    BObject argumentElementNode = (BObject) argumentArray.get(i);
+                    Object elementValue = getJsonArgument(argumentElementNode);
+                    valueArray.append(elementValue);
+                }
+                stream.println(valueArray);
+                return JsonUtils.parse(valueArray);
+            }
+        }
+        return null;
     }
 
     private Object getIntersectionTypeArgument(BObject argumentNode, IntersectionType intersectionType) {
@@ -179,8 +209,11 @@ public class ArgumentHandler {
         for (int i = 0; i < argumentArray.size(); i++) {
             BObject argumentElementNode = (BObject) argumentArray.get(i);
             Object elementValue = getArgumentValue(argumentElementNode, arrayType.getElementType());
+            stream.println("before append");
             valueArray.append(elementValue);
+            stream.println("after append");
         }
+        stream.println(valueArray);
         return valueArray;
     }
 

@@ -24,6 +24,7 @@
 # + schemaString - The generated schema. This is auto-generated at the compile-time
 # + interceptors - GraphQL service level interceptors
 # + introspection - Whether to enable or disable the introspection on the service
+# + isSubgraph - Specifies whether the GraphQL service is a federated subgraph or not
 public type GraphqlServiceConfig record {|
     int maxQueryDepth?;
     ListenerAuthConfig[] auth?;

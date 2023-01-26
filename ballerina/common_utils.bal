@@ -268,6 +268,9 @@ isolated function getListElementError((string|int)[] path) returns string {
 }
 
 isolated function getListMemberTypeFromType(__Type argType) returns __Type {
+    if argType.name == "_Any" {
+        return argType;
+    }
     if argType.kind == NON_NULL {
         return getListMemberTypeFromType((<__Type>argType?.ofType));
     }

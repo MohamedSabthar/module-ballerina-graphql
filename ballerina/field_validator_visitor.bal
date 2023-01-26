@@ -124,11 +124,15 @@ class FieldValidatorVisitor {
         parser:ArgumentNode modifiedArgumentNode = self.nodeModifierContext.getModifiedArgumentNode(argNode);
         __Type argType = getOfType(schemaArg.'type);
         __InputValue[]? inputFields = argType?.inputFields;
+        if argType.name == "_Any" {
+            return;
+        }
         if inputFields is __InputValue[] && getTypeKind(schemaArg.'type) == INPUT_OBJECT {
             self.updatePath(modifiedArgumentNode.getName());
             parser:ArgumentValue[] fields = <parser:ArgumentValue[]>modifiedArgumentNode.getValue();
             self.validateInputObjectFields(modifiedArgumentNode, inputFields);
             foreach __InputValue inputField in inputFields {
+                io:println("loop");
                 self.updatePath(inputField.name);
                 __InputValue subInputValue = inputField;
                 boolean isProvidedField = false;
@@ -165,12 +169,18 @@ class FieldValidatorVisitor {
     }
 
     isolated function visitListValue(parser:ArgumentNode argumentNode, __InputValue schemaArg, string fieldName) {
+        io:println("visitListValue", schemaArg.'type);
         parser:ArgumentNode modifiedArgNode = self.nodeModifierContext.getModifiedArgumentNode(argumentNode);
+        io:println("value: ", modifiedArgNode.getValue());
+        if schemaArg.'type.name == "_Any" {
+            return;
+        }
         self.updatePath(modifiedArgNode.getName());
-        if getTypeKind(schemaArg.'type) == LIST {
+        if getTypeKind(schemaArg.'type) == LIST || getOfTypeName(schemaArg.'type) == "_Any" {
             parser:ArgumentValue|parser:ArgumentValue[] listItems = modifiedArgNode.getValue();
             if listItems is parser:ArgumentValue[] {
                 __InputValue listItemInputValue = createInputValueForListItem(schemaArg);
+                io:println("list ip", listItemInputValue);
                 if listItems.length() > 0 {
                     foreach int i in 0 ..< listItems.length() {
                         parser:ArgumentValue|parser:ArgumentValue[] item = listItems[i];
@@ -254,10 +264,9 @@ class FieldValidatorVisitor {
         } else if getTypeKind(schemaArg.'type) == SCALAR {
             io:println("validateArgumentValue", actualTypeName);
             string expectedTypeName = getOfTypeName(schemaArg.'type);
-            // if expectedTypeName == "_Any" {
-            //     io:println("validateVariableValue", "_Any");
-            //     return;
-            // }
+            if expectedTypeName == "_Any" {
+                return;
+            }
             if expectedTypeName == actualTypeName {
                 return;
             }

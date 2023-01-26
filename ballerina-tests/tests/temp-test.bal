@@ -22,9 +22,9 @@ import ballerina/io;
     groups: ["fed"]
 }
 isolated function testFed() returns error? {
-    string document = string `query ($rep: [_Any!]!) { _entities(representations: $rep) { ... on Userf { name } } }`;
+    string document = string `query { _entities(representations: [{ __typename: "Userf", email: "sabthar@wso2.com" }]) { ... on Userf { name } } }`;
     string url = "localhost:4040";
-    map<json> variables = {rep: [{ "__typename": "Userf", "email": "sabthar@wso2.com" }]};
+    map<json> variables = {};
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document, variables);
     io:println(response);
