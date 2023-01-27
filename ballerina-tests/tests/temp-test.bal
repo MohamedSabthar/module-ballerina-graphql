@@ -22,13 +22,10 @@ import ballerina/io;
     groups: ["fed"]
 }
 isolated function testFed() returns error? {
-    string document = string `query { _entities(representations: [1, "sasa", {
-  __typename: "Userf",
-  email: "alex@moonhighway.com"
-  }, {
-  __typename: "Userf",
-  email: "alex@moonhighway.com"
-  }, ["sa","b"]]) { ... on Userf { name } } }`;
+    string document = string `query { _entities(
+        representations: 
+            [[{ __typename: "Userf", email: "alex@moonhighway.com" }, { __typename: "Userf", email: "alex@moonhighway.com"}]]
+        ) { ... on Userf { name } } }`;
     string url = "localhost:4040";
     map<json> variables = {};
     graphql:Client graphqlClient = check new (url);

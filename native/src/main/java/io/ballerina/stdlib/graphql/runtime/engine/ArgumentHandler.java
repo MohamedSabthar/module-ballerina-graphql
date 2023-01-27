@@ -37,7 +37,7 @@ import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.ARGUMENTS_FIELD;
@@ -87,7 +87,7 @@ public class ArgumentHandler {
 
     private Object getArgumentValue(BObject argumentNode, Type parameterType) {
         if (isFileUpload(parameterType)) {
-            return getFileUploadParameter(argumentNode, parameterType);
+            return this.getFileUploadParameter(argumentNode, parameterType);
         } else if (parameterType.getTag() == TypeTags.RECORD_TYPE_TAG) {
             return this.getInputObjectArgument(argumentNode, (RecordType) parameterType);
         } else if (parameterType.getTag() == TypeTags.INTERSECTION_TAG) {
@@ -140,7 +140,7 @@ public class ArgumentHandler {
             case 3: // int
             case 4: // float
             case 5: // boolean
-                return JsonUtils.convertToJson(valueField, List.of());
+                return JsonUtils.convertToJson(valueField, new ArrayList<>());
             case 22: {
                 BMap<BString, Object> mapValue = ValueCreator.createMapValue();
                 BArray inputObjectFields = argumentNode.getArrayValue(VALUE_FIELD);
@@ -150,8 +150,8 @@ public class ArgumentHandler {
                     Object fieldValue = getJsonArgument(inputObjectField);
                     mapValue.put(inputObjectFieldName, fieldValue);
                 }
-                return JsonUtils.parse(mapValue, PredefinedTypes.TYPE_JSON);
-            }
+                return JsonUtils.convertToJson(mapValue, new ArrayList<>());
+            } // input object
             case 23: {
                 BArray valueArray = ValueCreator.createArrayValue(PredefinedTypes.TYPE_JSON_ARRAY);
                 BArray argumentArray = argumentNode.getArrayValue(VALUE_FIELD);
@@ -160,8 +160,8 @@ public class ArgumentHandler {
                     Object elementValue = getJsonArgument(argumentElementNode);
                     valueArray.append(elementValue);
                 }
-                return JsonUtils.parse(valueArray);
-            }
+                return JsonUtils.convertToJson(valueArray, new ArrayList<>());
+            } // list
         }
         return null;
     }
