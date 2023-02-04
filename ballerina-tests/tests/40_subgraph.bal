@@ -14,8 +14,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/test;
 import ballerina/graphql;
+import ballerina/test;
 
 @test:Config {
     groups: ["federation", "subgraph", "entity"]
@@ -32,7 +32,7 @@ isolated function testSubgrapWithValidQuery() returns error? {
 @test:Config {
     groups: ["federation", "subgraph", "entity"]
 }
-isolated function testQueringEntityFieldOnSubgrap() returns error? {
+isolated function testQueringEntityFieldOnSubgraph() returns error? {
     string document = check getGraphQLDocumentFromFile("quering_entity_field_on_subgrap.graphql");
     string url = "localhost:9090/subgraph";
     graphql:Client graphqlClient = check new (url);
@@ -46,6 +46,72 @@ isolated function testQueringEntityFieldOnSubgrap() returns error? {
         }
     };
     assertJsonValuesWithOrder(response, expectedPayload);
+}
+
+@test:Config {
+    groups: ["federation", "subgraph", "entity"]
+}
+isolated function testQueringEntityFieldWithNullArgument() returns error? {
+    string document = string `{ _entities( representations: null ) { ... on Star { name } } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    json|graphql:ClientError response = graphqlClient->execute(document);
+    test:assertTrue(response is graphql:InvalidDocumentError);
+    graphql:InvalidDocumentError err = <graphql:InvalidDocumentError>response;
+    string message = string `Expected value of type "[_Any!]!", found null.`;
+    json locations = [{line: 1, column: 31}];
+    json expectedResponse = [{message, locations}];
+    test:assertEquals(err.detail().errors.toJson(), expectedResponse);
+}
+
+@test:Config {
+    groups: ["federation", "subgraph", "entity"]
+}
+isolated function testQueringEntityFieldWithListOfNullValues() returns error? {
+    string document = string `{ _entities( representations: [null] ) { ... on Star { name } } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    json|graphql:ClientError response = graphqlClient->execute(document);
+    test:assertTrue(response is graphql:InvalidDocumentError);
+    graphql:InvalidDocumentError err = <graphql:InvalidDocumentError>response;
+    string message = string `_Any! cannot represent non _Any! value: null`;
+    json locations = [{line: 1, column: 32}];
+    json expectedResponse = [{message, locations}];
+    test:assertEquals(err.detail().errors.toJson(), expectedResponse);
+}
+
+@test:Config {
+    groups: ["federation", "subgraph", "entity"]
+}
+isolated function testQueringEntityFieldWithNullVariable() returns error? {
+    string document = string `query ($rep: [_Any!]!) { _entities( representations: $rep ) { ... on Star { name } } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    map<json> variables = {rep: null};
+    json|graphql:ClientError response = graphqlClient->execute(document, variables);
+    test:assertTrue(response is graphql:InvalidDocumentError);
+    graphql:InvalidDocumentError err = <graphql:InvalidDocumentError>response;
+    string message = string `Variable rep expected value of type "[_Any!]!", found null`;
+    json locations = [{line: 1, column: 55}];
+    json expectedResponse = [{message, locations}];
+    test:assertEquals(err.detail().errors.toJson(), expectedResponse);
+}
+
+@test:Config {
+    groups: ["federation", "subgraph", "entity"]
+}
+isolated function testQueringEntityFieldWithLisOfNullVariable() returns error? {
+    string document = string `query ($rep: [_Any!]!) { _entities( representations: $rep ) { ... on Star { name } } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    map<json> variables = {rep: [null]};
+    json|graphql:ClientError response = graphqlClient->execute(document, variables);
+    test:assertTrue(response is graphql:InvalidDocumentError);
+    graphql:InvalidDocumentError err = <graphql:InvalidDocumentError>response;
+    string message = string `representations: In element #0:Expected value of type "_Any!", found null.`;
+    json locations = [{line: 1, column: 55}];
+    json expectedResponse = [{message, locations}];
+    test:assertEquals(err.detail().errors.toJson(), expectedResponse);
 }
 
 @test:Config {
