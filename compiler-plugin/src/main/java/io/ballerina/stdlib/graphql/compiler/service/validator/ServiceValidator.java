@@ -171,6 +171,9 @@ public class ServiceValidator {
             validateSubscribeResource(methodSymbol, location);
             this.currentFieldPath.remove(TypeName.SUBSCRIPTION.getName());
         } else if (RESOURCE_FUNCTION_GET.equals(accessor)) {
+            if (getFieldPath(methodSymbol).equals("_entities")) {
+                return;
+            }
             this.currentFieldPath.add(TypeName.QUERY.getName());
             this.hasQueryType = true;
             validateGetResource(methodSymbol, location);

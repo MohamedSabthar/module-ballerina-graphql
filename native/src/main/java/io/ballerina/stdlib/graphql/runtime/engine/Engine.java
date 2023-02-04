@@ -64,10 +64,10 @@ public class Engine {
     private Engine() {
     }
 
-    public static Object createSchema(BString schemaString) {
+    public static Object createSchema(BString schemaString, Boolean isSubgraph) {
         try {
             Schema schema = getDecodedSchema(schemaString);
-            SchemaRecordGenerator schemaRecordGenerator = new SchemaRecordGenerator(schema);
+            SchemaRecordGenerator schemaRecordGenerator = new SchemaRecordGenerator(schema, isSubgraph);
             return schemaRecordGenerator.getSchemaRecord();
         } catch (BError e) {
             return createError("Error occurred while creating the schema", ERROR_TYPE, e);
