@@ -20,6 +20,7 @@ package io.ballerina.stdlib.graphql.compiler.schema.generator;
 
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
@@ -45,6 +46,7 @@ import io.ballerina.projects.Module;
 import io.ballerina.projects.plugins.ModifierTask;
 import io.ballerina.projects.plugins.SourceModifierContext;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
+import io.ballerina.stdlib.graphql.commons.types.Type;
 import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticFactory;
@@ -61,6 +63,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.PACKAGE_NAME;
 import static io.ballerina.stdlib.graphql.compiler.Utils.SERVICE_CONFIG_IDENTIFIER;
@@ -71,9 +74,13 @@ import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUti
  */
 public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext> {
     private final Map<DocumentId, GraphqlModifierContext> modifierContextMap;
+    private final Map<Node, String> entityTypeNamesMap;
+    private static final String ENTITY = "__Entity";
+    private String currentEntityTypeName;
 
     public GraphqlSourceModifier(Map<DocumentId, GraphqlModifierContext> modifierContextMap) {
         this.modifierContextMap = modifierContextMap;
+        this.entityTypeNamesMap = new HashMap<>();
     }
 
     @Override
@@ -98,21 +105,28 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
                                           GraphqlModifierContext modifierContext) {
         Map<Node, Node> nodeMap = new HashMap<>();
         Map<Node, Schema> nodeSchemaMap = modifierContext.getNodeSchemaMap();
+        int i = 0;
         for (Map.Entry<Node, Schema> entry : nodeSchemaMap.entrySet()) {
             Schema schema = entry.getValue();
+            List<String> entities = schema.getEntities().stream().map(Type::getName).collect(Collectors.toList());
+            this.currentEntityTypeName = ENTITY + i;
             try {
                 String schemaString = getSchemaAsEncodedString(schema);
                 Node targetNode = entry.getKey();
                 if (targetNode.kind() == SyntaxKind.SERVICE_DECLARATION) {
                     ServiceDeclarationNode updatedNode = modifyServiceDeclarationNode(
-                            (ServiceDeclarationNode) targetNode, schemaString);
+                            (ServiceDeclarationNode) targetNode, schemaString, entities);
                     nodeMap.put(targetNode, updatedNode);
+                    this.entityTypeNamesMap.put(targetNode, this.currentEntityTypeName);
+                    i++;
                 } else if (targetNode.kind() == SyntaxKind.MODULE_VAR_DECL) {
                     ModuleVariableDeclarationNode graphqlServiceVariableDeclaration
                             = (ModuleVariableDeclarationNode) targetNode;
-                    ModuleVariableDeclarationNode updatedNode = modifyServiceVariableDeclarationNode(schemaString,
-                            graphqlServiceVariableDeclaration);
+                    ModuleVariableDeclarationNode updatedNode = modifyServiceVariableDeclarationNode(
+                            schemaString, graphqlServiceVariableDeclaration, entities);
                     nodeMap.put(targetNode, updatedNode);
+                    this.entityTypeNamesMap.put(targetNode, this.currentEntityTypeName);
+                    i++;
                 }
             } catch (IOException e) {
                 updateContext(context, entry.getKey().location(), CompilationDiagnostic.SCHEMA_GENERATION_FAILED,
@@ -123,6 +137,13 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
         for (ModuleMemberDeclarationNode member : rootNode.members()) {
             if (member.kind() == SyntaxKind.SERVICE_DECLARATION || member.kind() == SyntaxKind.MODULE_VAR_DECL) {
                 if (nodeMap.containsKey(member)) {
+                    this.currentEntityTypeName = this.entityTypeNamesMap.get(member);
+                    Schema schema = nodeSchemaMap.get(member);
+                    if (schema.getEntities().size() > 0) {
+                        List<String> entities = schema.getEntities().stream().map(Type::getName)
+                                .collect(Collectors.toList());
+                        members = addEntityTypeDefinition(members, entities);
+                    }
                     members = members.add((ModuleMemberDeclarationNode) nodeMap.get(member));
                     continue;
                 }
@@ -132,18 +153,31 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
         return rootNode.modify(rootNode.imports(), members, rootNode.eofToken());
     }
 
+    private NodeList<ModuleMemberDeclarationNode> addEntityTypeDefinition(
+            NodeList<ModuleMemberDeclarationNode> moduleMembers, List<String> entities) {
+        ModuleMemberDeclarationNode typeDefinition = getEntityTypeDefinition(entities);
+        return moduleMembers.add(typeDefinition);
+    }
+
+    private ModuleMemberDeclarationNode getEntityTypeDefinition(List<String> entities) {
+        String unionOfEntities = String.join("|", entities);
+        return NodeParser.parseModuleMemberDeclaration(
+                "type " + this.currentEntityTypeName + " " + unionOfEntities + ";");
+    }
+
     private ModuleVariableDeclarationNode modifyServiceVariableDeclarationNode(String schemaString,
-                                          ModuleVariableDeclarationNode moduleVariableDeclarationNode) {
+                                                                               ModuleVariableDeclarationNode node,
+                                                                               List<String> entities) {
         // noinspection OptionalGetWithoutIsPresent
         ObjectConstructorExpressionNode graphqlServiceObject
-                = (ObjectConstructorExpressionNode) moduleVariableDeclarationNode.initializer().get();
+                = (ObjectConstructorExpressionNode) node.initializer().get();
         ObjectConstructorExpressionNode updatedGraphqlServiceObject = modifyServiceObjectNode(graphqlServiceObject,
-                schemaString);
-        return moduleVariableDeclarationNode.modify().withInitializer(updatedGraphqlServiceObject).apply();
+                                                                                              schemaString, entities);
+        return node.modify().withInitializer(updatedGraphqlServiceObject).apply();
     }
 
     private ObjectConstructorExpressionNode modifyServiceObjectNode(ObjectConstructorExpressionNode node,
-                                                                    String schemaString) {
+                                                                    String schemaString, List<String> entities) {
         NodeList<AnnotationNode> annotations = NodeFactory.createNodeList();
         if (node.annotations().isEmpty()) {
             AnnotationNode annotationNode = getSchemaStringAnnotation(schemaString);
@@ -154,12 +188,72 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
                 annotations = annotations.add(annotationNode);
             }
         }
-        return node.modify().withAnnotations(annotations).apply();
+        ObjectConstructorExpressionNode.ObjectConstructorExpressionNodeModifier modifier = node.modify();
+        modifier = modifier.withAnnotations(annotations);
+        if (entities.size() > 0) {
+            modifier = modifier.withMembers(addEntityResourceResolverToServiceMembers(node, entities));
+        }
+        return modifier.apply();
     }
 
-    private ServiceDeclarationNode modifyServiceDeclarationNode(ServiceDeclarationNode node, String schemaString) {
+    private ServiceDeclarationNode modifyServiceDeclarationNode(ServiceDeclarationNode node, String schemaString,
+                                                                List<String> entities) {
         MetadataNode metadataNode = getMetadataNode(node, schemaString);
-        return node.modify().withMetadata(metadataNode).apply();
+        ServiceDeclarationNode.ServiceDeclarationNodeModifier modifier = node.modify();
+        modifier = modifier.withMetadata(metadataNode);
+        if (entities.size() > 0) {
+            NodeList<Node> serviceMembers = addEntityResourceResolverToServiceMembers(node, entities);
+            modifier = modifier.withMembers(serviceMembers);
+        }
+        return modifier.apply();
+    }
+
+    private NodeList<Node> addEntityResourceResolverToServiceMembers(ServiceDeclarationNode node,
+                                                                     List<String> entities) {
+        FunctionDefinitionNode entityResolver = getEntityResolver(entities);
+        NodeList<Node> serviceMembers = node.members();
+        return serviceMembers.add(entityResolver);
+    }
+
+    private NodeList<Node> addEntityResourceResolverToServiceMembers(ObjectConstructorExpressionNode node,
+                                                                     List<String> entities) {
+        FunctionDefinitionNode entityResolver = getEntityResolver(entities);
+        NodeList<Node> serviceMembers = node.members();
+        return serviceMembers.add(entityResolver);
+    }
+
+    private FunctionDefinitionNode getEntityResolver(List<String> entities) {
+        String mapDef = getEntityTypedescMapInitializer(entities);
+        String entityResolver = "\t resource function get _entities(graphql:Representation[] representations) "
+                + "\t returns " + this.currentEntityTypeName + "?[]|error {\n"
+                + "\t map<typedesc<" + this.currentEntityTypeName + ">> typedescs = " + mapDef + ";\n"
+                + "\t " + this.currentEntityTypeName + " ?[] entities = [];\n"
+                + "\t foreach graphql:Representation rep in representations {\n"
+                + "\t if !typedescs.hasKey(rep.__typename) {\n"
+                + "\t     entities.push(());\n"
+                + "\t     continue;\n"
+                + "\t }\n"
+                + "\t typedesc entityTypedesc = typedescs.get(rep.__typename);\n"
+                + "\t graphql:FederatedEntity? federatedEntity = entityTypedesc.@graphql:Entity;\n"
+                + "\t if federatedEntity is () {\n"
+                + "\t     entities.push(());\n"
+                + "\t     continue;\n" + " }\n"
+                + "\t graphql:ReferenceResolver? resolve = federatedEntity.resolveReference;\n"
+                + "\t if resolve is () {\n"
+                + "\t     return error(string `No resolvers defined for ${rep.__typename}`);\n"
+                + "\t }\n"
+                + "\t " + this.currentEntityTypeName + " entity = check resolve(rep).ensureType();\n"
+                + "\t entities.push(entity);\n"
+                + "\t }\n"
+                + "\treturn entities;\n"
+                + "\t}\n";
+        return (FunctionDefinitionNode) NodeParser.parseObjectMember(entityResolver);
+    }
+
+    private String getEntityTypedescMapInitializer(List<String> entities) {
+        List<String> mapFields = entities.stream().map(entity -> "\"" + entity + "\"" + ":" + entity)
+                .collect(Collectors.toList());
+        return "{" + String.join(", ", mapFields) + "}";
     }
 
     private MetadataNode getMetadataNode(ServiceDeclarationNode node, String schemaString) {

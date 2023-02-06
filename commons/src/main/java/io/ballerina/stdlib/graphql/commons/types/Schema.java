@@ -20,6 +20,7 @@ package io.ballerina.stdlib.graphql.commons.types;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +33,15 @@ public class Schema implements Serializable {
     private final String description;
     private final Map<String, Type> types;
     private final List<Directive> directives;
+    private final List<Type> entities;
     private Type queryType;
     private Type mutationType = null;
     private Type subscriptionType = null;
+
+    private static final String SDL = "sdl";
+    private static final String _SERVICE = "_service";
+    private static final String _ENTITIES = "_entities";
+    private static final String REPRESENTATIONS = "representations";
 
     /**
      * Creates the schema.
@@ -45,16 +52,16 @@ public class Schema implements Serializable {
         this.description = description;
         this.types = new LinkedHashMap<>();
         this.directives = new ArrayList<>();
+        this.entities = new ArrayList<>();
     }
 
     /**
      * Adds a type to the schema and returns it. If the type name already exists, returns the existing type. If the
      * type name does not exist in the schema, creates the type and returns it.
      *
-     * @param typeName - The name of the type
-     * @param kind - The TypeKind of the type
+     * @param typeName    - The name of the type
+     * @param kind        - The TypeKind of the type
      * @param description - The description of the type
-     *
      * @return - The created or existing type with the provided name
      */
     public Type addType(String typeName, TypeKind kind, String description) {
@@ -71,7 +78,6 @@ public class Schema implements Serializable {
      * returns the existing scalar type.
      *
      * @param scalarType - The ScalarType to be added
-     *
      * @return - The created or existing scalar type
      */
     public Type addType(ScalarType scalarType) {
@@ -127,7 +133,54 @@ public class Schema implements Serializable {
         this.directives.add(directive);
     }
 
+    public void addDirective(FederatedDirective directive) {
+        this.directives.add(new Directive(directive));
+    }
+
     public List<Directive> getDirectives() {
         return this.directives;
+    }
+
+    public void addEntities(Map<String, Type> federatedEntities) {
+        this.entities.addAll(federatedEntities.values());
+    }
+
+    public void addSubgraphSchemaAdditions() {
+        ScalarType.getFederatedScalarTypes().forEach(this::addType);
+        Arrays.stream(FederatedEnumValue.values())
+                .forEach(enumType -> this.types.put(enumType.getName(), enumType.getEnumTypeWithValues()));
+        Arrays.stream(FederatedDirective.values()).forEach(this::addDirective);
+        this.addFederatedServiceTypeWithServiceResolver();
+        this.addFederatedEntitiesWithEntitiesResolver();
+    }
+
+    public List<Type> getEntities() {
+        return this.entities;
+    }
+
+    private void addFederatedServiceTypeWithServiceResolver() {
+        Type service = addType(TypeName.SERVICE.getName(), TypeKind.OBJECT, null);
+
+        Type nonNullableString = new Type(TypeKind.NON_NULL, getType(TypeName.STRING.getName()));
+        service.addField(new Field(SDL, nonNullableString));
+        Field serviceField = new Field(_SERVICE, new Type(TypeKind.NON_NULL, service));
+        Type query = getQueryType();
+        query.addField(serviceField);
+    }
+
+    private void addFederatedEntitiesWithEntitiesResolver() {
+        if (this.entities.size() == 0) {
+            return;
+        }
+
+        Type entity = addType(TypeName.ENTITY.getName(), TypeKind.UNION, null);
+        this.entities.forEach(entity::addPossibleType);
+
+        Field entities = new Field(_ENTITIES, new Type(TypeKind.NON_NULL, new Type(TypeKind.LIST, entity)));
+        Type nonNullableAnyScalar = new Type(TypeKind.NON_NULL, getType(TypeName.ANY.getName()));
+        Type nonNullableListOfAny = new Type(TypeKind.NON_NULL, new Type(TypeKind.LIST, nonNullableAnyScalar));
+        entities.addArg(new InputValue(REPRESENTATIONS, nonNullableListOfAny, null, null));
+        Type query = getQueryType();
+        query.addField(entities);
     }
 }

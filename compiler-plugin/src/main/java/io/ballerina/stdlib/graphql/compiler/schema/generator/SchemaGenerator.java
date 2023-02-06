@@ -18,6 +18,7 @@
 
 package io.ballerina.stdlib.graphql.compiler.schema.generator;
 
+import io.ballerina.compiler.api.symbols.AnnotationSymbol;
 import io.ballerina.compiler.api.symbols.ArrayTypeSymbol;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.ConstantSymbol;
@@ -68,7 +69,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.removeEscapeCharacter;
+import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
+import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
@@ -93,12 +95,14 @@ public class SchemaGenerator {
     private static final String IF_ARG_NAME = "if";
     private static final String REASON_ARG_NAME = "reason";
     private static final String DEFAULT_VALUE = "\"\"";
+    private static final String ENTITY = "Entity";
 
     private final Node serviceNode;
     private final InterfaceFinder interfaceFinder;
     private final Schema schema;
     private final SyntaxNodeAnalysisContext context;
     private final List<Type> visitedInterfaces;
+    private final Map<String, Type> entities;
 
     public SchemaGenerator(SyntaxNodeAnalysisContext context, Node serviceNode, InterfaceFinder interfaceFinder,
                            String description) {
@@ -107,18 +111,35 @@ public class SchemaGenerator {
         this.interfaceFinder = interfaceFinder;
         this.schema = new Schema(description);
         this.visitedInterfaces = new ArrayList<>();
+        this.entities = new HashMap<>();
     }
 
     public Schema generate() {
         findRootTypes(this.serviceNode);
         findIntrospectionTypes();
+        this.schema.addEntities(this.entities);
         return this.schema;
+    }
+
+    private void addEntity(Type entity) {
+        if (this.entities.containsKey(entity.getName())) {
+            return;
+        }
+        this.entities.put(entity.getName(), entity);
     }
 
     private void findIntrospectionTypes() {
         IntrospectionTypeCreator introspectionTypeCreator = new IntrospectionTypeCreator(this.schema);
         introspectionTypeCreator.addIntrospectionTypes();
         addDefaultDirectives();
+    }
+
+    private boolean hasExpectedResourcePath(ResourceMethodSymbol resourceMethodSymbol, String expectedPath) {
+        List<PathSegment> pathSegments = ((PathSegmentList) resourceMethodSymbol.resourcePath()).list();
+        if (pathSegments.size() > 1) {
+            return false;
+        }
+        return pathSegments.get(0).signature().equals(expectedPath);
     }
 
     private void findRootTypes(Node serviceNode) {
@@ -128,6 +149,9 @@ public class SchemaGenerator {
                 ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) methodSymbol;
                 String accessor = getAccessor(resourceMethodSymbol);
                 if (RESOURCE_FUNCTION_GET.equals(accessor)) {
+                    if (hasExpectedResourcePath(resourceMethodSymbol, "_entities")) {
+                        continue;
+                    }
                     queryType.addField(getField((resourceMethodSymbol)));
                 } else {
                     Type subscriptionType = addType(TypeName.SUBSCRIPTION);
@@ -331,8 +355,9 @@ public class SchemaGenerator {
             parameterMap = typeDefinitionSymbol.documentation().get().parameterMap();
         }
         if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.RECORD) {
+            List<AnnotationSymbol> annotations = typeDefinitionSymbol.annotations();
             RecordTypeSymbol recordType = (RecordTypeSymbol) typeDefinitionSymbol.typeDescriptor();
-            return getType(name, description, parameterMap, recordType);
+            return getType(name, description, parameterMap, recordType, annotations);
         } else if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.UNION) {
             return getType(name, description, (UnionTypeSymbol) typeDefinitionSymbol.typeDescriptor());
         } else if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.INTERSECTION) {
@@ -359,12 +384,36 @@ public class SchemaGenerator {
         return objectType;
     }
 
+    private boolean hasFederatedEntityAnnotation(List<AnnotationSymbol> annotations) {
+        for (AnnotationSymbol annotation : annotations) {
+            if (!isGraphqlModuleSymbol(annotation)) {
+                continue;
+            }
+            if (annotation.getName().isEmpty()) {
+                continue;
+            }
+            if (annotation.getName().get().equals(ENTITY)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void addTypeToEntityMapIfFederatedEntity(Type objectType, List<AnnotationSymbol> annotations) {
+        if (hasFederatedEntityAnnotation(annotations)) {
+            addEntity(objectType);
+        }
+    }
+
     private Type getType(String name, ClassSymbol classSymbol) {
         String description = getDescription(classSymbol);
         Type objectType = addType(name, TypeKind.OBJECT, description);
-
+        addTypeToEntityMapIfFederatedEntity(objectType, classSymbol.annotations());
         for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
             if (isResourceMethod(methodSymbol)) {
+                if (hasExpectedResourcePath((ResourceMethodSymbol) methodSymbol, "resolveReference")) {
+                    continue;
+                }
                 objectType.addField(getField((ResourceMethodSymbol) methodSymbol));
             }
         }
@@ -422,7 +471,13 @@ public class SchemaGenerator {
 
     private Type getType(String name, String description, Map<String, String> fieldMap,
                          RecordTypeSymbol recordTypeSymbol) {
+        return getType(name, description, fieldMap, recordTypeSymbol, List.of());
+    }
+
+    private Type getType(String name, String description, Map<String, String> fieldMap,
+                         RecordTypeSymbol recordTypeSymbol, List<AnnotationSymbol> annotations) {
         Type objectType = addType(name, TypeKind.OBJECT, description);
+        addTypeToEntityMapIfFederatedEntity(objectType, annotations);
         for (RecordFieldSymbol recordFieldSymbol : recordTypeSymbol.fieldDescriptors().values()) {
             if (recordFieldSymbol.getName().isEmpty()) {
                 continue;

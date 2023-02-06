@@ -26,6 +26,8 @@ import io.ballerina.tools.diagnostics.DiagnosticFactory;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
 import io.ballerina.tools.diagnostics.Location;
 
+import java.util.List;
+
 /**
  * Utility functions for the Ballerina GraphQL compiler validations.
  */
@@ -39,10 +41,19 @@ public final class ValidatorUtils {
     public static final String GRAPHQL_INTERCEPTOR = "Interceptor";
     public static final String INTERCEPTOR_EXECUTE = "execute";
 
+    private static final String FEDERATED_ENTITY_RESOLVER_NAME = "_entities";
+    private static final String FEDERATED_SERVICE_RESOLVER_NAME = "_service";
+
+    private static final String FEDERATED_ANY_SCALAR = "_Any";
+    private static final String FEDERATED_FIELD_SET_SCALAR = "FieldSet";
+    private static final String FEDERATED_LINK_IMPORT_SCALAR = "link__Import";
+    private static final String FEDERATED_LINK_PURPOSE_SCALAR = "link__Purpose";
+    private static final String FEDERATED_SERVICE_TYPE = "_Service";
+
     public static void updateContext(SyntaxNodeAnalysisContext context, CompilationDiagnostic errorCode,
                                      Location location) {
-        DiagnosticInfo diagnosticInfo = new DiagnosticInfo(
-                errorCode.getDiagnosticCode(), errorCode.getDiagnostic(), errorCode.getDiagnosticSeverity());
+        DiagnosticInfo diagnosticInfo = new DiagnosticInfo(errorCode.getDiagnosticCode(), errorCode.getDiagnostic(),
+                                                           errorCode.getDiagnosticSeverity());
         Diagnostic diagnostic = DiagnosticFactory.createDiagnostic(diagnosticInfo, location);
         context.reportDiagnostic(diagnostic);
     }
@@ -64,5 +75,16 @@ public final class ValidatorUtils {
 
     public static boolean isInvalidFieldName(String fieldName) {
         return fieldName.startsWith(DOUBLE_UNDERSCORES);
+    }
+
+    public static boolean isReservedFederatedResolverName(String methodName) {
+        return methodName.equals(FEDERATED_ENTITY_RESOLVER_NAME) || methodName.equals(FEDERATED_SERVICE_RESOLVER_NAME);
+    }
+
+    public static boolean isReservedFederatedTypeName(String typeName) {
+        List<String> reservedTypes = List.of(FEDERATED_ANY_SCALAR, FEDERATED_FIELD_SET_SCALAR,
+                                             FEDERATED_LINK_IMPORT_SCALAR, FEDERATED_LINK_PURPOSE_SCALAR,
+                                             FEDERATED_SERVICE_TYPE);
+        return reservedTypes.contains(typeName);
     }
 }
