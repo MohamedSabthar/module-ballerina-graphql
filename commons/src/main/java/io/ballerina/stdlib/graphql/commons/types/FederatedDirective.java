@@ -40,22 +40,28 @@ public enum FederatedDirective {
     EXTERNAL("external", List.of(), List.of(FIELD_DEFINITION, OBJECT)),
     REQUIRES("requires", List.of(getFieldsInput()), List.of(FIELD_DEFINITION)),
     PROVIDES("provides", List.of(getFieldsInput()), List.of(FIELD_DEFINITION)),
-    KEY("key", List.of(getFieldsInput(), getResolvableInput()), List.of(OBJECT, INTERFACE)),
+    KEY("key", List.of(getFieldsInput(), getResolvableInput()), true, List.of(OBJECT, INTERFACE)),
     LINK("link", List.of(getUrlInput(), getAsInput(), getForInput(), getImportInput()), List.of(SCHEMA)),
-    SHAREABLE("shareable", List.of(), List.of(OBJECT, FIELD_DEFINITION)),
+    SHAREABLE("shareable", List.of(), true, List.of(OBJECT, FIELD_DEFINITION)),
     INACCESSIBLE("inaccessible", List.of(), getInAccessibleOrTagDirectiveLocations()),
-    TAG("tag", List.of(getNameInput()), getInAccessibleOrTagDirectiveLocations()),
+    TAG("tag", List.of(getNameInput()), true, getInAccessibleOrTagDirectiveLocations()),
     OVERRIDE("override", List.of(getFromInput()), List.of(FIELD_DEFINITION)),
-    COMPOSE_DIRECTIVE("composeDirective", List.of(getNameInput()), List.of(SCHEMA)),
+    COMPOSE_DIRECTIVE("composeDirective", List.of(getNameInput()), true, List.of(SCHEMA)),
     EXTENDS("extends", List.of(), List.of(OBJECT, INTERFACE));
 
     private final String name;
     private final List<InputValue> arguments;
+    private final boolean repeatable;
     private final List<DirectiveLocation> locations;
 
     FederatedDirective(String name, List<InputValue> arguments, List<DirectiveLocation> locations) {
+        this(name, arguments, false, locations);
+    }
+
+    FederatedDirective(String name, List<InputValue> arguments, boolean repeatable, List<DirectiveLocation> locations) {
         this.name = name;
         this.arguments = arguments;
+        this.repeatable = repeatable;
         this.locations = locations;
     }
 
@@ -110,5 +116,9 @@ public enum FederatedDirective {
 
     private static Type getScalar(ScalarType scalar) {
         return new Type(scalar.getName(), TypeKind.SCALAR, scalar.getDescription());
+    }
+
+    public boolean isRepeatable() {
+        return repeatable;
     }
 }

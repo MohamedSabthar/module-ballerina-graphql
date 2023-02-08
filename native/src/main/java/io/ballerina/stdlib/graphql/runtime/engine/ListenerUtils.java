@@ -20,8 +20,11 @@ package io.ballerina.stdlib.graphql.runtime.engine;
 
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BArray;
+import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
+import io.ballerina.stdlib.graphql.commons.types.Schema;
+import io.ballerina.stdlib.graphql.commons.utils.SdlSchemaStringGenerator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,9 +33,12 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.ballerina.stdlib.graphql.runtime.engine.Engine.getDecodedSchema;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.ERROR_TYPE;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.createError;
 
@@ -48,6 +54,8 @@ public final class ListenerUtils {
     public static final String GRAPHIQL_RESOURCE = "graphiql.html";
     private static final String REGEX_URL = "${url}";
     private static final String FORWARD_SLASH = "/";
+    private static final BString ENTITY_ANNOTATION_KEY_FIELD = StringUtils.fromString("key");
+    private static final BString ENTITY_ANNOTATION_RESOLVER_FIELD = StringUtils.fromString("resolveReference");
 
     private ListenerUtils() {}
 
@@ -144,5 +152,24 @@ public final class ListenerUtils {
         } catch (IOException e) {
             return createError("Error occurred while loading the GraphiQL client", ERROR_TYPE);
         }
+    }
+
+    public static Object getSdlString(BString schemaString, boolean isSubgraph, BMap<BString, Object> keyDirectives) {
+        Schema schema = getDecodedSchema(schemaString);
+        Map<String, Object[]> directiveFields = getEntityKeyDirectiveFieldValues(keyDirectives);
+        String sdl = SdlSchemaStringGenerator.generate(schema, isSubgraph, directiveFields);
+        return StringUtils.fromString(sdl);
+    }
+
+    private static Map<String, Object[]> getEntityKeyDirectiveFieldValues(BMap<BString, Object> keyDirectives) {
+        Map<String, Object[]> entityKeyDirectiveFields = new HashMap<>();
+        for (Map.Entry<BString, Object> keyDirective : keyDirectives.entrySet()) {
+            Map<BString, Object> federatedEntityRecord = (Map<BString, Object>) keyDirective.getValue();
+            String fields = ((BString) federatedEntityRecord.get(ENTITY_ANNOTATION_KEY_FIELD)).getValue();
+            boolean resolvable = federatedEntityRecord.get(ENTITY_ANNOTATION_RESOLVER_FIELD) != null;
+            Object[] tuple = new Object[]{fields, resolvable};
+            entityKeyDirectiveFields.put(keyDirective.getKey().getValue(), tuple);
+        }
+        return entityKeyDirectiveFields;
     }
 }

@@ -22,6 +22,7 @@ import io.ballerina.stdlib.graphql.commons.types.DefaultDirective;
 import io.ballerina.stdlib.graphql.commons.types.Directive;
 import io.ballerina.stdlib.graphql.commons.types.DirectiveLocation;
 import io.ballerina.stdlib.graphql.commons.types.EnumValue;
+import io.ballerina.stdlib.graphql.commons.types.FederatedDirective;
 import io.ballerina.stdlib.graphql.commons.types.Field;
 import io.ballerina.stdlib.graphql.commons.types.InputValue;
 import io.ballerina.stdlib.graphql.commons.types.IntrospectionType;
@@ -31,8 +32,11 @@ import io.ballerina.stdlib.graphql.commons.types.Type;
 import io.ballerina.stdlib.graphql.commons.types.TypeKind;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Generate the SDL schema for a given Ballerina GraphQL Service.
@@ -46,6 +50,8 @@ public class SdlSchemaStringGenerator {
     private static final String UNION_TYPE_FORMAT = "%sunion %s%s";
     private static final String SCALAR_TYPE_FORMAT = "%sscalar %s%s";
     private static final String OBJECT_TYPE_FORMAT = "%stype %s%s %s";
+    private static final String ENTITY_TYPE_FORMAT = "%stype %s%s%s %s";
+    private static final String ENTITY_KEY_DIRECTIVE = " @key(fields: \"%s\", resolvable: %s)";
     private static final String ENUM_TYPE_FORMAT = "%senum %s %s";
     private static final String INPUT_TYPE_FORMAT = "%sinput %s %s";
     private static final String FIELD_FORMAT = "%s  %s%s: %s%s";
@@ -64,6 +70,7 @@ public class SdlSchemaStringGenerator {
     private static final String NON_NULL_FORMAT = "%s!";
     private static final String LIST_FORMAT = "[%s]";
     private static final String DEPRECATE = " @deprecated";
+    private static final String REPEATABLE = " repeatable";
 
     //Schema delimiters
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
@@ -76,18 +83,34 @@ public class SdlSchemaStringGenerator {
     private static final String PIPE_SIGN = "|";
     private static final String SPACE = " ";
 
+    private final boolean isSubgraph;
+    private final Map<String, Object[]> entityKeyDirectives;
+
     public static String generate(Schema schema) {
-        String sdlSchemaString = getSDLSchemaString(schema);
-        return sdlSchemaString;
+        return generate(schema, false, new HashMap<>());
     }
 
-    private static String getSDLSchemaString(Schema schema) {
+    public static String generate(Schema schema, boolean isSubgraph, Map<String, Object[]> entityKeyDirectives) {
+        SdlSchemaStringGenerator sdlGenerator = new SdlSchemaStringGenerator(isSubgraph, entityKeyDirectives);
+        return sdlGenerator.getSDLSchemaString(schema);
+    }
+
+    private SdlSchemaStringGenerator(boolean isSubgraph, Map<String, Object[]> entityKeyDirectives) {
+        this.isSubgraph = isSubgraph;
+        this.entityKeyDirectives = entityKeyDirectives;
+    }
+
+
+    private String getSDLSchemaString(Schema schema) {
+        if (this.isSubgraph) {
+            schema.addSubgraphSchemaAdditions();
+        }
         String directives = getDirectives(schema);
         String types = getTypes(schema);
         return getFormattedString(SCHEMA_FORMAT, createTypeDescription(schema.getDescription()), directives, types);
     }
 
-    private static String getDirectives(Schema schema) {
+    private String getDirectives(Schema schema) {
         List<String> directives = new ArrayList<>();
         for (Directive directive : schema.getDirectives()) {
             if (!isDefaultDirective(directive)) {
@@ -101,7 +124,7 @@ public class SdlSchemaStringGenerator {
         return formattedDirectives + LINE_SEPARATOR + LINE_SEPARATOR;
     }
 
-    private static String getTypes(Schema schema) {
+    private String getTypes(Schema schema) {
         List<String> types = new ArrayList<>();
         for (Map.Entry<String, Type> entry : schema.getTypes().entrySet()) {
             if (!isIntrospectionType(entry.getValue()) && !isBuiltInScalarType(entry.getValue())) {
@@ -111,13 +134,13 @@ public class SdlSchemaStringGenerator {
         return String.join(LINE_SEPARATOR + LINE_SEPARATOR, types);
     }
 
-    private static String createDirective(Directive directive) {
+    private String createDirective(Directive directive) {
         return getFormattedString(DIRECTIVE_TYPE_FORMAT, createTypeDescription(directive.getDescription()),
                 directive.getName(), createArgs(directive.getArgs()), createIsRepeatable(directive),
                 createDirectiveLocation(directive.getLocations()));
     }
 
-    private static String createType(Type type) {
+    private String createType(Type type) {
         if (type.getKind().equals(TypeKind.SCALAR)) {
             return createScalarType(type);
         }
@@ -139,37 +162,50 @@ public class SdlSchemaStringGenerator {
         return EMPTY_STRING;
     }
 
-    private static String createScalarType(Type type) {
+    private String createScalarType(Type type) {
         return getFormattedString(SCALAR_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
                 createSpecifiedByUrl(type));
     }
 
-    private static String createObjectType(Type type) {
-        return getFormattedString(OBJECT_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
-                createInterfaceImplements(type), createFields(type));
+    private String createObjectType(Type type) {
+        String typeName = type.getName();
+        if (this.isSubgraph && this.entityKeyDirectives.containsKey(typeName)) {
+            return getFormattedString(ENTITY_TYPE_FORMAT, createTypeDescription(type.getDescription()), typeName,
+                                      createInterfaceImplements(type), createEntityKeyDirective(typeName),
+                                      createFields(type));
+        }
+        return getFormattedString(OBJECT_TYPE_FORMAT, createTypeDescription(type.getDescription()), typeName,
+                                  createInterfaceImplements(type), createFields(type));
     }
 
-    private static String createInterfaceType(Type type) {
+    private String createEntityKeyDirective(String entityName) {
+        Object[] tuple = this.entityKeyDirectives.get(entityName);
+        String fields = (String) tuple[0];
+        Boolean resolvable = (Boolean) tuple[1];
+        return getFormattedString(ENTITY_KEY_DIRECTIVE, fields, resolvable.toString());
+    }
+
+    private String createInterfaceType(Type type) {
         return getFormattedString(INTERFACE_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
                 createInterfaceImplements(type), createFields(type));
     }
 
-    private static String createUnionType(Type type) {
+    private String createUnionType(Type type) {
         return getFormattedString(UNION_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
                 createPossibleTypes(type));
     }
 
-    private static String createInputObjectType(Type type) {
+    private String createInputObjectType(Type type) {
         return getFormattedString(INPUT_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
                 createInputValues(type));
     }
 
-    private static String createEnumType(Type type) {
+    private String createEnumType(Type type) {
         return getFormattedString(ENUM_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
                 createEnumValues(type));
     }
 
-    private static String createTypeDescription(String description) {
+    private String createTypeDescription(String description) {
         if (description == null) {
             return EMPTY_STRING;
         } else {
@@ -184,7 +220,7 @@ public class SdlSchemaStringGenerator {
         }
     }
 
-    private static String createFields(Type type) {
+    private String createFields(Type type) {
         List<String> fields = new ArrayList<>();
         for (Field field : type.getFields()) {
             fields.add(getFormattedString(FIELD_FORMAT, createFieldDescription(field.getDescription()), field.getName(),
@@ -193,7 +229,7 @@ public class SdlSchemaStringGenerator {
         return getFormattedString(FIELD_BLOCK_FORMAT, String.join(LINE_SEPARATOR, fields));
     }
 
-    private static String createEnumValues(Type type) {
+    private String createEnumValues(Type type) {
         List<String> enumValues = new ArrayList<>();
         for (EnumValue enumValue : type.getEnumValues()) {
             enumValues.add(getFormattedString(ENUM_VALUE_FORMAT, createFieldDescription(enumValue.getDescription()),
@@ -202,7 +238,7 @@ public class SdlSchemaStringGenerator {
         return getFormattedString(FIELD_BLOCK_FORMAT, String.join(LINE_SEPARATOR, enumValues));
     }
 
-    private static String createInputValues(Type type) {
+    private String createInputValues(Type type) {
         List<String> inputFields = new ArrayList<>();
         for (InputValue inputField : type.getInputFields()) {
             inputFields.add(getFormattedString(INPUT_FIELD_FORMAT, createFieldDescription(inputField.getDescription()),
@@ -211,7 +247,7 @@ public class SdlSchemaStringGenerator {
         return getFormattedString(FIELD_BLOCK_FORMAT, String.join(LINE_SEPARATOR, inputFields));
     }
 
-    private static String createPossibleTypes(Type type) {
+    private String createPossibleTypes(Type type) {
         List<String> possibleTypes = new ArrayList<>();
         for (Type possibleType : type.getPossibleTypes()) {
             possibleTypes.add(possibleType.getName());
@@ -219,7 +255,7 @@ public class SdlSchemaStringGenerator {
         return getFormattedString(POSSIBLE_TYPE_FORMAT, String.join(PIPE_SIGN, possibleTypes));
     }
 
-    private static String createArgs(List<InputValue> inputValues) {
+    private String createArgs(List<InputValue> inputValues) {
         List<String> args = new ArrayList<>();
         if (inputValues.isEmpty()) {
             return EMPTY_STRING;
@@ -243,7 +279,7 @@ public class SdlSchemaStringGenerator {
         }
     }
 
-    private static String createFieldType(Type type) {
+    private String createFieldType(Type type) {
         if (type.getKind().equals(TypeKind.NON_NULL)) {
             return getFormattedString(NON_NULL_FORMAT, createFieldType(type.getOfType()));
         } else if (type.getKind().equals(TypeKind.LIST)) {
@@ -253,7 +289,7 @@ public class SdlSchemaStringGenerator {
         }
     }
 
-    private static String createArgType(InputValue arg) {
+    private String createArgType(InputValue arg) {
         if (arg.getDefaultValue() == null) {
             return createFieldType(arg.getType());
         } else {
@@ -261,7 +297,7 @@ public class SdlSchemaStringGenerator {
         }
     }
 
-    private static String createInterfaceImplements(Type type) {
+    private String createInterfaceImplements(Type type) {
         List<String> interfaces = new ArrayList<>();
         if (type.getInterfaces().isEmpty()) {
             return EMPTY_STRING;
@@ -272,7 +308,7 @@ public class SdlSchemaStringGenerator {
         return getFormattedString(IMPLEMENT_FORMAT, String.join(SPACE + AMPERSAND_SIGN + SPACE, interfaces));
     }
 
-    private static String createFieldDescription(String description) {
+    private String createFieldDescription(String description) {
         if (description == null) {
             return EMPTY_STRING;
         } else {
@@ -287,7 +323,7 @@ public class SdlSchemaStringGenerator {
         }
     }
 
-    private static String createArgDescription(String description) {
+    private String createArgDescription(String description) {
         if (description == null) {
             return EMPTY_STRING;
         } else {
@@ -303,7 +339,7 @@ public class SdlSchemaStringGenerator {
         }
     }
 
-    private static String createDirectiveLocation(List<DirectiveLocation> location) {
+    private String createDirectiveLocation(List<DirectiveLocation> location) {
         List<String> locations = new ArrayList<>();
         for (DirectiveLocation directiveLocation : location) {
             locations.add(directiveLocation.name());
@@ -311,17 +347,18 @@ public class SdlSchemaStringGenerator {
         return String.join(PIPE_SIGN, locations);
     }
 
-    private static String createDeprecate(EnumValue enumValue) {
+    private String createDeprecate(EnumValue enumValue) {
         if (enumValue.isDeprecated()) {
             if (enumValue.getDeprecationReason() != null) {
                 return getFormattedString(DEPRECATE_FORMAT, DEPRECATE,
-                        createDeprecateReason(enumValue.getDeprecationReason()));
+                                          createDeprecateReason(enumValue.getDeprecationReason()));
             }
             return DEPRECATE;
         }
         return EMPTY_STRING;
     }
-    private static String createDeprecate(Field field) {
+
+    private String createDeprecate(Field field) {
         if (field.isDeprecated()) {
             if (field.getDeprecationReason() != null) {
                 return getFormattedString(DEPRECATE_FORMAT, DEPRECATE,
@@ -332,21 +369,34 @@ public class SdlSchemaStringGenerator {
         return EMPTY_STRING;
     }
 
-    private static String createDeprecateReason(String reason) {
+    private String createDeprecateReason(String reason) {
         return reason.replaceAll(LINE_SEPARATOR_REGEX, SPACE);
     }
 
-    private static String createSpecifiedByUrl(Type type) {
+    private String createSpecifiedByUrl(Type type) {
         // Return an empty string since this is not supported yet
         return EMPTY_STRING;
     }
 
-    private static String createIsRepeatable(Directive directive) {
+    private String createIsRepeatable(Directive directive) {
+        // Only add repeatable keyword to federated directives
+        if (isRepeatableFederatedDirective(directive)) {
+            return REPEATABLE;
+        }
         // Return an empty string since this is not supported yet
         return EMPTY_STRING;
     }
 
-    private static Boolean isIntrospectionType(Type type) {
+    private boolean isRepeatableFederatedDirective(Directive directive) {
+        Optional<FederatedDirective> filteredDirective = Arrays.stream(FederatedDirective.values())
+                .filter(federatedDirective -> directive.getName().equals(federatedDirective.getName())).findFirst();
+        if (filteredDirective.isEmpty()) {
+            return false;
+        }
+        return filteredDirective.get().isRepeatable();
+    }
+
+    private Boolean isIntrospectionType(Type type) {
         for (IntrospectionType value : IntrospectionType.values()) {
             if (value.getName().equals(type.getName())) {
                 return true;
@@ -355,7 +405,7 @@ public class SdlSchemaStringGenerator {
         return false;
     }
 
-    private static Boolean isBuiltInScalarType(Type type) {
+    private Boolean isBuiltInScalarType(Type type) {
         for (ScalarType value : ScalarType.values()) {
             if (value.getName().equals(type.getName()) && value.isInbuiltType()) {
                 return true;
@@ -364,7 +414,7 @@ public class SdlSchemaStringGenerator {
         return false;
     }
 
-    private static Boolean isDefaultDirective(Directive directive) {
+    private Boolean isDefaultDirective(Directive directive) {
         for (DefaultDirective value : DefaultDirective.values()) {
             if (value.getName().equals(directive.getName())) {
                 return true;
@@ -373,7 +423,7 @@ public class SdlSchemaStringGenerator {
         return false;
     }
 
-    private static String getFormattedString(String format, String... args) {
+    private String getFormattedString(String format, String... args) {
         return String.format(format, (Object[]) args);
     }
 }

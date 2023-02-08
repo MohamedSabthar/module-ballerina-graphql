@@ -247,6 +247,18 @@ isolated function testIntrospectionOnSubgraph() returns error? {
     assertJsonValuesWithOrder(response, expectedPayload);
 }
 
+@test:Config {
+    groups: ["federation", "subgraph", "entity", "introspection", "aa"]
+}
+isolated function testQueringSdlOnSubgraph() returns error? {
+    string document = string `{ _service { sdl } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = check getJsonContentFromFile("quering_sdl_on_subgraph.json");
+    assertJsonValuesWithOrder(response, expectedPayload);
+}
+
 // TODO: test quering sdl
 // TODO: test querying _Any field without __representation
 // TODO: test querying with incompatible _Any field (non json object and nulls)

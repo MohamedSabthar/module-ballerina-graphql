@@ -59,9 +59,6 @@ class ExecutorVisitor {
             } else {
                 self.data[fieldNode.getAlias()] = SUBSCRIPTION_TYPE_NAME;
             }
-        } else if fieldNode.getName() == "_service" {
-            self.data[fieldNode.getAlias()] = {sdl: "type User @key(fields: \"email\") {\n  email: String!\n  name: String!\n}\n\ntype Query {\n  me: User\n}\n"};
-            // TODO: fix this - one way is to add relover by compiler plugin
         } else {
             self.execute(fieldNode, operationType, self.result);
         }

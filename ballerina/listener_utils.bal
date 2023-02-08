@@ -453,3 +453,13 @@ isolated function getWebsocketServiceFromGraphqlService(Service s) returns Upgra
 @java:Method {
     'class: "io.ballerina.stdlib.graphql.runtime.engine.ListenerUtils"
 } external;
+
+# Retrieves the schema string of a federated subgraph in SDL format.
+# + encodedSchemaString - Compiletime auto generated schema
+# + isSubgraph - Specifies whether the GraphQL service is a federated subgraph or not
+# + keyDirectives - Map of values for the graphql:Entity annotation of all potential federated entities.
+# + return - Subgraph schema in SDL format as a string on success, or an error otherwise.
+public isolated function getSdlString(string encodedSchemaString, boolean isSubgraph,
+                                         map<FederatedEntity> keyDirectives) returns string|error = @java:Method {
+    'class: "io.ballerina.stdlib.graphql.runtime.engine.ListenerUtils"
+} external;
