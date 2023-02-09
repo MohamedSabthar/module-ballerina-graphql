@@ -25,7 +25,7 @@ import java.util.List;
  */
 public enum FederatedEnumValue {
 
-    LINK_PURPOUSE(TypeName.LINK_PURPOSE, null, List.of(getExecutionEnumValue(), getSecurityEnumValue()));
+    LINK_PURPOSE(TypeName.LINK_PURPOSE, null, List.of(getExecutionEnumValue(), getSecurityEnumValue()));
 
     private final TypeName name;
     private final String description;

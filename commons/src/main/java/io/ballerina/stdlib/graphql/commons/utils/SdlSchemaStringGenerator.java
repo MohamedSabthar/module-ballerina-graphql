@@ -30,6 +30,7 @@ import io.ballerina.stdlib.graphql.commons.types.ScalarType;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
 import io.ballerina.stdlib.graphql.commons.types.Type;
 import io.ballerina.stdlib.graphql.commons.types.TypeKind;
+import io.ballerina.stdlib.graphql.commons.types.TypeName;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +38,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static io.ballerina.stdlib.graphql.commons.types.FederatedDirective.canImportInLinkDirective;
+import static io.ballerina.stdlib.graphql.commons.types.FederatedDirective.values;
 
 /**
  * Generate the SDL schema for a given Ballerina GraphQL Service.
@@ -44,7 +49,8 @@ import java.util.Optional;
 public class SdlSchemaStringGenerator {
 
     //String formats for SDL schema
-    private static final String SCHEMA_FORMAT = "%s%s%s";
+    private static final String SCHEMA_FORMAT = "%s%s%s%s";
+    private static final String FEDERATION2_SCHEMA_EXTENSION = "extend schema %s \n\n";
     private static final String DIRECTIVE_TYPE_FORMAT = "%sdirective @%s%s%s on %s";
     private static final String INTERFACE_TYPE_FORMAT = "%sinterface %s%s %s";
     private static final String UNION_TYPE_FORMAT = "%sunion %s%s";
@@ -52,6 +58,7 @@ public class SdlSchemaStringGenerator {
     private static final String OBJECT_TYPE_FORMAT = "%stype %s%s %s";
     private static final String ENTITY_TYPE_FORMAT = "%stype %s%s%s %s";
     private static final String ENTITY_KEY_DIRECTIVE = " @key(fields: \"%s\", resolvable: %s)";
+    private static final String LINK_DIRECTIVE = "@link(url: \"%s\", import: [%s], as: \"%s\")";
     private static final String ENUM_TYPE_FORMAT = "%senum %s %s";
     private static final String INPUT_TYPE_FORMAT = "%sinput %s %s";
     private static final String FIELD_FORMAT = "%s  %s%s: %s%s";
@@ -71,6 +78,7 @@ public class SdlSchemaStringGenerator {
     private static final String LIST_FORMAT = "[%s]";
     private static final String DEPRECATE = " @deprecated";
     private static final String REPEATABLE = " repeatable";
+    private static final String FEDERATION_SPEC_LINK = "https://specs.apollo.dev/federation/v2.0";
 
     //Schema delimiters
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
@@ -82,35 +90,70 @@ public class SdlSchemaStringGenerator {
     private static final String AMPERSAND_SIGN = "&";
     private static final String PIPE_SIGN = "|";
     private static final String SPACE = " ";
+    private static final String AT_SYMBOL = "@";
+    private static final String DOUBLE_QUOTE = "\"";
 
     private final boolean isSubgraph;
     private final Map<String, Object[]> entityKeyDirectives;
+    private final Schema schema;
 
     public static String generate(Schema schema) {
         return generate(schema, false, new HashMap<>());
     }
 
     public static String generate(Schema schema, boolean isSubgraph, Map<String, Object[]> entityKeyDirectives) {
-        SdlSchemaStringGenerator sdlGenerator = new SdlSchemaStringGenerator(isSubgraph, entityKeyDirectives);
-        return sdlGenerator.getSDLSchemaString(schema);
+        if (isSubgraph) {
+            schema.addSubgraphSchemaAdditions();
+        }
+        SdlSchemaStringGenerator sdlGenerator = new SdlSchemaStringGenerator(schema, isSubgraph, entityKeyDirectives);
+        return sdlGenerator.getSDLSchemaString();
     }
 
-    private SdlSchemaStringGenerator(boolean isSubgraph, Map<String, Object[]> entityKeyDirectives) {
+    private SdlSchemaStringGenerator(Schema schema, boolean isSubgraph, Map<String, Object[]> entityKeyDirectives) {
+        this.schema = schema;
         this.isSubgraph = isSubgraph;
         this.entityKeyDirectives = entityKeyDirectives;
     }
 
 
-    private String getSDLSchemaString(Schema schema) {
-        if (this.isSubgraph) {
-            schema.addSubgraphSchemaAdditions();
-        }
-        String directives = getDirectives(schema);
-        String types = getTypes(schema);
-        return getFormattedString(SCHEMA_FORMAT, createTypeDescription(schema.getDescription()), directives, types);
+    private String getSDLSchemaString() {
+        String directives = getDirectives();
+        String types = getTypes();
+        String schemaExtension = getFederationSchemaExtensionLink();
+        return getFormattedString(SCHEMA_FORMAT, schemaExtension, createTypeDescription(schema.getDescription()),
+                                  directives, types);
     }
 
-    private String getDirectives(Schema schema) {
+    private String getFederationSchemaExtensionLink() {
+        if (!this.isSubgraph) {
+            return EMPTY_STRING;
+        }
+        String linkDirective = getLinkDirective();
+        return getFormattedString(FEDERATION2_SCHEMA_EXTENSION, linkDirective);
+    }
+
+    private String getLinkDirective() {
+        String imports = getImportsArgumentValueOfLinkDirective();
+        String as = getAsArgumentValueOfLinkDirective();
+        return getFormattedString(LINK_DIRECTIVE, FEDERATION_SPEC_LINK, imports, as);
+    }
+
+    private String getAsArgumentValueOfLinkDirective() {
+        // This function need to return the as field of link directive
+        // Since link directive is not supported by ballerina graphql return empty string
+        return EMPTY_STRING;
+    }
+
+    private String getImportsArgumentValueOfLinkDirective() {
+        List<String> imports = Arrays.stream(FederatedDirective.values())
+                .filter(directive -> !canImportInLinkDirective(directive.getName()))
+                .map(directive -> DOUBLE_QUOTE + AT_SYMBOL + directive.getName() + DOUBLE_QUOTE)
+                .collect(Collectors.toList());
+        imports.add(DOUBLE_QUOTE + TypeName.FIELD_SET.getName() + DOUBLE_QUOTE);
+        return String.join(SPACE + COMMA_SIGN, imports);
+    }
+
+    private String getDirectives() {
         List<String> directives = new ArrayList<>();
         for (Directive directive : schema.getDirectives()) {
             if (!isDefaultDirective(directive)) {
@@ -124,7 +167,7 @@ public class SdlSchemaStringGenerator {
         return formattedDirectives + LINE_SEPARATOR + LINE_SEPARATOR;
     }
 
-    private String getTypes(Schema schema) {
+    private String getTypes() {
         List<String> types = new ArrayList<>();
         for (Map.Entry<String, Type> entry : schema.getTypes().entrySet()) {
             if (!isIntrospectionType(entry.getValue()) && !isBuiltInScalarType(entry.getValue())) {
@@ -136,8 +179,8 @@ public class SdlSchemaStringGenerator {
 
     private String createDirective(Directive directive) {
         return getFormattedString(DIRECTIVE_TYPE_FORMAT, createTypeDescription(directive.getDescription()),
-                directive.getName(), createArgs(directive.getArgs()), createIsRepeatable(directive),
-                createDirectiveLocation(directive.getLocations()));
+                                  directive.getName(), createArgs(directive.getArgs()), createIsRepeatable(directive),
+                                  createDirectiveLocation(directive.getLocations()));
     }
 
     private String createType(Type type) {
@@ -164,7 +207,7 @@ public class SdlSchemaStringGenerator {
 
     private String createScalarType(Type type) {
         return getFormattedString(SCALAR_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
-                createSpecifiedByUrl(type));
+                                  createSpecifiedByUrl(type));
     }
 
     private String createObjectType(Type type) {
@@ -187,22 +230,22 @@ public class SdlSchemaStringGenerator {
 
     private String createInterfaceType(Type type) {
         return getFormattedString(INTERFACE_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
-                createInterfaceImplements(type), createFields(type));
+                                  createInterfaceImplements(type), createFields(type));
     }
 
     private String createUnionType(Type type) {
         return getFormattedString(UNION_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
-                createPossibleTypes(type));
+                                  createPossibleTypes(type));
     }
 
     private String createInputObjectType(Type type) {
         return getFormattedString(INPUT_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
-                createInputValues(type));
+                                  createInputValues(type));
     }
 
     private String createEnumType(Type type) {
         return getFormattedString(ENUM_TYPE_FORMAT, createTypeDescription(type.getDescription()), type.getName(),
-                createEnumValues(type));
+                                  createEnumValues(type));
     }
 
     private String createTypeDescription(String description) {
@@ -214,7 +257,7 @@ public class SdlSchemaStringGenerator {
                 return getFormattedString(DESC_FORMAT, getFormattedString(DOCUMENT_FORMAT, EMPTY_STRING, lines[0]));
             } else {
                 String formattedDesc = getFormattedString(BLOCK_STRING_FORMAT, EMPTY_STRING, EMPTY_STRING,
-                        String.join(LINE_SEPARATOR, lines), EMPTY_STRING);
+                                                          String.join(LINE_SEPARATOR, lines), EMPTY_STRING);
                 return getFormattedString(DESC_FORMAT, formattedDesc);
             }
         }
@@ -224,7 +267,8 @@ public class SdlSchemaStringGenerator {
         List<String> fields = new ArrayList<>();
         for (Field field : type.getFields()) {
             fields.add(getFormattedString(FIELD_FORMAT, createFieldDescription(field.getDescription()), field.getName(),
-                    createArgs(field.getArgs()), createFieldType(field.getType()), createDeprecate(field)));
+                                          createArgs(field.getArgs()), createFieldType(field.getType()),
+                                          createDeprecate(field)));
         }
         return getFormattedString(FIELD_BLOCK_FORMAT, String.join(LINE_SEPARATOR, fields));
     }
@@ -233,7 +277,7 @@ public class SdlSchemaStringGenerator {
         List<String> enumValues = new ArrayList<>();
         for (EnumValue enumValue : type.getEnumValues()) {
             enumValues.add(getFormattedString(ENUM_VALUE_FORMAT, createFieldDescription(enumValue.getDescription()),
-                    enumValue.getName(), createDeprecate(enumValue)));
+                                              enumValue.getName(), createDeprecate(enumValue)));
         }
         return getFormattedString(FIELD_BLOCK_FORMAT, String.join(LINE_SEPARATOR, enumValues));
     }
@@ -242,7 +286,7 @@ public class SdlSchemaStringGenerator {
         List<String> inputFields = new ArrayList<>();
         for (InputValue inputField : type.getInputFields()) {
             inputFields.add(getFormattedString(INPUT_FIELD_FORMAT, createFieldDescription(inputField.getDescription()),
-                    inputField.getName(), createArgType(inputField)));
+                                               inputField.getName(), createArgType(inputField)));
         }
         return getFormattedString(FIELD_BLOCK_FORMAT, String.join(LINE_SEPARATOR, inputFields));
     }
@@ -265,17 +309,17 @@ public class SdlSchemaStringGenerator {
         if (hasDescription) {
             for (InputValue arg : inputValues) {
                 args.add(getFormattedString(ARGS_VALUE_FORMAT, createArgDescription(arg.getDescription()),
-                        DOUBLE_INDENTATION, arg.getName(), createArgType(arg)));
+                                            DOUBLE_INDENTATION, arg.getName(), createArgType(arg)));
             }
-            return getFormattedString(ARGS_FORMAT, LINE_SEPARATOR, String.join(LINE_SEPARATOR, args),
-                    LINE_SEPARATOR, INDENTATION);
+            return getFormattedString(ARGS_FORMAT, LINE_SEPARATOR, String.join(LINE_SEPARATOR, args), LINE_SEPARATOR,
+                                      INDENTATION);
         } else {
             for (InputValue arg : inputValues) {
                 args.add(getFormattedString(ARGS_VALUE_FORMAT, EMPTY_STRING, EMPTY_STRING, arg.getName(),
-                        createArgType(arg)));
+                                            createArgType(arg)));
             }
             return getFormattedString(ARGS_FORMAT, EMPTY_STRING, String.join(COMMA_SIGN + SPACE, args), EMPTY_STRING,
-                    EMPTY_STRING);
+                                      EMPTY_STRING);
         }
     }
 
@@ -317,7 +361,8 @@ public class SdlSchemaStringGenerator {
                 return getFormattedString(DESC_FORMAT, getFormattedString(DOCUMENT_FORMAT, INDENTATION, lines[0]));
             } else {
                 String formattedDesc = getFormattedString(BLOCK_STRING_FORMAT, INDENTATION, INDENTATION,
-                        String.join(LINE_SEPARATOR + INDENTATION, lines), INDENTATION);
+                                                          String.join(LINE_SEPARATOR + INDENTATION, lines),
+                                                          INDENTATION);
                 return getFormattedString(DESC_FORMAT, formattedDesc);
             }
         }
@@ -330,10 +375,11 @@ public class SdlSchemaStringGenerator {
             String[] lines = description.trim().split(LINE_SEPARATOR_REGEX);
             if (lines.length == 1) {
                 return getFormattedString(DESC_FORMAT,
-                        getFormattedString(DOCUMENT_FORMAT, DOUBLE_INDENTATION, lines[0]));
+                                          getFormattedString(DOCUMENT_FORMAT, DOUBLE_INDENTATION, lines[0]));
             } else {
                 String formattedDesc = getFormattedString(BLOCK_STRING_FORMAT, DOUBLE_INDENTATION, DOUBLE_INDENTATION,
-                        String.join(LINE_SEPARATOR + DOUBLE_INDENTATION, lines), DOUBLE_INDENTATION);
+                                                          String.join(LINE_SEPARATOR + DOUBLE_INDENTATION, lines),
+                                                          DOUBLE_INDENTATION);
                 return getFormattedString(DESC_FORMAT, formattedDesc);
             }
         }
@@ -362,7 +408,7 @@ public class SdlSchemaStringGenerator {
         if (field.isDeprecated()) {
             if (field.getDeprecationReason() != null) {
                 return getFormattedString(DEPRECATE_FORMAT, DEPRECATE,
-                        createDeprecateReason(field.getDeprecationReason()));
+                                          createDeprecateReason(field.getDeprecationReason()));
             }
             return DEPRECATE;
         }
@@ -388,7 +434,7 @@ public class SdlSchemaStringGenerator {
     }
 
     private boolean isRepeatableFederatedDirective(Directive directive) {
-        Optional<FederatedDirective> filteredDirective = Arrays.stream(FederatedDirective.values())
+        Optional<FederatedDirective> filteredDirective = Arrays.stream(values())
                 .filter(federatedDirective -> directive.getName().equals(federatedDirective.getName())).findFirst();
         if (filteredDirective.isEmpty()) {
             return false;

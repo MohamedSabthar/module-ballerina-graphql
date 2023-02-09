@@ -31,6 +31,7 @@ import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.OBJECT
 import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.SCALAR;
 import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.SCHEMA;
 import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.UNION;
+import static io.ballerina.stdlib.graphql.commons.types.FederatedEnumValue.LINK_PURPOSE;
 
 /**
  * Stores the federated subgraph directives.
@@ -41,8 +42,8 @@ public enum FederatedDirective {
     REQUIRES("requires", List.of(getFieldsInput()), List.of(FIELD_DEFINITION)),
     PROVIDES("provides", List.of(getFieldsInput()), List.of(FIELD_DEFINITION)),
     KEY("key", List.of(getFieldsInput(), getResolvableInput()), true, List.of(OBJECT, INTERFACE)),
-    LINK("link", List.of(getUrlInput(), getAsInput(), getForInput(), getImportInput()), List.of(SCHEMA)),
-    SHAREABLE("shareable", List.of(), true, List.of(OBJECT, FIELD_DEFINITION)),
+    LINK("link", List.of(getUrlInput(), getAsInput(), getForInput(), getImportInput()), true, List.of(SCHEMA)),
+    SHAREABLE("shareable", List.of(), List.of(OBJECT, FIELD_DEFINITION)),
     INACCESSIBLE("inaccessible", List.of(), getInAccessibleOrTagDirectiveLocations()),
     TAG("tag", List.of(getNameInput()), true, getInAccessibleOrTagDirectiveLocations()),
     OVERRIDE("override", List.of(getFromInput()), List.of(FIELD_DEFINITION)),
@@ -63,6 +64,10 @@ public enum FederatedDirective {
         this.arguments = arguments;
         this.repeatable = repeatable;
         this.locations = locations;
+    }
+
+    public static boolean canImportInLinkDirective(String directiveName) {
+        return directiveName.equals(LINK.getName()) || directiveName.equals(COMPOSE_DIRECTIVE.getName());
     }
 
     public String getName() {
@@ -99,7 +104,7 @@ public enum FederatedDirective {
     }
 
     private static InputValue getForInput() {
-        return new InputValue("for", FederatedEnumValue.LINK_PURPOUSE.getEnumTypeWithValues(), null, null);
+        return new InputValue("for", LINK_PURPOSE.getEnumTypeWithValues(), null, null);
     }
 
     private static InputValue getImportInput() {
