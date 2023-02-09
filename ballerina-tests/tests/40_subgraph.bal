@@ -248,7 +248,19 @@ isolated function testIntrospectionOnSubgraph() returns error? {
 }
 
 @test:Config {
-    groups: ["federation", "subgraph", "entity", "introspection", "aa"]
+    groups: ["federation", "subgraph", "entity"]
+}
+isolated function testEntitiesResolverReturnigNullValue() returns error? {
+    string document = string `{ _entities( representations: [{__typename:"Planet"}] ) { ... on Planet { name } } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = { data: { _entities: [ null ] } };
+    assertJsonValuesWithOrder(response, expectedPayload);
+}
+
+@test:Config {
+    groups: ["federation", "subgraph", "entity", "introspection"]
 }
 isolated function testQueringSdlOnSubgraph() returns error? {
     string document = string `{ _service { sdl } }`;
@@ -259,6 +271,36 @@ isolated function testQueringSdlOnSubgraph() returns error? {
     assertJsonValuesWithOrder(response, expectedPayload);
 }
 
-// TODO: test quering sdl
-// TODO: test querying _Any field without __representation
-// TODO: test querying with incompatible _Any field (non json object and nulls)
+@test:Config {
+    groups: ["federation", "subgraph", "entity"]
+}
+isolated function testResolverReturnigErrorForInvalidEntity() returns error? {
+    string document = string `{ _entities( representations: [{__typename:"Invalid"}] ) { ... on Planet { name } } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = check getJsonContentFromFile("resolver_returnig_error_for_invalid_entity.json");
+    assertJsonValuesWithOrder(response, expectedPayload);
+}
+
+
+@test:Config {
+    groups: ["federation", "subgraph", "entity"]
+}
+isolated function testResolverReturnigErrorForUnRsolvableEntity() returns error? {
+    string document = string `{ _entities( representations: [{__typename:"Moon"}] ) { ... on Moon { name } } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = {
+        errors: [
+            {
+                message: "No resolvers defined for 'Moon' entity",
+                locations: [{line: 1, column: 3}],
+                path: ["_entities", 0]
+            }
+        ],
+        data: {_entities: [null]}
+    };
+    assertJsonValuesWithOrder(response, expectedPayload);
+}

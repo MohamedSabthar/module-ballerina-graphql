@@ -62,23 +62,36 @@ function findStarByName(string name) returns Star|error {
 
 @graphql:Entity {
     key: "name",
-    resolveReference: function(graphql:Representation representation) returns Planet|error {
-        string name = check representation["name"].ensureType();
-        return findPlanetByName(name);
+    resolveReference: function(graphql:Representation representation) returns Planet? {
+        do {
+            string name = check representation["name"].ensureType();
+            return check findPlanetByName(name);
+        } on fail {
+            return ();
+        }
     }
 }
 public type Planet record {
     string name;
     decimal mass;
     int numberOfMoons;
+    Moon moon?;
 };
 
 Planet[] planets = [
     {name: "Mercury", mass: 0.383, numberOfMoons: 0},
     {name: "Venus", mass: 0.949, numberOfMoons: 0},
-    {name: "Earth", mass: 1, numberOfMoons: 1}
+    {name: "Earth", mass: 1, numberOfMoons: 1, moon: {name: "moon"}}
 ];
 
 function findPlanetByName(string name) returns Planet|error {
     return trap planets.filter(planet => planet.name == name).shift();
 }
+
+@graphql:Entity {
+    key: "name",
+    resolveReference: ()
+}
+public type Moon record {
+    string name;
+};

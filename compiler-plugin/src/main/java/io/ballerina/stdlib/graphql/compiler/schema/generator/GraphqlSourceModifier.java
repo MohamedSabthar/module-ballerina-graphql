@@ -224,9 +224,9 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
     private FunctionDefinitionNode getEntityResolver() {
         String mapDef = getEntityTypedescMapInitializer();
         String entityResolver = "\t resource function get _entities(graphql:Representation[] representations) "
-                + "\t returns (" + this.entityUnionTypeName + "|error)[] {\n"
+                + "\t returns (" + this.entityUnionTypeName + "|error?)[] {\n"
                 + "\t map<typedesc<" + this.entityUnionTypeName + ">> typedescs = " + mapDef + ";\n"
-                + "\t (" + this.entityUnionTypeName + "|error)[] entities = [];\n"
+                + "\t (" + this.entityUnionTypeName + "|error?)[] entities = [];\n"
                 + "\t foreach graphql:Representation rep in representations {\n"
                 + "\t if !typedescs.hasKey(rep.__typename) {\n"
                 + "\t     entities.push(error(string `No entities found for {__typename: '${rep.__typename}'}`));\n"
@@ -244,7 +244,7 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
                 + "\t     continue;\n"
                 + "\t }\n"
                 + "\t do {\n"
-                + "\t      " + this.entityUnionTypeName + " entity = check resolve(rep).ensureType();\n"
+                + "\t      " + this.entityUnionTypeName + "? entity = check resolve(rep).ensureType();\n"
                 + "\t      entities.push(entity);\n"
                 + "\t } on fail error e {\n"
                 + "\t      entities.push(error(string `Incorrect return type specified for the "
