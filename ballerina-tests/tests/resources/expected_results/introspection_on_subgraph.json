@@ -43,6 +43,10 @@
           "kind": "ENUM"
         },
         {
+          "name": "Satellite",
+          "kind": "OBJECT"
+        },
+        {
           "name": "String",
           "kind": "SCALAR"
         },
@@ -104,6 +108,10 @@
           "args": []
         },
         {
+          "name": "satellite",
+          "args": []
+        },
+        {
           "name": "_service",
           "args": []
         },
@@ -139,6 +147,9 @@
         },
         {
           "name": "Moon"
+        },
+        {
+          "name": "Satellite"
         },
         {
           "name": "Planet"

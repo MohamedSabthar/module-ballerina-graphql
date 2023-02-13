@@ -41,7 +41,7 @@ isolated function testQueringEntityFieldOnSubgraph() returns error? {
         data: {
             _entities: [
                 {name: "Acamar", constellation: "Acamar", designation: "θ1 Eridani A"},
-                {name:"Earth", mass:1}
+                {name: "Earth", mass: 1}
             ]
         }
     };
@@ -222,7 +222,7 @@ isolated function testQueringEntityFieldWithVariableOnSubgraph() returns error? 
         data: {
             _entities: [
                 {name: "Acamar", constellation: "Acamar", designation: "θ1 Eridani A"},
-                {name:"Earth", mass:1}
+                {name: "Earth", mass: 1}
             ]
         }
     };
@@ -255,7 +255,7 @@ isolated function testEntitiesResolverReturnigNullValue() returns error? {
     string url = "localhost:9090/subgraph";
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document);
-    json expectedPayload = { data: { _entities: [ null ] } };
+    json expectedPayload = {data: {_entities: [null]}};
     assertJsonValuesWithOrder(response, expectedPayload);
 }
 
@@ -283,7 +283,6 @@ isolated function testResolverReturnigErrorForInvalidEntity() returns error? {
     assertJsonValuesWithOrder(response, expectedPayload);
 }
 
-
 @test:Config {
     groups: ["federation", "subgraph", "entity"]
 }
@@ -298,6 +297,27 @@ isolated function testResolverReturnigErrorForUnRsolvableEntity() returns error?
                 message: "No resolvers defined for 'Moon' entity",
                 locations: [{line: 1, column: 3}],
                 path: ["_entities", 0]
+            }
+        ],
+        data: {_entities: [null]}
+    };
+    assertJsonValuesWithOrder(response, expectedPayload);
+}
+
+@test:Config {
+    groups: ["federation", "subgraph", "entity"]
+}
+isolated function testResolverReturnigErrorForInvalidReturnType() returns error? {
+    string document = string `{ _entities( representations: [{__typename:"Satellite"}] ) { ... on Satellite { name } } }`;
+    string url = "localhost:9090/subgraph";
+    graphql:Client graphqlClient = check new (url);
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = {
+        errors: [
+            {
+                message: "Incorrect return type specified for the  'Satellite' entity reference resolver.",
+                locations: [{line: 1, column: 3}],
+                "path": ["_entities", 0]
             }
         ],
         data: {_entities: [null]}

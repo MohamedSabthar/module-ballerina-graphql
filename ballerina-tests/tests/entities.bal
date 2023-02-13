@@ -95,3 +95,15 @@ function findPlanetByName(string name) returns Planet|error {
 public type Moon record {
     string name;
 };
+
+// This entity has invalid resolveReference return type - (ie. doesn't return Satellite)
+@graphql:Entity {
+    key: "name",
+    resolveReference: function(graphql:Representation representation) returns record {} {
+        return {};
+    }
+}
+public type Satellite record {
+    string name;
+    int MissionDuration;
+};
