@@ -195,7 +195,7 @@ public class SchemaGenerationTest {
 
     @Test
     public void testGraphqlFederationSubgraph() {
-        String packagePath = "23_test";
+        String packagePath = "23_federated_subgraph";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 0);
     }

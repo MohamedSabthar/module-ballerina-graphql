@@ -60,7 +60,7 @@ import io.ballerina.stdlib.graphql.commons.types.Schema;
 import io.ballerina.stdlib.graphql.commons.types.Type;
 import io.ballerina.stdlib.graphql.commons.types.TypeKind;
 import io.ballerina.stdlib.graphql.commons.types.TypeName;
-import io.ballerina.stdlib.graphql.compiler.service.InterfaceFinder;
+import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -96,17 +96,17 @@ public class SchemaGenerator {
     private static final String DEFAULT_VALUE = "\"\"";
 
     private final Node serviceNode;
-    private final InterfaceFinder interfaceFinder;
+    private final InterfaceEntityFinder interfaceEntityFinder;
     private final Schema schema;
     private final SyntaxNodeAnalysisContext context;
     private final List<Type> visitedInterfaces;
 
 
-    public SchemaGenerator(SyntaxNodeAnalysisContext context, Node serviceNode, InterfaceFinder interfaceFinder,
-                           String description, boolean isSubgraph) {
+    public SchemaGenerator(SyntaxNodeAnalysisContext context, Node serviceNode,
+                           InterfaceEntityFinder interfaceEntityFinder, String description, boolean isSubgraph) {
         this.context = context;
         this.serviceNode = serviceNode;
-        this.interfaceFinder = interfaceFinder;
+        this.interfaceEntityFinder = interfaceEntityFinder;
         this.schema = new Schema(description, isSubgraph);
         this.visitedInterfaces = new ArrayList<>();
     }
@@ -122,7 +122,7 @@ public class SchemaGenerator {
         if (!this.schema.isSubgraph()) {
             return;
         }
-        for (Map.Entry<String, Symbol> entry : this.interfaceFinder.getEntities().entrySet()) {
+        for (Map.Entry<String, Symbol> entry : this.interfaceEntityFinder.getEntities().entrySet()) {
             String entityName = entry.getKey();
             Symbol symbol = entry.getValue();
             if (symbol.kind() == SymbolKind.TYPE_DEFINITION) {
@@ -391,7 +391,7 @@ public class SchemaGenerator {
 
     private void getTypesFromInterface(String typeName, Type interfaceType) {
         // Implementations can only contain class symbols or object type definitions
-        List<Symbol> implementations = this.interfaceFinder.getImplementations(typeName);
+        List<Symbol> implementations = this.interfaceEntityFinder.getImplementations(typeName);
         visitedInterfaces.add(interfaceType);
         for (Symbol implementation : implementations) {
             Type implementedType;

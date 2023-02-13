@@ -50,7 +50,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.commons.types.TypeName;
 import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
-import io.ballerina.stdlib.graphql.compiler.service.InterfaceFinder;
+import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
 import io.ballerina.tools.diagnostics.Location;
 
 import java.util.ArrayList;
@@ -86,7 +86,7 @@ public class ServiceValidator {
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
     private final List<TypeSymbol> existingReturnTypes = new ArrayList<>();
-    private final InterfaceFinder interfaceFinder;
+    private final InterfaceEntityFinder interfaceEntityFinder;
     private final SyntaxNodeAnalysisContext context;
     private final Node serviceNode;
     private int arrayDimension = 0;
@@ -97,11 +97,11 @@ public class ServiceValidator {
 
     private final List<String> currentFieldPath;
 
-    public ServiceValidator(SyntaxNodeAnalysisContext context, Node serviceNode, InterfaceFinder interfaceFinder,
-                            boolean isSubgraph) {
+    public ServiceValidator(SyntaxNodeAnalysisContext context, Node serviceNode,
+                            InterfaceEntityFinder interfaceEntityFinder, boolean isSubgraph) {
         this.context = context;
         this.serviceNode = serviceNode;
-        this.interfaceFinder = interfaceFinder;
+        this.interfaceEntityFinder = interfaceEntityFinder;
         this.errorOccurred = false;
         this.hasQueryType = false;
         this.currentFieldPath = new ArrayList<>();
@@ -179,7 +179,7 @@ public class ServiceValidator {
         }
         this.currentFieldPath.add(TypeName.QUERY.getName());
         this.currentFieldPath.add(ENTITIES_RESOLVER_NAME);
-        for (Symbol symbol : interfaceFinder.getEntities().values()) {
+        for (Symbol symbol : interfaceEntityFinder.getEntities().values()) {
             if (this.existingReturnTypes.contains(symbol)) {
                 continue;
             }
@@ -463,7 +463,7 @@ public class ServiceValidator {
             addDiagnostic(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE, location,
                           getCurrentFieldPath(), objectTypeName);
         }
-        if (!this.interfaceFinder.isPossibleInterface(objectTypeName)) {
+        if (!this.interfaceEntityFinder.isPossibleInterface(objectTypeName)) {
             addDiagnostic(CompilationDiagnostic.INVALID_RETURN_TYPE, location, objectTypeName, getCurrentFieldPath());
             return;
         }
@@ -498,7 +498,7 @@ public class ServiceValidator {
     }
 
     private void validateInterfaceImplementation(String interfaceName, Location location) {
-        for (Symbol implementation : this.interfaceFinder.getImplementations(interfaceName)) {
+        for (Symbol implementation : this.interfaceEntityFinder.getImplementations(interfaceName)) {
             if (implementation.getName().isEmpty()) {
                 continue;
             }

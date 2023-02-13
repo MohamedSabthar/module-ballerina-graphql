@@ -42,13 +42,13 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectReferenc
 /**
  * Finds and validates possible GraphQL interfaces in a Ballerina service.
  */
-public class InterfaceFinder {
+public class InterfaceEntityFinder {
     private final Map<String, List<Symbol>> interfaceImplementations;
     private final Map<String, TypeReferenceTypeSymbol> possibleInterfaces;
     private final Map<String, Symbol> entities;
     private static final String ENTITY_ANNOTATION = "Entity";
 
-    public InterfaceFinder() {
+    public InterfaceEntityFinder() {
         this.interfaceImplementations = new HashMap<>();
         this.possibleInterfaces = new HashMap<>();
         this.entities = new HashMap<>();
