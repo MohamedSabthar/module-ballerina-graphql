@@ -15,19 +15,7 @@
 
 import ballerina/graphql;
 
-@graphql:ServiceConfig {
-    isSubgraph: true
-}
-service /subgraph on wrappedListener {
-    resource function get stars() returns Star[] {
-        return stars;
-    }
-
-    resource function get planets() returns Planet[] {
-        return planets;
-    }
-
-    resource function get satellite() returns Satellite[] {
-        return [];
-    }
+@graphql:Subgraph
+service /subgraph on new graphql:Listener(9088) {
+    resource function get greet() returns string => "welcome";
 }

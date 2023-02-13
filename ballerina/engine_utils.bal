@@ -90,7 +90,7 @@ isolated function getFieldObject(parser:FieldNode fieldNode, parser:RootOperatio
     return new (fieldNode, fieldType, engine.getService(), path, operationType, fieldValue = fieldValue);
 }
 
-isolated function createSchema(string schemaString, boolean isSubgraph)
+isolated function createSchema(string schemaString)
 returns readonly & __Schema|Error = @java:Method {
     'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
 } external;

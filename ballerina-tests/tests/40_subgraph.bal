@@ -21,11 +21,11 @@ import ballerina/test;
     groups: ["federation", "subgraph", "entity"]
 }
 isolated function testSubgrapWithValidQuery() returns error? {
-    string document = string `{ stars { name } }`;
-    string url = "localhost:9090/subgraph";
+    string document = string `{ greet }`;
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document);
-    json expectedPayload = {data: {stars: [{name: "Absolutno*"}, {name: "Acamar"}, {name: "Achernar"}]}};
+    json expectedPayload = {data: {greet: "welcome"}};
     assertJsonValuesWithOrder(response, expectedPayload);
 }
 
@@ -34,7 +34,7 @@ isolated function testSubgrapWithValidQuery() returns error? {
 }
 isolated function testQueringEntityFieldOnSubgraph() returns error? {
     string document = check getGraphQLDocumentFromFile("quering_entity_field_on_subgrap.graphql");
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document);
     json expectedPayload = {
@@ -53,7 +53,7 @@ isolated function testQueringEntityFieldOnSubgraph() returns error? {
 }
 isolated function testQueringEntityFieldWithNullArgument() returns error? {
     string document = string `{ _entities( representations: null ) { ... on Star { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json|error response = graphqlClient->execute(document);
     test:assertTrue(response is graphql:InvalidDocumentError);
@@ -69,7 +69,7 @@ isolated function testQueringEntityFieldWithNullArgument() returns error? {
 }
 isolated function testQueringEntityFieldWithListOfNullValues() returns error? {
     string document = string `{ _entities( representations: [null] ) { ... on Star { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json|error response = graphqlClient->execute(document);
     test:assertTrue(response is graphql:InvalidDocumentError);
@@ -85,7 +85,7 @@ isolated function testQueringEntityFieldWithListOfNullValues() returns error? {
 }
 isolated function testQueringEntityFieldWithListOfNonAnyArgument() returns error? {
     string document = string `{ _entities( representations: [1, "string", 1.23] ) { ... on Star { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json|error response = graphqlClient->execute(document);
     test:assertTrue(response is graphql:InvalidDocumentError);
@@ -112,7 +112,7 @@ isolated function testQueringEntityFieldWithListOfNonAnyArgument() returns error
 }
 isolated function testQueringEntityFieldWithoutTypenameInArgument() returns error? {
     string document = string `{ _entities( representations: [ { name: "Acamar" } ] ) { ... on Star { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json|error response = graphqlClient->execute(document);
     test:assertTrue(response is graphql:InvalidDocumentError);
@@ -130,7 +130,7 @@ isolated function testQueringEntityFieldWithoutTypenameInArgument() returns erro
 }
 isolated function testQueringEntityFieldWithNullVariable() returns error? {
     string document = string `query ($rep: [_Any!]!) { _entities( representations: $rep ) { ... on Star { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     map<json> variables = {rep: null};
     json|error response = graphqlClient->execute(document, variables);
@@ -147,7 +147,7 @@ isolated function testQueringEntityFieldWithNullVariable() returns error? {
 }
 isolated function testQueringEntityFieldWithLisOfNullVariable() returns error? {
     string document = string `query ($rep: [_Any!]!) { _entities( representations: $rep ) { ... on Star { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     map<json> variables = {rep: [null]};
     json|error response = graphqlClient->execute(document, variables);
@@ -164,7 +164,7 @@ isolated function testQueringEntityFieldWithLisOfNullVariable() returns error? {
 }
 isolated function testQueringEntityFieldWithListOfNonAnyVariable() returns error? {
     string document = string `query ($rep: [_Any!]!) { _entities( representations: $rep ) { ... on Star { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     map<json> variables = {rep: [1, "string", 1.23]};
     json|error response = graphqlClient->execute(document, variables);
@@ -192,7 +192,7 @@ isolated function testQueringEntityFieldWithListOfNonAnyVariable() returns error
 }
 isolated function testQueringEntityFieldWithoutTypenameInVariable() returns error? {
     string document = string `query ($rep: [_Any!]!) { _entities( representations: $rep ) { ... on Star { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     map<json> variables = {rep: [{name: "Acamar"}]};
     json|error response = graphqlClient->execute(document, variables);
@@ -209,7 +209,7 @@ isolated function testQueringEntityFieldWithoutTypenameInVariable() returns erro
 }
 isolated function testQueringEntityFieldWithVariableOnSubgraph() returns error? {
     string document = check getGraphQLDocumentFromFile("quering_entity_field_with_variable_on_subgrap.graphql");
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     map<json> variables = {
         representations: [
@@ -234,7 +234,7 @@ isolated function testQueringEntityFieldWithVariableOnSubgraph() returns error? 
 }
 isolated function testIntrospectionOnSubgraph() returns error? {
     string document = check getGraphQLDocumentFromFile("introspection_on_subgraph.graphql");
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     map<json> variables = {
         representations: [
@@ -244,7 +244,7 @@ isolated function testIntrospectionOnSubgraph() returns error? {
     };
     json response = check graphqlClient->execute(document, variables);
     json expectedPayload = check getJsonContentFromFile("introspection_on_subgraph.json");
-    assertJsonValuesWithOrder(response, expectedPayload);
+    test:assertEquals(response, expectedPayload);
 }
 
 @test:Config {
@@ -252,7 +252,7 @@ isolated function testIntrospectionOnSubgraph() returns error? {
 }
 isolated function testEntitiesResolverReturnigNullValue() returns error? {
     string document = string `{ _entities( representations: [{__typename:"Planet"}] ) { ... on Planet { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document);
     json expectedPayload = {data: {_entities: [null]}};
@@ -264,7 +264,7 @@ isolated function testEntitiesResolverReturnigNullValue() returns error? {
 }
 isolated function testQueringSdlOnSubgraph() returns error? {
     string document = string `{ _service { sdl } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document);
     json expectedPayload = check getJsonContentFromFile("quering_sdl_on_subgraph.json");
@@ -276,7 +276,7 @@ isolated function testQueringSdlOnSubgraph() returns error? {
 }
 isolated function testResolverReturnigErrorForInvalidEntity() returns error? {
     string document = string `{ _entities( representations: [{__typename:"Invalid"}] ) { ... on Planet { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document);
     json expectedPayload = check getJsonContentFromFile("resolver_returnig_error_for_invalid_entity.json");
@@ -288,7 +288,7 @@ isolated function testResolverReturnigErrorForInvalidEntity() returns error? {
 }
 isolated function testResolverReturnigErrorForUnRsolvableEntity() returns error? {
     string document = string `{ _entities( representations: [{__typename:"Moon"}] ) { ... on Moon { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document);
     json expectedPayload = {
@@ -309,7 +309,7 @@ isolated function testResolverReturnigErrorForUnRsolvableEntity() returns error?
 }
 isolated function testResolverReturnigErrorForInvalidReturnType() returns error? {
     string document = string `{ _entities( representations: [{__typename:"Satellite"}] ) { ... on Satellite { name } } }`;
-    string url = "localhost:9090/subgraph";
+    string url = "localhost:9088/subgraph";
     graphql:Client graphqlClient = check new (url);
     json response = check graphqlClient->execute(document);
     json expectedPayload = {

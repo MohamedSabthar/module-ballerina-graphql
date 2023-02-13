@@ -27,10 +27,6 @@
           "kind": "OBJECT"
         },
         {
-          "name": "Moon",
-          "kind": "OBJECT"
-        },
-        {
           "name": "__Type",
           "kind": "OBJECT"
         },
@@ -41,6 +37,10 @@
         {
           "name": "__DirectiveLocation",
           "kind": "ENUM"
+        },
+        {
+          "name": "Moon",
+          "kind": "OBJECT"
         },
         {
           "name": "Satellite",
@@ -79,11 +79,11 @@
           "kind": "OBJECT"
         },
         {
-          "name": "Planet",
+          "name": "__InputValue",
           "kind": "OBJECT"
         },
         {
-          "name": "__InputValue",
+          "name": "Planet",
           "kind": "OBJECT"
         },
         {
@@ -100,15 +100,7 @@
       "name": "Query",
       "fields": [
         {
-          "name": "stars",
-          "args": []
-        },
-        {
-          "name": "planets",
-          "args": []
-        },
-        {
-          "name": "satellite",
+          "name": "greet",
           "args": []
         },
         {
@@ -143,10 +135,10 @@
       "name": "_Entity",
       "possibleTypes": [
         {
-          "name": "Star"
+          "name": "Moon"
         },
         {
-          "name": "Moon"
+          "name": "Star"
         },
         {
           "name": "Satellite"

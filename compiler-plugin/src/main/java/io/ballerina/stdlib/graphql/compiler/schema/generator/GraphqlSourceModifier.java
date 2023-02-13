@@ -76,8 +76,10 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
     private final Map<DocumentId, GraphqlModifierContext> modifierContextMap;
     private final Map<Node, String> entityTypeNamesMap;
     private static final String ENTITY = "__Entity";
+    private int entityUnionSuffix = 0;
     private String entityUnionTypeName;
     private List<String> entities;
+    private boolean isSubgraph = false;
 
     public GraphqlSourceModifier(Map<DocumentId, GraphqlModifierContext> modifierContextMap) {
         this.modifierContextMap = modifierContextMap;
@@ -106,11 +108,11 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
                                           GraphqlModifierContext modifierContext) {
         Map<Node, Node> nodeMap = new HashMap<>();
         Map<Node, Schema> nodeSchemaMap = modifierContext.getNodeSchemaMap();
-        int i = 0;
         for (Map.Entry<Node, Schema> entry : nodeSchemaMap.entrySet()) {
             Schema schema = entry.getValue();
+            this.isSubgraph = schema.isSubgraph();
             this.entities = schema.getEntities().stream().map(Type::getName).collect(Collectors.toList());
-            this.entityUnionTypeName = ENTITY + i;
+            this.entityUnionTypeName = ENTITY + this.entityUnionSuffix;
             try {
                 String schemaString = getSchemaAsEncodedString(schema);
                 Node targetNode = entry.getKey();
@@ -119,7 +121,7 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
                             (ServiceDeclarationNode) targetNode, schemaString);
                     nodeMap.put(targetNode, updatedNode);
                     this.entityTypeNamesMap.put(targetNode, this.entityUnionTypeName);
-                    i++;
+                    this.entityUnionSuffix++;
                 } else if (targetNode.kind() == SyntaxKind.MODULE_VAR_DECL) {
                     ModuleVariableDeclarationNode graphqlServiceVariableDeclaration
                             = (ModuleVariableDeclarationNode) targetNode;
@@ -127,7 +129,7 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
                             schemaString, graphqlServiceVariableDeclaration);
                     nodeMap.put(targetNode, updatedNode);
                     this.entityTypeNamesMap.put(targetNode, this.entityUnionTypeName);
-                    i++;
+                    this.entityUnionSuffix++;
                 }
             } catch (IOException e) {
                 updateContext(context, entry.getKey().location(), CompilationDiagnostic.SCHEMA_GENERATION_FAILED,
@@ -140,6 +142,7 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
                 if (nodeMap.containsKey(member)) {
                     this.entityUnionTypeName = this.entityTypeNamesMap.get(member);
                     Schema schema = nodeSchemaMap.get(member);
+                    isSubgraph = schema.isSubgraph();
                     if (schema.getEntities().size() > 0) {
                         this.entities = schema.getEntities().stream().map(Type::getName).collect(Collectors.toList());
                         members = addEntityTypeDefinition(members);
@@ -155,6 +158,9 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
 
     private NodeList<ModuleMemberDeclarationNode> addEntityTypeDefinition(
             NodeList<ModuleMemberDeclarationNode> moduleMembers) {
+        if (!this.isSubgraph) {
+            return moduleMembers;
+        }
         ModuleMemberDeclarationNode typeDefinition = getEntityTypeDefinition();
         return moduleMembers.add(typeDefinition);
     }
@@ -190,9 +196,11 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
         ObjectConstructorExpressionNode.ObjectConstructorExpressionNodeModifier modifier = node.modify();
         modifier = modifier.withAnnotations(annotations);
         NodeList<Node> members = node.members();
-        members = addServiceResourceResolverToMembers(members);
-        if (this.entities.size() > 0) {
-            members = addEntityResourceResolverToMembers(members);
+        if (this.isSubgraph) {
+            members = addServiceResourceResolverToMembers(members);
+            if (this.entities.size() > 0) {
+                members = addEntityResourceResolverToMembers(members);
+            }
         }
         modifier = modifier.withMembers(members);
         return modifier.apply();
@@ -203,9 +211,11 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
         ServiceDeclarationNode.ServiceDeclarationNodeModifier modifier = node.modify();
         modifier = modifier.withMetadata(metadataNode);
         NodeList<Node> members = node.members();
-        members = addServiceResourceResolverToMembers(members);
-        if (this.entities.size() > 0) {
-            members = addEntityResourceResolverToMembers(members);
+        if (this.isSubgraph) {
+            members = addServiceResourceResolverToMembers(members);
+            if (this.entities.size() > 0) {
+                members = addEntityResourceResolverToMembers(members);
+            }
         }
         modifier = modifier.withMembers(members);
         return modifier.apply();
@@ -258,17 +268,15 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
 
     private FunctionDefinitionNode getServiceResolver() {
         String mapDef = getEntityTypedescMapInitializer();
-        String entityResolver = "\t resource function get _service() returns record { string sdl; } |error {\n"
+        String entityResolver = "\t resource function get _service() returns record { string sdl; }|error {\n"
                 + "\t map<typedesc> typedescs = " + mapDef + ";\n"
                 + "\t map<graphql:FederatedEntity> keyDirectives = {};\n"
                 + "\t foreach var [entity, entityTypedesc] in typedescs.entries() {\n"
                 + "\t   graphql:FederatedEntity keyDirective = check entityTypedesc.@graphql:Entity.ensureType();\n"
-                + "\t   keyDirectives[entity] = keyDirective;\n"
-                + "\t }\n"
+                + "\t   keyDirectives[entity] = keyDirective;\n" + "\t }\n"
                 + "\t graphql:GraphqlServiceConfig config = check (typeof self).@graphql:ServiceConfig.ensureType();\n"
-                + "\t string sdl = check graphql:getSdlString(config.schemaString, config.isSubgraph, keyDirectives);\n"
-                + "\t return {sdl};\n"
-                + "\t}\n";
+                + "\t string sdl = check graphql:getSdlString(config.schemaString, keyDirectives);\n"
+                + "\t return {sdl};\n" + "\t}\n";
         return (FunctionDefinitionNode) NodeParser.parseObjectMember(entityResolver);
     }
 

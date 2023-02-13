@@ -24,7 +24,6 @@
 # + schemaString - The generated schema. This is auto-generated at the compile-time
 # + interceptors - GraphQL service level interceptors
 # + introspection - Whether to enable or disable the introspection on the service
-# + isSubgraph - Specifies whether the GraphQL service is a federated subgraph or not
 public type GraphqlServiceConfig record {|
     int maxQueryDepth?;
     ListenerAuthConfig[] auth?;
@@ -34,16 +33,18 @@ public type GraphqlServiceConfig record {|
     readonly string schemaString = "";
     readonly readonly & Interceptor[] interceptors = [];
     boolean introspection = true;
-    boolean isSubgraph = false;
 |};
 
 # The annotation to configure a GraphQL service.
 public annotation GraphqlServiceConfig ServiceConfig on service;
 
+# Designates the GraphQL service as a federated GraphQL subgraph.
+public annotation Subgraph on service;
+
 # Describes the shape of the `graphql:Entity` annotation
 # + key - GraphQL fields and subfields that contribute to the entity's primary key
 # + resolveReference - Function pointer to resolve the entity. if set to nil, indicates the graph router that this
-# subgraph dones not define a reference resolver for this entity.
+#                      subgraph does not define a reference resolver for this entity.
 public type FederatedEntity record {|
     string key;
     ReferenceResolver? resolveReference;

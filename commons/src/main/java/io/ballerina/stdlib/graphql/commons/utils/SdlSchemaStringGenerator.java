@@ -98,20 +98,18 @@ public class SdlSchemaStringGenerator {
     private final Schema schema;
 
     public static String generate(Schema schema) {
-        return generate(schema, false, new HashMap<>());
+        return generate(schema, new HashMap<>());
     }
 
-    public static String generate(Schema schema, boolean isSubgraph, Map<String, Object[]> entityKeyDirectives) {
-        if (isSubgraph) {
-            schema.addSubgraphSchemaAdditions();
-        }
-        SdlSchemaStringGenerator sdlGenerator = new SdlSchemaStringGenerator(schema, isSubgraph, entityKeyDirectives);
+    public static String generate(Schema schema, Map<String, Object[]> entityKeyDirectives) {
+        schema.addSubgraphSchemaAdditions();
+        SdlSchemaStringGenerator sdlGenerator = new SdlSchemaStringGenerator(schema, entityKeyDirectives);
         return sdlGenerator.getSDLSchemaString();
     }
 
-    private SdlSchemaStringGenerator(Schema schema, boolean isSubgraph, Map<String, Object[]> entityKeyDirectives) {
+    private SdlSchemaStringGenerator(Schema schema, Map<String, Object[]> entityKeyDirectives) {
         this.schema = schema;
-        this.isSubgraph = isSubgraph;
+        this.isSubgraph = schema.isSubgraph();
         this.entityKeyDirectives = entityKeyDirectives;
     }
 

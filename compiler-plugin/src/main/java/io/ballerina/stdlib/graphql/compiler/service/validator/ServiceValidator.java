@@ -82,6 +82,7 @@ import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUt
  */
 public class ServiceValidator {
     private static final String FIELD_PATH_SEPARATOR = ".";
+    private static final String ENTITIES_RESOLVER_NAME = "_entities";
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
     private final List<TypeSymbol> existingReturnTypes = new ArrayList<>();
@@ -91,17 +92,20 @@ public class ServiceValidator {
     private int arrayDimension = 0;
     private boolean errorOccurred;
     private boolean hasQueryType;
+    private final boolean isSubgraph;
     private TypeSymbol rootInputParameterTypeSymbol;
 
     private final List<String> currentFieldPath;
 
-    public ServiceValidator(SyntaxNodeAnalysisContext context, Node serviceNode, InterfaceFinder interfaceFinder) {
+    public ServiceValidator(SyntaxNodeAnalysisContext context, Node serviceNode, InterfaceFinder interfaceFinder,
+                            boolean isSubgraph) {
         this.context = context;
         this.serviceNode = serviceNode;
         this.interfaceFinder = interfaceFinder;
         this.errorOccurred = false;
         this.hasQueryType = false;
         this.currentFieldPath = new ArrayList<>();
+        this.isSubgraph = isSubgraph;
     }
 
     public void validate() {
@@ -120,6 +124,7 @@ public class ServiceValidator {
         if (!this.hasQueryType) {
             addDiagnostic(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS, objectConstructorExpressionNode.location());
         }
+        validateEntitiesResolverReturnTypes();
     }
 
     private void validateServiceDeclaration() {
@@ -146,6 +151,7 @@ public class ServiceValidator {
         if (!this.hasQueryType) {
             addDiagnostic(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS, serviceDeclarationNode.location());
         }
+        validateEntitiesResolverReturnTypes();
     }
 
     private void validateServiceMember(Node node) {
@@ -165,6 +171,30 @@ public class ServiceValidator {
             ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) symbol;
             validateRootServiceResourceMethod(resourceMethodSymbol, location);
         }
+    }
+
+    private void validateEntitiesResolverReturnTypes() {
+        if (!this.isSubgraph) {
+            return;
+        }
+        this.currentFieldPath.add(TypeName.QUERY.getName());
+        this.currentFieldPath.add(ENTITIES_RESOLVER_NAME);
+        for (Symbol symbol : interfaceFinder.getEntities().values()) {
+            if (this.existingReturnTypes.contains(symbol)) {
+                continue;
+            }
+            // noinspection OptionalGetWithoutIsPresent
+            Location location = symbol.getLocation().get();
+            if (symbol.kind() == SymbolKind.CLASS) {
+                validateReturnTypeClass((ClassSymbol) symbol, location);
+            } else if (symbol.kind() == SymbolKind.TYPE_DEFINITION) {
+                RecordTypeSymbol recordTypeSymbol = (RecordTypeSymbol) ((TypeDefinitionSymbol) symbol).typeDescriptor();
+                String recordName = symbol.getName().orElse(recordTypeSymbol.signature());
+                validateReturnType(recordTypeSymbol, recordTypeSymbol, location, recordName);
+            }
+        }
+        this.currentFieldPath.remove(ENTITIES_RESOLVER_NAME);
+        this.currentFieldPath.remove(TypeName.QUERY.getName());
     }
 
     private void validateRootServiceResourceMethod(ResourceMethodSymbol methodSymbol, Location location) {

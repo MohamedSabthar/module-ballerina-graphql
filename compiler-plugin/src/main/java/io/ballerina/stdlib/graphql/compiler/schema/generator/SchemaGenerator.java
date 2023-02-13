@@ -70,7 +70,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
@@ -95,51 +94,49 @@ public class SchemaGenerator {
     private static final String IF_ARG_NAME = "if";
     private static final String REASON_ARG_NAME = "reason";
     private static final String DEFAULT_VALUE = "\"\"";
-    private static final String ENTITY = "Entity";
 
     private final Node serviceNode;
     private final InterfaceFinder interfaceFinder;
     private final Schema schema;
     private final SyntaxNodeAnalysisContext context;
     private final List<Type> visitedInterfaces;
-    private final Map<String, Type> entities;
+
 
     public SchemaGenerator(SyntaxNodeAnalysisContext context, Node serviceNode, InterfaceFinder interfaceFinder,
-                           String description) {
+                           String description, boolean isSubgraph) {
         this.context = context;
         this.serviceNode = serviceNode;
         this.interfaceFinder = interfaceFinder;
-        this.schema = new Schema(description);
+        this.schema = new Schema(description, isSubgraph);
         this.visitedInterfaces = new ArrayList<>();
-        this.entities = new HashMap<>();
     }
 
     public Schema generate() {
         findRootTypes(this.serviceNode);
         findIntrospectionTypes();
-        this.schema.addEntities(this.entities);
+        addEntityTypes();
         return this.schema;
     }
 
-    private void addEntity(Type entity) {
-        if (this.entities.containsKey(entity.getName())) {
+    private void addEntityTypes() {
+        if (!this.schema.isSubgraph()) {
             return;
         }
-        this.entities.put(entity.getName(), entity);
+        for (Map.Entry<String, Symbol> entry : this.interfaceFinder.getEntities().entrySet()) {
+            String entityName = entry.getKey();
+            Symbol symbol = entry.getValue();
+            if (symbol.kind() == SymbolKind.TYPE_DEFINITION) {
+                this.schema.addEntity(getType(entityName, (TypeDefinitionSymbol) symbol));
+            } else if (symbol.kind() == SymbolKind.CLASS) {
+                this.schema.addEntity(getType(entityName, (ClassSymbol) symbol));
+            }
+        }
     }
 
     private void findIntrospectionTypes() {
         IntrospectionTypeCreator introspectionTypeCreator = new IntrospectionTypeCreator(this.schema);
         introspectionTypeCreator.addIntrospectionTypes();
         addDefaultDirectives();
-    }
-
-    private boolean hasExpectedResourcePath(ResourceMethodSymbol resourceMethodSymbol, String expectedPath) {
-        List<PathSegment> pathSegments = ((PathSegmentList) resourceMethodSymbol.resourcePath()).list();
-        if (pathSegments.size() > 1) {
-            return false;
-        }
-        return pathSegments.get(0).signature().equals(expectedPath);
     }
 
     private void findRootTypes(Node serviceNode) {
@@ -149,9 +146,6 @@ public class SchemaGenerator {
                 ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) methodSymbol;
                 String accessor = getAccessor(resourceMethodSymbol);
                 if (RESOURCE_FUNCTION_GET.equals(accessor)) {
-                    if (hasExpectedResourcePath(resourceMethodSymbol, "_entities")) {
-                        continue;
-                    }
                     queryType.addField(getField((resourceMethodSymbol)));
                 } else {
                     Type subscriptionType = addType(TypeName.SUBSCRIPTION);
@@ -384,36 +378,11 @@ public class SchemaGenerator {
         return objectType;
     }
 
-    private boolean hasFederatedEntityAnnotation(List<AnnotationSymbol> annotations) {
-        for (AnnotationSymbol annotation : annotations) {
-            if (!isGraphqlModuleSymbol(annotation)) {
-                continue;
-            }
-            if (annotation.getName().isEmpty()) {
-                continue;
-            }
-            if (annotation.getName().get().equals(ENTITY)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void addTypeToEntityMapIfFederatedEntity(Type objectType, List<AnnotationSymbol> annotations) {
-        if (hasFederatedEntityAnnotation(annotations)) {
-            addEntity(objectType);
-        }
-    }
-
     private Type getType(String name, ClassSymbol classSymbol) {
         String description = getDescription(classSymbol);
         Type objectType = addType(name, TypeKind.OBJECT, description);
-        addTypeToEntityMapIfFederatedEntity(objectType, classSymbol.annotations());
         for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
             if (isResourceMethod(methodSymbol)) {
-                if (hasExpectedResourcePath((ResourceMethodSymbol) methodSymbol, "resolveReference")) {
-                    continue;
-                }
                 objectType.addField(getField((ResourceMethodSymbol) methodSymbol));
             }
         }
@@ -477,7 +446,6 @@ public class SchemaGenerator {
     private Type getType(String name, String description, Map<String, String> fieldMap,
                          RecordTypeSymbol recordTypeSymbol, List<AnnotationSymbol> annotations) {
         Type objectType = addType(name, TypeKind.OBJECT, description);
-        addTypeToEntityMapIfFederatedEntity(objectType, annotations);
         for (RecordFieldSymbol recordFieldSymbol : recordTypeSymbol.fieldDescriptors().values()) {
             if (recordFieldSymbol.getName().isEmpty()) {
                 continue;

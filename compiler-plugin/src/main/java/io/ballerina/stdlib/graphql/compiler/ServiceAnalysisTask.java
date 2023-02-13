@@ -18,7 +18,13 @@
 
 package io.ballerina.stdlib.graphql.compiler;
 
+import io.ballerina.compiler.api.symbols.AnnotationSymbol;
+import io.ballerina.compiler.api.symbols.ServiceDeclarationSymbol;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.plugins.AnalysisTask;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
@@ -28,21 +34,31 @@ import io.ballerina.stdlib.graphql.compiler.schema.generator.SchemaGenerator;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceFinder;
 import io.ballerina.stdlib.graphql.compiler.service.validator.ServiceValidator;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import static io.ballerina.stdlib.graphql.compiler.Utils.hasSubgraphAnnotation;
 
 /**
  * Provides common implementation to validate Ballerina GraphQL Services.
  */
 public abstract class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisContext> {
     private final Map<DocumentId, GraphqlModifierContext> modifierContextMap;
+    private final Map<Node, Boolean> subgraphs;
 
     public ServiceAnalysisTask(Map<DocumentId, GraphqlModifierContext> nodeMap) {
         this.modifierContextMap = nodeMap;
+        this.subgraphs = new HashMap<>();
     }
 
     public ServiceValidator getServiceValidator(SyntaxNodeAnalysisContext context, Node node,
                                                 InterfaceFinder interfaceFinder) {
-        ServiceValidator serviceValidator = new ServiceValidator(context, node, interfaceFinder);
+        boolean isSubgraph = isSubgraphService(node, context);
+        subgraphs.put(node, isSubgraph);
+        ServiceValidator serviceValidator = new ServiceValidator(context, node, interfaceFinder, isSubgraph);
         serviceValidator.validate();
         return serviceValidator;
     }
@@ -55,7 +71,8 @@ public abstract class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnal
 
     public Schema generateSchema(SyntaxNodeAnalysisContext context, InterfaceFinder interfaceFinder, Node node,
                                  String description) {
-        SchemaGenerator schemaGenerator = new SchemaGenerator(context, node, interfaceFinder, description);
+        boolean isSubgraph = subgraphs.get(node);
+        SchemaGenerator schemaGenerator = new SchemaGenerator(context, node, interfaceFinder, description, isSubgraph);
         return schemaGenerator.generate();
     }
 
@@ -68,5 +85,20 @@ public abstract class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnal
             modifierContext.add(node, schema);
             this.modifierContextMap.put(documentId, modifierContext);
         }
+    }
+
+    private static boolean isSubgraphService(Node serviceNode, SyntaxNodeAnalysisContext context) {
+        List<AnnotationSymbol> annotations = new ArrayList<>();
+        if (serviceNode.kind() == SyntaxKind.SERVICE_DECLARATION) {
+            ServiceDeclarationSymbol serviceDeclarationSymbol = (ServiceDeclarationSymbol) context.semanticModel()
+                    .symbol(serviceNode).get();
+            annotations = serviceDeclarationSymbol.annotations();
+        } else if (serviceNode.kind() != SyntaxKind.OBJECT_CONSTRUCTOR) {
+            NodeList<AnnotationNode> annotationNodes = ((ObjectConstructorExpressionNode) serviceNode).annotations();
+            annotations = annotationNodes.stream()
+                    .map(annotationNode -> (AnnotationSymbol) context.semanticModel().symbol(annotationNode).get())
+                    .collect(Collectors.toList());
+        }
+        return hasSubgraphAnnotation(annotations);
     }
 }

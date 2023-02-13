@@ -154,10 +154,10 @@ public final class ListenerUtils {
         }
     }
 
-    public static Object getSdlString(BString schemaString, boolean isSubgraph, BMap<BString, Object> keyDirectives) {
+    public static Object getSdlString(BString schemaString, BMap<BString, Object> keyDirectives) {
         Schema schema = getDecodedSchema(schemaString);
         Map<String, Object[]> directiveFields = getEntityKeyDirectiveFieldValues(keyDirectives);
-        String sdl = SdlSchemaStringGenerator.generate(schema, isSubgraph, directiveFields);
+        String sdl = SdlSchemaStringGenerator.generate(schema, directiveFields);
         return StringUtils.fromString(sdl);
     }
 

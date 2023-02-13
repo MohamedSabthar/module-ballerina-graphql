@@ -34,10 +34,10 @@ public class Schema implements Serializable {
     private final Map<String, Type> types;
     private final List<Directive> directives;
     private final List<Type> entities;
+    private final boolean isSubgraph;
     private Type queryType;
     private Type mutationType = null;
     private Type subscriptionType = null;
-
     private static final String SDL = "sdl";
     private static final String _SERVICE = "_service";
     private static final String _ENTITIES = "_entities";
@@ -48,11 +48,12 @@ public class Schema implements Serializable {
      *
      * @param description - The description of the schema
      */
-    public Schema(String description) {
+    public Schema(String description, boolean isSubgraph) {
         this.description = description;
         this.types = new LinkedHashMap<>();
         this.directives = new ArrayList<>();
         this.entities = new ArrayList<>();
+        this.isSubgraph = isSubgraph;
     }
 
     /**
@@ -141,8 +142,8 @@ public class Schema implements Serializable {
         return this.directives;
     }
 
-    public void addEntities(Map<String, Type> federatedEntities) {
-        this.entities.addAll(federatedEntities.values());
+    public void addEntity(Type federatedEntities) {
+        this.entities.add(federatedEntities);
     }
 
     public void addSubgraphSchemaAdditions() {
@@ -182,5 +183,9 @@ public class Schema implements Serializable {
         entities.addArg(new InputValue(REPRESENTATIONS, nonNullableListOfAny, null, null));
         Type query = getQueryType();
         query.addField(entities);
+    }
+
+    public boolean isSubgraph() {
+        return isSubgraph;
     }
 }
