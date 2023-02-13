@@ -26,4 +26,8 @@ service /subgraph on wrappedListener {
     resource function get planets() returns Planet[] {
         return planets;
     }
+
+    resource function get satellite() returns Satellite[] {
+        return [];
+    }
 }
