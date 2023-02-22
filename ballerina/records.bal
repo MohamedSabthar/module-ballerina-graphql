@@ -16,6 +16,7 @@
 
 import ballerina/http;
 import graphql.parser;
+import ballerina/websocket;
 
 # Provides a set of configurations for configure the underlying HTTP listener of the GraphQL listener.
 public type ListenerConfiguration record {|
@@ -106,7 +107,7 @@ public type ProxyConfig record {|
 # + secureSocket - SSL/TLS-related options
 # + proxy - Proxy server related options
 # + validation - Enables the inbound payload validation functionalty which provided by the constraint package. Enabled by default
-public type ClientConfiguration record {|
+public type HttpConfiguration record {|
     ClientHttp1Settings http1Settings = {};
     decimal timeout = 60;
     string forwarded = "disable";
@@ -122,6 +123,16 @@ public type ClientConfiguration record {|
     ClientSecureSocket? secureSocket = ();
     ProxyConfig? proxy = ();
     boolean validation = true;
+|};
+
+# Provides a set of configurations for controlling the behaviour of the GraphQL client when communicating with 
+# the GraphQL server that operates over HTTP or WebSocket.
+# 
+# + httpConfig - Configurations related to HTTP
+# + websocketConfig - Configurations related to WebSocket
+public type ClientConfiguration record {|
+    HttpConfiguration httpConfig = {};
+    websocket:ClientConfiguration websocketConfig = {};
 |};
 
 type Data record {

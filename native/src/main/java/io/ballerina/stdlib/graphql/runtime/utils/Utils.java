@@ -46,6 +46,8 @@ public class Utils {
     public static final String UPLOAD = "Upload";
     public static final BString INTERNAL_NODE = StringUtils.fromString("internalNode");
 
+    public static final String SUBSCRIBER = "Subscriber";
+
     public static final StrandMetadata RESOURCE_EXECUTION_STRAND = new StrandMetadata(getModule().getOrg(),
                                                                                       getModule().getName(),
                                                                                       getModule().getMajorVersion(),
