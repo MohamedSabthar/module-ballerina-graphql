@@ -747,14 +747,13 @@ isolated function testClientConfiguration() returns error? {
 }
 
 @test:Config {
-    groups: ["client"]
+    groups: ["client", "a"]
 }
 isolated function testClientSubscription() returns error? {
     string document = string `subscription { live { product { id } score } }`;
     string url = "http://localhost:9090/reviews";
     graphql:Client graphqlClient = check new (url);
-    graphql:Subscriber subscriber = check graphqlClient->execute(document);
-    stream<json, graphql:ClientError?> subscriptionStream = check subscriber.getStream();
+    stream<json, graphql:ClientError?> subscriptionStream = check graphqlClient->execute(document);
     int id = 1;
     check from json message in subscriptionStream do {
         test:assertEquals(message, {data: {live: {product: {id: id.toString()}, score: 20}}});

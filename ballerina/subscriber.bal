@@ -14,7 +14,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/jballerina.java;
 import ballerina/lang.runtime;
 import ballerina/websocket;
 
@@ -25,13 +24,14 @@ public distinct isolated client class Subscriber {
     private final string id;
     private final websocket:Client wsClient;
     private final SubscriberInboundMessages[] messages = [];
-    private typedesc<GenericResponseWithErrors|record{}|json> databindType = json;
+    private typedesc<stream<GenericResponseWithErrors|record{}|json>> databindType;
     private boolean unsubscribed = false;
     private boolean streamConsumed = false;
 
-    isolated function init(string id, websocket:Client wsClient) {
+    isolated function init(string id, websocket:Client wsClient, typedesc<stream<GenericResponseWithErrors|record{}|json>> targetType) {
         self.id = id;
         self.wsClient = wsClient;
+        self.databindType = targetType;
     }
 
     private isolated function blockUntilMessagesNotEmptyOrUnsubscribed() {
@@ -77,30 +77,19 @@ public distinct isolated client class Subscriber {
     # + constrainedType - expected constrained type of the stream
     # + return - stream constrained to a user defined type or
     #            `graphql:ClientError` if method called more than once
-    public isolated function getStream(typedesc<json> constrainedType = <>)
-    returns stream<constrainedType, ClientError?>|ClientError = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.client.QueryExecutor",
-        name: "getStream"
-    } external;
+    // public isolated function getStream(typedesc<json> constrainedType = <>)
+    // returns stream<constrainedType, ClientError?>|ClientError = @java:Method {
+    //     'class: "io.ballerina.stdlib.graphql.runtime.client.QueryExecutor",
+    //     name: "getStream"
+    // } external;
 
-    isolated function databind(typedesc<json> targetType) returns stream<json, ClientError?>|ClientError {
-        lock {
-            if self.streamConsumed {
-                return error ClientError("Stream already returned");
-            }
-            self.streamConsumed = true;
-            self.databindType = targetType;
-        }
-        stream<json, ClientError?> subscription = new (self.getItterator());
+// should change return type
+    isolated function getStream() returns stream<json, ClientError?> {
+        stream<json, ClientError?> subscription = new (self);
         return subscription;
     }
 
-    private isolated function getItterator() returns Iterator {
-       return new(self.next);
-    };
-
-    // this should not be public
-    private isolated function next() returns record{|json value;|}? {
+    public isolated function next() returns record{|json value;|}? {
         self.blockUntilMessagesNotEmptyOrUnsubscribed();
         lock {
             if self.unsubscribed || !self.wsClient.isOpen() {
@@ -114,17 +103,5 @@ public distinct isolated client class Subscriber {
             json payload = message.payload;
             return {value: payload.clone()};
         }
-    }
-}
-
-type NextMethod function () returns record{|json value;|}?;
-
-isolated class Iterator {
-    private final NextMethod nextMethod;
-    isolated function init(NextMethod nextMethod) {
-        self.nextMethod = nextMethod;
-    }
-    public isolated function next() returns record{|json value;|}? {
-        return self.nextMethod();
     }
 }

@@ -24,11 +24,8 @@ import io.ballerina.runtime.api.PredefinedTypes;
 import io.ballerina.runtime.api.types.ObjectType;
 import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BObject;
-import io.ballerina.runtime.api.values.BStream;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.values.BTypedesc;
-
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.SUBSCRIBER;
 
 /**
  * This class is used to execute a GraphQL document using the Ballerina GraphQL client.
@@ -38,20 +35,21 @@ public class QueryExecutor {
     /**
      * Executes the GraphQL document when the corresponding Ballerina remote operation is invoked.
      */
-    public static BStream getStream(Environment env, BObject client, BTypedesc targetType) {
-        Object[] paramFeed = new Object[2];
-        paramFeed[0] = targetType;
-        paramFeed[1] = true;
-        return (BStream) invokeClientMethod(env, client, "databind", paramFeed);
-    }
+//    public static BStream getStream(Environment env, BObject client, BTypedesc targetType) {
+//        Object[] paramFeed = new Object[2];
+//        paramFeed[0] = targetType;
+//        paramFeed[1] = true;
+//        return (BStream) invokeClientMethod(env, client, "databind", paramFeed);
+//    }
 
     /**
      * Executes the GraphQL document when the corresponding Ballerina remote operation is invoked.
      */
     public static Object execute(Environment env, BObject client, BString document, Object variables,
                                  Object operationName, Object headers, BTypedesc targetType) {
-        if (targetType.getDescribingType().getName().equals(SUBSCRIBER)) {
-            Object[] paramFeed = new Object[8];
+        if (targetType.getDescribingType().getTag() == PredefinedTypes.TYPE_STREAM.getTag()) {
+            @SuppressWarnings("UnckeckedCast")
+            Object[] paramFeed = new Object[10];
             paramFeed[0] = document;
             paramFeed[1] = true;
             paramFeed[2] = variables;
@@ -60,6 +58,8 @@ public class QueryExecutor {
             paramFeed[5] = true;
             paramFeed[6] = headers;
             paramFeed[7] = true;
+            paramFeed[8] = targetType;
+            paramFeed[9] = true;
             return invokeClientMethod(env, client, "executeSubscription", paramFeed);
         }
         return invokeClientMethod(env, client, document, variables, operationName, headers, targetType,

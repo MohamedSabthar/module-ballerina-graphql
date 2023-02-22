@@ -18,7 +18,6 @@ import ballerina/jballerina.java;
 import ballerina/uuid;
 import ballerina/http;
 import ballerina/websocket;
-import ballerina/io;
 
 # The Ballerina GraphQL client that can be used to communicate with GraphQL APIs.
 public isolated client class Client {
@@ -105,7 +104,7 @@ public isolated client class Client {
     # + return - GraphQL response or a `graphql:Subscriber` on success and `graphql:ClientError` on failure
     remote isolated function execute(string document, map<anydata>? variables = (), string? operationName = (),
                                      map<string|string[]>? headers = (),
-                                     typedesc<GenericResponseWithErrors|record{}|json|Subscriber> targetType = <>)
+                                     typedesc<GenericResponseWithErrors|record{}|json|stream<json, ClientError?>> targetType = <>)
                                      returns targetType|ClientError = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.client.QueryExecutor",
         name: "execute"
@@ -131,6 +130,7 @@ public isolated client class Client {
             if self.wsClient is () {
                 self.wsConfig.subProtocols = [GRAPHQL_TRANSPORT_WS];
                 self.wsClient = check new (self.wsServiceUrl, self.wsConfig);
+                self.wsClosed = false;
             }
             return <websocket:Client> self.wsClient;
         }
@@ -149,13 +149,14 @@ public isolated client class Client {
         }
     }
 
-    private isolated function executeSubscription(string document, map<anydata>? variables, string? operationName, map<string|string[]>? headers) returns Subscriber|ClientError {
+    private isolated function executeSubscription(string document, map<anydata>? variables, string? operationName, map<string|string[]>? headers,
+    typedesc<stream<GenericResponseWithErrors|record{}|json>> targetType) returns stream<json, ClientError?>|ClientError {
         do {
             websocket:Client wsClient = check self.getWebSocketClient();
             check self.initateGrqphqlWsConnection();
 
             string id = uuid:createType1AsString();
-            Subscriber subscriber = new(id, wsClient);
+            Subscriber subscriber = new(id, wsClient, targetType);
             lock {
                 self.subscribers[id] = subscriber;
             }
@@ -163,7 +164,7 @@ public isolated client class Client {
             json graphqlPayload = {'type: WS_SUBSCRIBE, id, payload};
             check wsClient->writeMessage(graphqlPayload);
             _ = check start self.hanldeMultiplexing(wsClient);
-            return subscriber;
+            return subscriber.getStream();
         } on fail error err {
             return error ClientError("Failed to execute subscription: "+  err.message(), err);
         }
@@ -196,17 +197,13 @@ public isolated client class Client {
         var addMessagToSubscriber = self.addMessagToSubscriber;
         var isClosed = self.isClosed;
             while true {
-                io:println("loop");
                 lock {
                     if isClosed() || !wsClient.isOpen() {
-                        io:println("exit from worker");
                         return;
                     }
                 }
                 do {
-                    io:println("enter read");
                     ClienInboundMessage message = check wsClient->readMessage();
-                    io:println("exit read");
                     if message is PingMessage {
                         PongMessage pong = {'type: WS_PONG};
                         check wsClient->writeMessage(pong);
