@@ -27,12 +27,14 @@ class ResponseGenerator {
     private final Context context;
     private (string|int)[] path;
     private final __Type fieldType;
+    private final boolean isMutationOperation;
 
-    isolated function init(Engine engine, Context context, __Type fieldType, (string|int)[] path = []) {
+    isolated function init(Engine engine, Context context, __Type fieldType, (string|int)[] path = [], boolean isMutationOperation = false) {
         self.engine = engine;
         self.context = context; // states getting changed
         self.path = path; // states getting changed
         self.fieldType = fieldType;
+        self.isMutationOperation = isMutationOperation;
     }
 
     isolated function getResult(any|error parentValue, parser:FieldNode parentNode, (string|int)[] path = []) returns anydata {
@@ -147,6 +149,21 @@ class ResponseGenerator {
 
     isolated function getResultFromArray((any|error)[] parentValue, parser:FieldNode parentNode, (string|int)[] path) returns anydata {
         int i = 0;
+        anydata[] result = [];
+        if self.isMutationOperation {
+            foreach any|error element in parentValue {
+                path.push(i);
+                anydata elementValue = self.getResult(element, parentNode, path.clone());
+                i += 1;
+                _ = path.pop();
+                if elementValue is ErrorDetail {
+                    result.push(());
+                } else {
+                    result.push(elementValue);
+                }
+            }
+            return result;
+        }
         future<anydata>[] futures = [];
         var getResult = self.getResult;
         foreach any|error element in parentValue {
@@ -156,7 +173,6 @@ class ResponseGenerator {
             i += 1;
             _ = path.pop();
         }
-        anydata[] result = [];
         foreach future<anydata> elementFuture in futures {
             anydata elementValue = checkpanic wait elementFuture;
             if elementValue is ErrorDetail {
@@ -170,8 +186,25 @@ class ResponseGenerator {
 
     isolated function getResultFromTable(table<map<any>> parentValue, parser:FieldNode parentNode, (string|int)[] path) returns anydata {
         anydata[] result = [];
+        if self.isMutationOperation {
+            foreach map<any> element in parentValue {
+                anydata elementValue = self.getResult(element, parentNode, path);
+                if elementValue is ErrorDetail {
+                    result.push(());
+                } else {
+                    result.push(elementValue);
+                }
+            }
+            return result;
+        }
+        future<anydata>[] futures = [];
+        var getResult = self.getResult;
         foreach any element in parentValue {
-            anydata elementValue = self.getResult(element, parentNode, path);
+            future<anydata> 'future = start getResult(element, parentNode, path);
+            futures.push('future);
+        }
+        foreach future<anydata> elementFuture in futures {
+            anydata elementValue = checkpanic wait elementFuture;
             if elementValue is ErrorDetail {
                 result.push(());
             } else {
@@ -226,6 +259,13 @@ class ResponseGenerator {
 
     private isolated function resolveSelectionsParalley(string selectionFunctionName, map<any>|service object {} parentValue, parser:SelectionNode parentNode, Data result, (string|int)[] path) {
         future<()>[] futures = [];
+        if self.isMutationOperation {
+            foreach parser:SelectionNode selection in parentNode.getSelections() {
+                var executeSelectionFunction = self.executeSelectionFunction;
+                executeSelectionFunction(selectionFunctionName, parentValue, selection, result, path);
+            }
+            return;
+        }
         foreach parser:SelectionNode selection in parentNode.getSelections() {
             var executeSelectionFunction = self.executeSelectionFunction;
             future<()> 'future = start executeSelectionFunction(selectionFunctionName, parentValue, selection, result, path);

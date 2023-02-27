@@ -38,14 +38,19 @@ isolated class ExecutorVisitor {
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {}
 
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
-        // make this parallel
-        future<()>[] futures = [];
-        foreach parser:SelectionNode selection in operationNode.getSelections() {
-            future<()> 'future = start selection.accept(self, operationNode.getKind());
-            futures.push('future);
-        }
-        foreach future<()> 'future in futures {
-            _ = checkpanic wait 'future;
+        if operationNode.getKind() == parser:OPERATION_MUTATION {
+            foreach parser:SelectionNode selection in operationNode.getSelections() {
+                selection.accept(self, operationNode.getKind());
+            }
+        } else {
+            future<()>[] futures = [];
+            foreach parser:SelectionNode selection in operationNode.getSelections() {
+                future<()> 'future = start selection.accept(self, operationNode.getKind());
+                futures.push('future);
+            }
+            foreach future<()> 'future in futures {
+                _ = checkpanic wait 'future;
+            }
         }
     }
 
