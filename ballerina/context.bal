@@ -25,11 +25,17 @@ public isolated class Context {
     private Engine? engine;
     private int nextInterceptor;
 
-    public isolated function init() {
+    public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (),
+                                  int nextInterceptor = 0) {
         self.attributes = {};
-        self.engine = ();
+        self.engine = engine;
         self.errors = [];
-        self.nextInterceptor = 0;
+        self.nextInterceptor = nextInterceptor;
+        foreach var item in attributes.entries() {
+            string key = item[0];
+            value:Cloneable|isolated object {} value = item[1];
+            self.attributes[key] = value;
+        }
     }
 
     # Sets a given value for a given key in the GraphQL context.
@@ -85,6 +91,15 @@ public isolated class Context {
     isolated function addError(ErrorDetail err) {
         lock {
             self.errors.push(err.clone());
+        }
+    }
+
+    isolated function addErrors(ErrorDetail[] errs) {
+        readonly & ErrorDetail[] errors = errs.cloneReadOnly();
+        lock {
+            foreach var err in errors {
+                self.errors.push(err);
+            }
         }
     }
 
@@ -146,6 +161,13 @@ public isolated class Context {
     isolated function resetErrors() {
         lock {
             self.errors.removeAll();
+        }
+    }
+
+    isolated function cloneWithoutErrors() returns Context {
+        lock {
+            Context clone = new(self.attributes, self.engine, self.nextInterceptor);
+            return clone;
         }
     }
 }

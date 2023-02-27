@@ -18,91 +18,97 @@ import ballerina/log;
 
 import graphql.parser;
 
+const string GET_SELECTION_FROM_RECORD = "getSelectionFromRecord";
+const string GET_SELECTION_FROM_SERVICE = "getSelectionFromService";
+const string GET_FRAGMENT_FROM_SERVICE = "getFragmentFromService";
+
 class ResponseGenerator {
     private final Engine engine;
     private final Context context;
-    private ErrorDetail[] errors;
     private (string|int)[] path;
     private final __Type fieldType;
 
     isolated function init(Engine engine, Context context, __Type fieldType, (string|int)[] path = []) {
         self.engine = engine;
-        self.context = context;
-        self.errors = [];
-        self.path = path;
+        self.context = context; // states getting changed
+        self.path = path; // states getting changed
         self.fieldType = fieldType;
     }
 
-    isolated function getResult(any|error parentValue, parser:FieldNode parentNode) returns anydata {
+    isolated function getResult(any|error parentValue, parser:FieldNode parentNode, (string|int)[] path = []) returns anydata {
+        (string|int)[] clonedPath = path.length() > 0 ? path.clone() : self.path.clone();
         if parentValue is ErrorDetail {
             return;
         }
         if parentValue is error {
-            return self.addError(parentValue, parentNode);
+            return self.addError(parentValue, parentNode, clonedPath);
         }
         if parentValue is Scalar || parentValue is Scalar[] {
             return parentValue;
         }
         if parentValue is map<any> {
             if isMap(parentValue) {
-                return self.getResultFromMap(parentValue, parentNode);
+                return self.getResultFromMap(parentValue, parentNode, clonedPath);
             }
-            return self.getResultFromRecord(parentValue, parentNode);
+            return self.getResultFromRecord(parentValue, parentNode, clonedPath);
         }
         if parentValue is (any|error)[] {
-            return self.getResultFromArray(parentValue, parentNode);
+            return self.getResultFromArray(parentValue, parentNode, clonedPath);
         }
         if parentValue is table<map<any>> {
-            return self.getResultFromTable(parentValue, parentNode);
+            return self.getResultFromTable(parentValue, parentNode, clonedPath);
         }
         if parentValue is service object {} {
-            return self.getResultFromService(parentValue, parentNode);
+            return self.getResultFromService(parentValue, parentNode, clonedPath);
         }
     }
 
-    isolated function getResultFromObject(any parentValue, parser:FieldNode fieldNode) returns anydata {
+    isolated function getResultFromObject(any parentValue, parser:FieldNode fieldNode, (string|int)[] path) returns anydata {
         if fieldNode.getName() == TYPE_NAME_FIELD {
             return getTypeNameFromValue(parentValue);
         } else if parentValue is map<anydata> {
             if parentValue.hasKey(fieldNode.getName()) {
-                return self.getResult(parentValue.get(fieldNode.getName()), fieldNode);
+                return self.getResult(parentValue.get(fieldNode.getName()), fieldNode, path);
             } else if parentValue.hasKey(fieldNode.getAlias()) {
                 // TODO: This is to handle results from hierarchical paths. Should find a better way to handle this.
-                return self.getResult(parentValue.get(fieldNode.getAlias()), fieldNode);
+                return self.getResult(parentValue.get(fieldNode.getAlias()), fieldNode, path);
             } else {
                 return;
             }
         } else if parentValue is service object {} {
-            (string|int)[] path = self.path.clone();
-            path.push(fieldNode.getName());
+            (string|int)[] clonedPath = path.clone();
+            clonedPath.push(fieldNode.getName());
             __Type fieldType = getFieldTypeFromParentType(self.fieldType, self.engine.getSchema().types, fieldNode);
-            Field 'field = new (fieldNode, fieldType, parentValue, path);
-            self.context.resetInterceptorCount();
-            return self.engine.resolve(self.context, 'field);
+            Field 'field = new (fieldNode, fieldType, parentValue, clonedPath);
+            Context context = self.context.cloneWithoutErrors();
+            context.resetInterceptorCount();
+            anydata result = self.engine.resolve(context, 'field);
+            self.context.addErrors(context.getErrors());
+            return result;
         }
     }
 
-    isolated function addError(error err, parser:FieldNode fieldNode) returns ErrorDetail {
+    isolated function addError(error err, parser:FieldNode fieldNode, (string|int)[] path) returns ErrorDetail {
         log:printError(err.message(), stackTrace = err.stackTrace());
         ErrorDetail errorDetail = {
             message: err.message(),
             locations: [fieldNode.getLocation()],
-            path: self.path.clone()
+            path: path.clone()
         };
         self.context.addError(errorDetail);
         return errorDetail;
     }
 
-    isolated function getResultFromMap(map<any> parentValue, parser:FieldNode parentNode) returns anydata {
+    isolated function getResultFromMap(map<any> parentValue, parser:FieldNode parentNode, (string|int)[] path) returns anydata {
         string? mapKey = self.getKeyArgument(parentNode);
         if mapKey is string {
             if parentValue.hasKey(mapKey) {
-                return self.getResult(parentValue.get(mapKey), parentNode);
+                return self.getResult(parentValue.get(mapKey), parentNode, path);
             } else {
-                self.path.push(parentNode.getName());
+                path.push(parentNode.getName());
                 string message = string `The field "${parentNode.getName()}" is a map, but it does not contain the key "${mapKey}"`;
-                var result = self.getResult(error(message), parentNode);
-                _ = self.path.pop();
+                var result = self.getResult(error(message), parentNode, path);
+                _ = path.pop();
                 return result;
             }
         } else if parentValue is map<anydata> {
@@ -110,51 +116,62 @@ class ResponseGenerator {
         }
     }
 
-    isolated function getResultFromRecord(map<any> parentValue, parser:FieldNode parentNode) returns anydata {
+    isolated function getResultFromRecord(map<any> parentValue, parser:FieldNode parentNode, (string|int)[] path) returns anydata {
         Data result = {};
-        foreach parser:SelectionNode selection in parentNode.getSelections() {
-            if selection is parser:FieldNode {
-                anydata fieldValue = self.getRecordResult(parentValue, selection);
-                result[selection.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
-            } else if selection is parser:FragmentNode {
-                self.getResultForFragmentFromMap(parentValue, selection, result);
-            }
-        }
+        self.resolveSelectionsParalley(GET_SELECTION_FROM_RECORD, parentValue, parentNode, result, path);
         return result;
     }
 
-    isolated function getRecordResult(map<any> parentValue, parser:FieldNode fieldNode) returns anydata {
+    isolated function getSelectionFromRecord(map<any> parentValue, parser:SelectionNode selection, Data result, (string|int)[] path) {
+        if selection is parser:FieldNode {
+            anydata fieldValue = self.getRecordResult(parentValue, selection, path);
+            result[selection.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
+        } else if selection is parser:FragmentNode {
+            self.getResultForFragmentFromMap(parentValue, selection, result, path.clone());
+        }
+    }
+
+    isolated function getRecordResult(map<any> parentValue, parser:FieldNode fieldNode, (string|int)[] path) returns anydata {
         if fieldNode.getName() == TYPE_NAME_FIELD {
             return getTypeNameFromValue(parentValue);
         }
         any fieldValue = parentValue.hasKey(fieldNode.getName()) ? parentValue.get(fieldNode.getName()): ();
         __Type fieldType = getFieldTypeFromParentType(self.fieldType, self.engine.getSchema().types, fieldNode);
-        Field 'field = new (fieldNode, fieldType, path = self.path, fieldValue = fieldValue);
-        self.context.resetInterceptorCount();
-        return self.engine.resolve(self.context, 'field);
+        Field 'field = new (fieldNode, fieldType, path = path.clone(), fieldValue = fieldValue);
+        Context context = self.context.cloneWithoutErrors();
+        context.resetInterceptorCount();
+        anydata result = self.engine.resolve(context, 'field);
+        self.context.addErrors(context.getErrors());
+        return result;
     }
 
-    isolated function getResultFromArray((any|error)[] parentValue, parser:FieldNode parentNode) returns anydata {
-        anydata[] result = [];
+    isolated function getResultFromArray((any|error)[] parentValue, parser:FieldNode parentNode, (string|int)[] path) returns anydata {
         int i = 0;
+        future<anydata>[] futures = [];
+        var getResult = self.getResult;
         foreach any|error element in parentValue {
-            self.path.push(i);
-            anydata elementValue = self.getResult(element, parentNode);
+            path.push(i);
+            future<anydata> 'future = start getResult(element, parentNode, path.clone());
+            futures.push('future);
+            i += 1;
+            _ = path.pop();
+        }
+        anydata[] result = [];
+        foreach future<anydata> elementFuture in futures {
+            anydata elementValue = checkpanic wait elementFuture;
             if elementValue is ErrorDetail {
                 result.push(());
             } else {
                 result.push(elementValue);
             }
-            i += 1;
-            _ = self.path.pop();
         }
         return result;
     }
 
-    isolated function getResultFromTable(table<map<any>> parentValue, parser:FieldNode parentNode) returns anydata {
+    isolated function getResultFromTable(table<map<any>> parentValue, parser:FieldNode parentNode, (string|int)[] path) returns anydata {
         anydata[] result = [];
         foreach any element in parentValue {
-            anydata elementValue = self.getResult(element, parentNode);
+            anydata elementValue = self.getResult(element, parentNode, path);
             if elementValue is ErrorDetail {
                 result.push(());
             } else {
@@ -164,48 +181,71 @@ class ResponseGenerator {
         return result;
     }
 
-    isolated function getResultFromService(service object {} serviceObject, parser:FieldNode parentNode)
+    isolated function getResultFromService(service object {} serviceObject, parser:FieldNode parentNode, (string|int)[] path)
     returns anydata {
         Data result = {};
-        foreach parser:SelectionNode selection in parentNode.getSelections() {
-            if selection is parser:FieldNode {
-                anydata selectionValue = self.getResultFromObject(serviceObject, selection);
-                result[selection.getAlias()] = selectionValue is ErrorDetail ? () : selectionValue;
-            } else if selection is parser:FragmentNode {
-                self.getResultForFragmentFromService(serviceObject, selection, result);
-            }
-        }
+        self.resolveSelectionsParalley(GET_SELECTION_FROM_SERVICE, serviceObject, parentNode, result, path);
         return result;
+    }
+
+    isolated function getSelectionFromService(service object {} serviceObject, parser:SelectionNode selection, Data result, (string|int)[] path) {
+        if selection is parser:FieldNode {
+            anydata selectionValue = self.getResultFromObject(serviceObject, selection, path.clone());
+            result[selection.getAlias()] = selectionValue is ErrorDetail ? () : selectionValue;
+        } else if selection is parser:FragmentNode {
+            self.getResultForFragmentFromService(serviceObject, selection, result, path.clone());
+        }
     }
 
     isolated function getResultForFragmentFromMap(map<any> parentValue,
-                                                  parser:FragmentNode parentNode, Data result) {
+                                                  parser:FragmentNode parentNode, Data result, (string|int)[] path) {
         string typeName = getTypeNameFromValue(parentValue);
         if parentNode.getOnType() != typeName {
             return;
         }
-        foreach parser:SelectionNode selection in parentNode.getSelections() {
-            if selection is parser:FieldNode {
-                anydata fieldValue = self.getRecordResult(parentValue, selection);
-                result[selection.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
-            } else if selection is parser:FragmentNode {
-                self.getResultForFragmentFromMap(parentValue, selection, result);
-            }
-        }
+        self.resolveSelectionsParalley(GET_SELECTION_FROM_RECORD, parentValue, parentNode, result, path);
     }
 
     isolated function getResultForFragmentFromService(service object {} parentValue,
-                                                      parser:FragmentNode parentNode, Data result) {
+                                                      parser:FragmentNode parentNode, Data result, (string|int)[] path) {
         string typeName = getTypeNameFromValue(parentValue);
         if parentNode.getOnType() != typeName && !self.isPossibleTypeOfInterface(parentNode.getOnType(), typeName) {
             return;
         }
+        self.resolveSelectionsParalley(GET_FRAGMENT_FROM_SERVICE, parentValue, parentNode, result, path);
+    }
+
+    isolated function getFragmentFromService(service object {} parentValue, parser:SelectionNode selection, Data result, (string|int)[] path) {
+        if selection is parser:FieldNode {
+            anydata selectionValue = self.getResultFromObject(parentValue, selection, path.clone());
+            result[selection.getAlias()] = selectionValue is ErrorDetail ? () : selectionValue;
+        } else if selection is parser:FragmentNode {
+            self.getResultForFragmentFromService(parentValue, selection, result, path.clone());
+        }
+    }
+
+    private isolated function resolveSelectionsParalley(string selectionFunctionName, map<any>|service object {} parentValue, parser:SelectionNode parentNode, Data result, (string|int)[] path) {
+        future<()>[] futures = [];
         foreach parser:SelectionNode selection in parentNode.getSelections() {
-            if selection is parser:FieldNode {
-                anydata selectionValue = self.getResultFromObject(parentValue, selection);
-                result[selection.getAlias()] = selectionValue is ErrorDetail ? () : selectionValue;
-            } else if selection is parser:FragmentNode {
-                self.getResultForFragmentFromService(parentValue, selection, result);
+            var executeSelectionFunction = self.executeSelectionFunction;
+            future<()> 'future = start executeSelectionFunction(selectionFunctionName, parentValue, selection, result, path);
+            futures.push('future);
+        }
+        foreach var 'future in futures {
+            _ = checkpanic wait 'future;
+        }
+    }
+
+    private isolated function executeSelectionFunction(string functionName, map<any>|service object {} parentValue, parser:SelectionNode selection, Data result, (string|int)[] path) {
+        match functionName {
+            GET_SELECTION_FROM_RECORD => {
+                return self.getSelectionFromRecord(<map<any>>parentValue, selection, result, path.clone());
+            }
+            GET_SELECTION_FROM_SERVICE => {
+                return self.getSelectionFromService(<service object {}>parentValue, selection, result, path.clone());
+            }
+            GET_FRAGMENT_FROM_SERVICE => {
+                return self.getFragmentFromService(<service object {}>parentValue, selection, result, path.clone());
             }
         }
     }
