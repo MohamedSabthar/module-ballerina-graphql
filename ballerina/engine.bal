@@ -60,7 +60,7 @@ isolated class Engine {
         return self.getOperation(validationResult, operationName);
     }
 
-    isolated function getResult(parser:OperationNode operationNode, Context context, any|error result = ())
+    isolated function getResult(parser:OperationNode operationNode, Context context, readonly & any|error result = ())
     returns OutputObject {
         map<()> removedNodes = {};
         map<parser:SelectionNode> modifiedSelections = {};
@@ -295,6 +295,7 @@ isolated class Engine {
         }
         map<anydata> result = {};
         foreach parser:SelectionNode selection in 'field.getInternalNode().getSelections() {
+            // make this parallel
             if selection is parser:FieldNode {
                 self.getHierarchicalResult(context, 'field, selection, result);
             } else if selection is parser:FragmentNode {
@@ -306,6 +307,7 @@ isolated class Engine {
 
     isolated function resolveHierarchicalResourceFromFragment(Context context, Field 'field,
                                                               parser:FragmentNode fragmentNode, map<anydata> result) {
+        // make this parallel
         foreach parser:SelectionNode selection in fragmentNode.getSelections() {
             if selection is parser:FieldNode {
                 self.getHierarchicalResult(context, 'field, selection, result);
