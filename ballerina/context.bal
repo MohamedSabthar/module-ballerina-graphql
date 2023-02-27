@@ -24,6 +24,7 @@ public isolated class Context {
     private final ErrorDetail[] errors;
     private Engine? engine;
     private int nextInterceptor;
+    private boolean hasFileInfo = false;
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (),
                                   int nextInterceptor = 0) {
@@ -170,6 +171,9 @@ public isolated class Context {
     isolated function cloneWithoutErrors() returns Context {
         lock {
             Context clone = new(self.attributes, self.engine, self.nextInterceptor);
+            if self.hasFileInfo {
+                clone.setFileInfo(self.getFileInfo());
+            }
             return clone;
         }
     }

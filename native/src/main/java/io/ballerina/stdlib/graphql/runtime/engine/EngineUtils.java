@@ -132,6 +132,7 @@ public class EngineUtils {
     public static final String FIELD_OBJECT = "field.object";
 
     public static final String FILE_INFO_FIELD = "graphql.context.fileInfo";
+    public static final BString HAS_FILE_INFO_FIELD = StringUtils.fromString("hasFileInfo");
 
     static BMap<BString, Object> getErrorDetailRecord(BError error, BObject node, List<Object> pathSegments) {
         BMap<BString, Object> location = node.getMapValue(LOCATION_FIELD);
@@ -250,6 +251,7 @@ public class EngineUtils {
 
     public static void setFileInfo(BObject context, BMap<BString, Object> fileInfo) {
         context.addNativeData(FILE_INFO_FIELD, fileInfo);
+        context.set(HAS_FILE_INFO_FIELD, true);
     }
 
     public static BMap<BString, Object> getFileInfo(BObject context) {

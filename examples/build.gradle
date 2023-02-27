@@ -45,6 +45,9 @@ task testExamples {
     if (project.hasProperty("balNativeTest")) {
         nativeFlag = "--native"
     }
+    if (!project.gradle.startParameter.excludedTaskNames.contains('test')) {
+        return
+    }
     doLast {
         examples.each { example ->
             try {

@@ -20,7 +20,7 @@ import ballerina/mime;
 import ballerina/test;
 
 @test:Config {
-    groups: ["file_upload"]
+    groups: ["file_upload", "a"]
 }
 
 function testSingleFileUpload() returns error? {
