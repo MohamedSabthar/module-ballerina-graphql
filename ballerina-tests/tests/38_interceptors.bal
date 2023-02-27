@@ -287,7 +287,7 @@ isolated function testInterceptorExecutionOrder() returns error? {
 }
 
 @test:Config {
-    groups: ["interceptors", "hierarchical_paths"]
+    groups: ["interceptors", "hierarchical_paths", "a"]
 }
 isolated function testInterceptorsReturningErrorsWithHierarchicalResources() returns error? {
     string document = string `{ name, age, address{city, street, number}}`;

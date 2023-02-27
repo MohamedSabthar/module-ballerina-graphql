@@ -118,7 +118,9 @@ isolated class ExecutorVisitor {
         }
         Field 'field = getFieldObject(fieldNode, operationType, schema, engine, result.clone());
         context.resetInterceptorCount();
-        readonly & anydata resolvedResult = engine.resolve(context, 'field);
+        Context clonedContext = context.cloneWithoutErrors();
+        readonly & anydata resolvedResult = engine.resolve(clonedContext, 'field);
+        context.addErrors(clonedContext.getErrors());
         lock {
             self.errors = self.context.getErrors();
             self.data[fieldNode.getAlias()] = resolvedResult is ErrorDetail ? () : resolvedResult;

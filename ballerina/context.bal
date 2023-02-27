@@ -120,7 +120,10 @@ public isolated class Context {
     public isolated function resolve(Field 'field) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field);
+            Context clone = self.cloneWithoutErrors();
+            anydata result = engine.resolve(clone, 'field);
+            self.addErrors(clone.getErrors());
+            return result;
         }
         return;
     }
