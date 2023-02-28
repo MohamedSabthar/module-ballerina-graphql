@@ -133,6 +133,7 @@ public class EngineUtils {
 
     public static final String FILE_INFO_FIELD = "graphql.context.fileInfo";
     public static final BString HAS_FILE_INFO_FIELD = StringUtils.fromString("hasFileInfo");
+    public static final BString RESULT_FIELD = StringUtils.fromString("result");
 
     static BMap<BString, Object> getErrorDetailRecord(BError error, BObject node, List<Object> pathSegments) {
         BMap<BString, Object> location = node.getMapValue(LOCATION_FIELD);
@@ -291,10 +292,10 @@ public class EngineUtils {
     }
 
     public static void setResult(BObject executorVisitor, Object result) {
-        executorVisitor.set(StringUtils.fromString("result"), result);
+        executorVisitor.set(RESULT_FIELD, result);
     }
 
     public static Object getResult(BObject executorVisitor) {
-        return executorVisitor.get(StringUtils.fromString("result"));
+        return executorVisitor.get(RESULT_FIELD);
     }
 }
