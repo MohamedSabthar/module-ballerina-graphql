@@ -60,7 +60,7 @@ isolated class Engine {
         return self.getOperation(validationResult, operationName);
     }
 
-    isolated function getResult(parser:OperationNode operationNode, Context context, readonly & any|error result = ())
+    isolated function getResult(parser:OperationNode operationNode, Context context, any|error result = ())
     returns OutputObject {
         map<()> removedNodes = {};
         map<parser:SelectionNode> modifiedSelections = {};
@@ -80,7 +80,8 @@ isolated class Engine {
         operationNode.accept(operationNodeModifier);
         parser:OperationNode modifiedOperationNode = operationNodeModifier.getOperationNode();
 
-        ExecutorVisitor executor = new (self, self.schema, context, result);
+        ExecutorVisitor executor = new (self, self.schema, context);
+        executor.setResult(result);
         modifiedOperationNode.accept(executor);
         OutputObject outputObject = executor.getOutput();
         ResponseFormatter responseFormatter = new (self.schema);

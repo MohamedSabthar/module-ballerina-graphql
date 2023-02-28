@@ -289,4 +289,12 @@ public class EngineUtils {
     public static BObject getField(BObject context) {
         return (BObject) context.getNativeData(FIELD_OBJECT);
     }
+
+    public static void setResult(BObject executorVisitor, Object result) {
+        executorVisitor.set(StringUtils.fromString("result"), result);
+    }
+
+    public static Object getResult(BObject executorVisitor) {
+        return executorVisitor.get(StringUtils.fromString("result"));
+    }
 }

@@ -21,22 +21,22 @@ import graphql.parser;
 
 isolated function executeOperation(Engine engine, Context context, readonly & __Schema schema, websocket:Caller caller,
                                    parser:OperationNode node, SubscriptionHandler subscriptionHandler) {
-    stream<readonly & any, error?>|json sourceStream;
+    stream<any, error?>|json sourceStream;
     do {
         SubscriptionHandler handler = subscriptionHandler;
         RootFieldVisitor rootFieldVisitor = new (node);
         parser:FieldNode fieldNode = <parser:FieldNode>rootFieldVisitor.getRootFieldNode();
         Field 'field = getFieldObject(fieldNode, parser:OPERATION_SUBSCRIPTION, schema, engine);
         sourceStream = getSubscriptionResponse(engine, schema, context, 'field);
-        if sourceStream is stream<readonly & any, error?> {
-            record {|readonly & any value;|}|error? next = sourceStream.next();
+        if sourceStream is stream<any, error?> {
+            record {|any value;|}|error? next = sourceStream.next();
             while next !is () {
                 if handler.getUnsubscribed() {
                     closeStream(sourceStream);
                     return;
                 }
-                readonly & any|error resultValue = next is error ? next : next.value;
-                OutputObject outputObject = engine.getResult(node, context, resultValue);
+                any|error resultValue = next is error ? next : next.value;
+                OutputObject outputObject = check trap engine.getResult(node, context, resultValue);
                 if outputObject.hasKey(DATA_FIELD) || outputObject.hasKey(ERRORS_FIELD) {
                     NextMessage response = {'type: 'WS_NEXT, id: handler.getId(), payload: outputObject.toJson()};
                     check writeMessage(caller, response);
@@ -50,14 +50,14 @@ isolated function executeOperation(Engine engine, Context context, readonly & __
         }
     } on fail error err {
         log:printError(err.message(), stackTrace = err.stackTrace());
-        if sourceStream is stream<readonly & any, error?> {
+        if sourceStream is stream<any, error?> {
             closeStream(sourceStream);
         }
     }
 }
 
 isolated function handleStreamCompletion(websocket:Caller caller, SubscriptionHandler handler,
-                                         stream<readonly & any, error?> sourceStream) returns websocket:Error? {
+                                         stream<any, error?> sourceStream) returns websocket:Error? {
     if handler.getUnsubscribed() {
         closeStream(sourceStream);
         return;
@@ -91,9 +91,9 @@ isolated function validateSubscriptionPayload(SubscribeMessage data, Engine engi
 }
 
 isolated function getSubscriptionResponse(Engine engine, __Schema schema, Context context,
-                                          Field 'field) returns stream<readonly & any, error?>|json {
+                                          Field 'field) returns stream<any, error?>|json {
     any|error result = engine.executeSubscriptionResource(context, engine.getService(), 'field);
-    if result is stream<readonly & any, error?> {
+    if result is stream<any, error?> {
         return result;
     }
     string errorMessage = result is error ? result.message() : "Error ocurred in the subscription resolver";
@@ -109,7 +109,7 @@ isolated function closeConnection(websocket:Caller caller, SubscriptionError cau
     }
 }
 
-isolated function closeStream(stream<readonly & any, error?> sourceStream) {
+isolated function closeStream(stream<any, error?> sourceStream) {
     error? result = sourceStream.close();
     if result is error {
         logError("Failed to close stream", result);

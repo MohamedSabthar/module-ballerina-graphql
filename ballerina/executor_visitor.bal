@@ -15,6 +15,7 @@
 // under the License.
 
 import graphql.parser;
+import ballerina/jballerina.java;
 
 isolated class ExecutorVisitor {
     *parser:Visitor;
@@ -24,16 +25,24 @@ isolated class ExecutorVisitor {
     private Data data;
     private ErrorDetail[] errors;
     private Context context;
-    private readonly & any|error result;
+    private any|error result; // native code needs to access this field
 
-    isolated function init(Engine engine, __Schema schema, Context context, readonly & any|error result = ()) {
+    isolated function init(Engine engine, __Schema schema, Context context) {
         self.engine = engine;
         self.schema = schema.clone();
         self.context = context;
         self.data = {};
-        self.result = result;
         self.errors = [];
+        self.result = ();
     }
+
+    isolated function setResult(any|error result) =  @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
+
+    isolated function getResult() returns any|error =  @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {}
 
@@ -89,6 +98,13 @@ isolated class ExecutorVisitor {
     public isolated function visitArgument(parser:ArgumentNode argumentNode, anydata data = ()) {}
 
     public isolated function visitFragment(parser:FragmentNode fragmentNode, anydata data = ()) {
+        parser:RootOperationType operationType = <parser:RootOperationType>data;
+        if operationType == parser:OPERATION_MUTATION {
+            foreach parser:SelectionNode selection in fragmentNode.getSelections() {
+                selection.accept(self, operationType);
+            }
+            return;
+        }
         // make this parallel
         future<()>[] futures = [];
         readonly & anydata clonedData = data.cloneReadOnly();
@@ -106,17 +122,17 @@ isolated class ExecutorVisitor {
     public isolated function visitVariable(parser:VariableNode variableNode, anydata data = ()) {}
 
     isolated function execute(parser:FieldNode fieldNode, parser:RootOperationType operationType) {
-        readonly & any|error result;
+        any|error result;
         __Schema schema;
         Engine engine;
         Context context;
         lock {
-            result = self.result.clone();
+            result = self.getResult();
             schema = self.schema.clone();
             engine = self.engine;
             context = self.context;
         }
-        Field 'field = getFieldObject(fieldNode, operationType, schema, engine, result.clone());
+        Field 'field = getFieldObject(fieldNode, operationType, schema, engine, result);
         context.resetInterceptorCount();
         Context clonedContext = context.cloneWithoutErrors();
         readonly & anydata resolvedResult = engine.resolve(clonedContext, 'field);
