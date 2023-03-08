@@ -65,6 +65,7 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isDistinctServiceClass;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isDistinctServiceReference;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isFileUploadParameter;
+import static io.ballerina.stdlib.graphql.compiler.Utils.isPrimitiveTypeSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isResourceMethod;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
@@ -393,6 +394,8 @@ public class ServiceValidator {
             validateReturnType(recordTypeSymbol, typeReferenceTypeSymbol.typeDescriptor(), location, recordName);
         } else if (typeReferenceTypeSymbol.typeDescriptor().typeKind() == TypeDescKind.OBJECT) {
             validateReturnTypeObject(typeDefinitionSymbol, location);
+        } else if (isPrimitiveTypeSymbol(typeReferenceTypeSymbol.typeDescriptor())) {
+            // These are custom (primitive) scalar types. We don't need to validate the primitive types.
         } else {
             validateReturnType(typeDefinitionSymbol.typeDescriptor(), location);
         }

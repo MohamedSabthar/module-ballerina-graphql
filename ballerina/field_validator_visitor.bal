@@ -255,6 +255,7 @@ class FieldValidatorVisitor {
             if (expectedTypeName == FLOAT || expectedTypeName == DECIMAL) && value is int|float|decimal {
                 return;
             }
+            // handle expectedtype is not int, float or decimal
             string listError = getListElementError(self.argumentPath);
             string message = string `${listError}${expectedTypeName} cannot represent non ${expectedTypeName} value: ` +
                              string `${value.toString()}`;
@@ -344,8 +345,7 @@ class FieldValidatorVisitor {
                             string actualTypeName = getTypeNameFromScalarValue(listItemValue);
                             variableValues[i] = self.coerceValue(listItemValue, expectedTypeName, actualTypeName,
                                                                  location);
-                            self.validateArgumentValue(listItemValue, location,
-                                                       getTypeNameFromScalarValue(listItemValue), listItemInputValue);
+                            self.validateArgumentValue(listItemValue, location, actualTypeName, listItemInputValue);
                         }
                     } else if listItemValue is map<json> {
                         self.updatePath(listItemInputValue.name);

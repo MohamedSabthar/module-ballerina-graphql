@@ -74,6 +74,7 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isFileUploadParameter;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isFunctionDefinition;
+import static io.ballerina.stdlib.graphql.compiler.Utils.isPrimitiveTypeSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isResourceMethod;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isValidGraphqlParameter;
@@ -330,7 +331,9 @@ public class SchemaGenerator {
         } else {
             parameterMap = typeDefinitionSymbol.documentation().get().parameterMap();
         }
-        if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.RECORD) {
+        if (isPrimitiveTypeSymbol(typeDefinitionSymbol.typeDescriptor())) {
+            return addType(name, TypeKind.SCALAR, getDescription(typeDefinitionSymbol));
+        } else if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.RECORD) {
             RecordTypeSymbol recordType = (RecordTypeSymbol) typeDefinitionSymbol.typeDescriptor();
             return getType(name, description, parameterMap, recordType);
         } else if (typeDefinitionSymbol.typeDescriptor().typeKind() == TypeDescKind.UNION) {
@@ -556,6 +559,19 @@ public class SchemaGenerator {
         TypeSymbol typeDescriptor = typeDefinitionSymbol.typeDescriptor();
         String description = getDescription(typeDefinitionSymbol);
         switch (typeDescriptor.typeKind()) {
+            case INT:
+            case INT_SIGNED8:
+            case INT_UNSIGNED8:
+            case INT_SIGNED16:
+            case INT_UNSIGNED16:
+            case INT_SIGNED32:
+            case INT_UNSIGNED32:
+            case STRING:
+            case STRING_CHAR:
+            case BOOLEAN:
+            case DECIMAL:
+            case FLOAT:
+                return addType(typeName, TypeKind.SCALAR, description);
             case RECORD:
                 return getInputType(typeName, description, (RecordTypeSymbol) typeDescriptor);
             case UNION:
