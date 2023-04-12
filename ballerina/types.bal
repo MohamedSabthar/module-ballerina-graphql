@@ -94,6 +94,27 @@ public type GenericResponseWithErrors record {|
    ErrorDetail[] errors?;
 |};
 
+# Provides a set of configurations for the custom executable directives.
+#
+# + name - Override the name of the directive  
+# + 'on - Location(s) where the directive can be applied
+public type DirectiveConfigRecord record {
+    string name?;
+    ExecutableDirectiveLocation|ExecutableDirectiveLocation[] 'on;
+};
+
+# The annotation to configure a custom executable directive.
+public annotation DirectiveConfigRecord DirectiveConfig on class;
+
+# Represents a custom executable directive.
+public type Directive distinct service object  {
+    // should contain one or more optional method defined below
+    // isolated remote function applyOnQuery(Context context, Field 'field) returns anydata|error;
+    // isolated remote function applyOnMutation(Context context, Field 'field) returns anydata|error;
+    // isolated remote function applyOnSubs..(Context context, Field 'field) returns anydata|error;
+    // isolated remote function applyOnField(Context context, Field 'field) returns anydata|error;
+};
+
 # When service behaves as a HTTP gateway inbound request/response accept-encoding option is set as the
 # outbound request/response accept-encoding/content-encoding option.
 public const COMPRESSION_AUTO = "AUTO";

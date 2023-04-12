@@ -65,9 +65,9 @@ public abstract class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnal
         return serviceValidator;
     }
 
-    public InterfaceEntityFinder getInterfaceFinder(SemanticModel semanticModel) {
+    public InterfaceEntityFinder getInterfaceFinder(SyntaxNodeAnalysisContext context) {
         InterfaceEntityFinder interfaceEntityFinder = new InterfaceEntityFinder();
-        interfaceEntityFinder.populateInterfaces(semanticModel);
+        interfaceEntityFinder.populateInterfaces(context);
         return interfaceEntityFinder;
     }
 

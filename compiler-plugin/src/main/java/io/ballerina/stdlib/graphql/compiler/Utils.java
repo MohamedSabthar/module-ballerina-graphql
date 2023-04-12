@@ -293,7 +293,8 @@ public final class Utils {
         }
 
         InterfaceEntityFinder interfaceFinder = new InterfaceEntityFinder();
-        interfaceFinder.populateInterfaces(semanticModel);
+        // TODO: Fix this
+//        interfaceFinder.populateInterfaces(semanticModel);
         SchemaGenerator schemaGenerator = new SchemaGenerator(serviceNode, interfaceFinder, semanticModel, project,
                                                               description, isSubgraph);
 

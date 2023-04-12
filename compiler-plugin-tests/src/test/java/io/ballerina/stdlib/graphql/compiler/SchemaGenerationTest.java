@@ -200,6 +200,13 @@ public class SchemaGenerationTest {
         Assert.assertEquals(diagnosticResult.errorCount(), 0);
     }
 
+    @Test
+    public void testGraphqlCustomDirectives() {
+        String packagePath = "24_custom_directives";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 0);
+    }
+
     private DiagnosticResult getDiagnosticResult(String path) {
         Path projectDirPath = RESOURCE_DIRECTORY.resolve(path);
         BuildProject project = BuildProject.load(getEnvironmentBuilder(), projectDirPath);

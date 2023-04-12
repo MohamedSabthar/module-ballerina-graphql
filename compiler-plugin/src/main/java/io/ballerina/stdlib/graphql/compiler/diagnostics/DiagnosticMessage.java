@@ -81,7 +81,15 @@ public enum DiagnosticMessage {
                       + "GraphQL Federation"),
     ERROR_137("failed to add _entities resolver to the subgraph service"),
     ERROR_138("failed to add _service service to the subgraph service"),
-    ERROR_139("failed to generate schema for type ''{0}''. Type alias for primitive type ''{1}'' is not supported");
+    ERROR_139("failed to generate schema for type ''{0}''. Type alias for primitive type ''{1}'' is not supported"),
+    // TODO: fix 'graphql:' prefix
+    ERROR_140("type inclusion *graphql:Directive is not found in service class ''{0}''"),
+    ERROR_141("annotation @graphql:DirectiveConfig is not found in service class ''{0}''"),
+    ERROR_142("invalid remote method ''{0}'' found in directive service"),
+    ERROR_143("invalid resource method ''{0}'' found in directive service"),
+    // TODO: change the error message to more meaningful
+    ERROR_144("invalid remote method signature ''{0}'' found in directive service. The remote method ''{1}'' must have "
+                      + "two parameters of type 'graphql:Context' and 'graphql:Field' as first and second parameters");
 
     private final String message;
 

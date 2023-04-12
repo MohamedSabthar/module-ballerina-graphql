@@ -74,7 +74,19 @@ public enum CompilationDiagnostic {
                                       DiagnosticSeverity.ERROR),
     FAILED_TO_ADD_ENTITY_RESOLVER(DiagnosticMessage.ERROR_137, DiagnosticCode.GRAPHQL_137, DiagnosticSeverity.ERROR),
     FAILED_TO_ADD_SERVICE_RESOLVER(DiagnosticMessage.ERROR_138, DiagnosticCode.GRAPHQL_138, DiagnosticSeverity.ERROR),
-    UNSUPPORTED_PRIMITIVE_TYPE_ALIAS(DiagnosticMessage.ERROR_139, DiagnosticCode.GRAPHQL_139, DiagnosticSeverity.ERROR);
+    UNSUPPORTED_PRIMITIVE_TYPE_ALIAS(DiagnosticMessage.ERROR_139, DiagnosticCode.GRAPHQL_139, DiagnosticSeverity.ERROR),
+    DIRECTIVE_TYPE_INCLUSION_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS(DiagnosticMessage.ERROR_140,
+                                                                  DiagnosticCode.GRAPHQL_140, DiagnosticSeverity.ERROR),
+    DIRECTIVE_CONFIG_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS(DiagnosticMessage.ERROR_141, DiagnosticCode.GRAPHQL_141,
+                                                          DiagnosticSeverity.ERROR),
+    INVALID_REMOTE_METHOD_INSIDE_DIRECTIVE(DiagnosticMessage.ERROR_142, DiagnosticCode.GRAPHQL_142,
+                                           DiagnosticSeverity.ERROR),
+    INVALID_RESOURCE_METHOD_INSIDE_DIRECTIVE(DiagnosticMessage.ERROR_143, DiagnosticCode.GRAPHQL_143,
+                                             DiagnosticSeverity.ERROR),
+    INVALID_REMOTE_METHOD_SIGNATURE_FOUND_IN_DIRECTIVE_SERVICE_CLASS(DiagnosticMessage.ERROR_144,
+                                                                      DiagnosticCode.GRAPHQL_144,
+                                                                     DiagnosticSeverity.ERROR);
+
 
     private final String diagnostic;
     private final String diagnosticCode;

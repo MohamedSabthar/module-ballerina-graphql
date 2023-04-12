@@ -51,9 +51,6 @@ public class InterceptorAnalysisTask implements AnalysisTask<SyntaxNodeAnalysisC
 
     private static boolean isObjectReference(TypeSymbol typeSymbol) {
         TypeDescKind typeDescKind = ((TypeReferenceTypeSymbol) typeSymbol).typeDescriptor().typeKind();
-        if (typeDescKind == TypeDescKind.OBJECT) {
-            return true;
-        }
-        return false;
+        return typeDescKind == TypeDescKind.OBJECT;
     }
 }
