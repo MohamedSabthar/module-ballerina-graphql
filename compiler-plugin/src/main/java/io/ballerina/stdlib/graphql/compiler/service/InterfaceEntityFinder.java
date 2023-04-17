@@ -18,7 +18,6 @@
 
 package io.ballerina.stdlib.graphql.compiler.service;
 
-import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.AnnotationSymbol;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.ObjectTypeSymbol;
@@ -26,6 +25,8 @@ import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDefinitionSymbol;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
+import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
+import io.ballerina.stdlib.graphql.compiler.service.validator.ExecutableDirectiveValidator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,28 +39,37 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isRecordTypeDefinition;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectDefinition;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectReference;
+import static io.ballerina.stdlib.graphql.compiler.service.validator.ExecutableDirectiveValidator.hasDirectiveConfig;
+import static io.ballerina.stdlib.graphql.compiler.service.validator.ExecutableDirectiveValidator.hasDirectiveTypeInclusion;
 
 /**
  * Finds and validates possible GraphQL interfaces in a Ballerina service.
  */
 public class InterfaceEntityFinder {
+    // TODO: rename this class to ModuleSymbolFinder 0r something similar
     private final Map<String, List<Symbol>> interfaceImplementations;
     private final Map<String, TypeReferenceTypeSymbol> possibleInterfaces;
     private final Map<String, Symbol> entities;
+    private final Map<String, ClassSymbol> executableDirectives;
     private static final String ENTITY_ANNOTATION = "Entity";
 
     public InterfaceEntityFinder() {
         this.interfaceImplementations = new HashMap<>();
         this.possibleInterfaces = new HashMap<>();
         this.entities = new HashMap<>();
+        this.executableDirectives = new HashMap<>();
     }
 
-    public void populateInterfaces(SemanticModel semanticModel) {
-        for (Symbol symbol : semanticModel.moduleSymbols()) {
+    public void populateInterfaces(SyntaxNodeAnalysisContext context) {
+        for (Symbol symbol : context.semanticModel().moduleSymbols()) {
             if (symbol.getName().isEmpty()) {
                 continue;
             }
-            if (isServiceClass(symbol) || isServiceObjectDefinition(symbol)) {
+            if (isServiceClass(symbol)) {
+                findPossibleInterfaces(symbol);
+                findExecutableDirectives((ClassSymbol) symbol, context);
+            }
+            if (isServiceObjectDefinition(symbol)) {
                 findPossibleInterfaces(symbol);
             }
             if (isEntity(symbol)) {
@@ -67,6 +77,22 @@ public class InterfaceEntityFinder {
                 this.entities.put(entityName, symbol);
             }
         }
+    }
+
+    private void findExecutableDirectives(ClassSymbol classSymbol, SyntaxNodeAnalysisContext context) {
+        boolean hasDirectiveTypeInclusion = hasDirectiveTypeInclusion(classSymbol);
+        boolean hasDirectiveConfig = hasDirectiveConfig(classSymbol);
+        if (!hasDirectiveTypeInclusion && !hasDirectiveConfig) {
+            return;
+        }
+        ExecutableDirectiveValidator validator = new ExecutableDirectiveValidator(context, classSymbol);
+        validator.validate();
+        if (validator.isErrorOccurred()) {
+            return;
+        }
+
+        String directiveName = validator.getDirectiveName();
+        this.executableDirectives.put(directiveName, classSymbol);
     }
 
     public boolean isPossibleInterface(String name) {
@@ -79,6 +105,10 @@ public class InterfaceEntityFinder {
 
     public Map<String, Symbol> getEntities() {
         return entities;
+    }
+
+    public Map<String, ClassSymbol> getExecutableDirectives() {
+        return executableDirectives;
     }
 
     private void findPossibleInterfaces(Symbol serviceObjectTypeDefinitionOrServiceClass) {
