@@ -57,7 +57,10 @@ public class ExecutableDirectiveFinder {
         Optional<AnnotationNode> annotationNode = getDirectiveConfigAnnotationNode(this.semanticModel,
                                                                                    classDefinitionNode.get());
         if (annotationNode.isPresent() && annotationNode.get().annotValue().isPresent()) {
-            this.directiveName = getDirectiveNameFromAnnotationValue(annotationNode.get().annotValue().get());
+            String nameFieldValue = getDirectiveNameFromAnnotationValue(annotationNode.get().annotValue().get());
+            if (nameFieldValue != null) {
+                this.directiveName = nameFieldValue;
+            }
         }
         return classDefinitionNode;
     }

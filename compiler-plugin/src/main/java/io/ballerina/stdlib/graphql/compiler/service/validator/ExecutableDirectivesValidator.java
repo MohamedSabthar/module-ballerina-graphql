@@ -47,7 +47,7 @@ import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagno
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.ON_FIELD_MUST_CONTAIN_LEAST_ONE_VALUE_IN_DIRECTIVE_CONFIG;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
-import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_SHORT_HAND_FIELD_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_STRING_TEMPLATE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.REMOTE_METHOD_WITH_INVALID_PARAMETERS_FOUND_IN_DIRECTIVE;
@@ -148,13 +148,13 @@ public class ExecutableDirectivesValidator {
         Location onValueLocation;
         for (MappingFieldNode field : expressionNode.fields()) {
             if (field.kind() != SyntaxKind.SPECIFIC_FIELD) {
-                addDiagnosticWarning(PASSING_SHORT_HAND_FIELD_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED, field.location());
                 continue;
             }
             SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
             String fieldName = specificFieldNode.fieldName().toString().trim();
             if (fieldName.equals(NAME_FIELD_NAME)) {
                 if (specificFieldNode.valueExpr().isEmpty()) {
+                    addDiagnosticWarning(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED, field.location());
                     continue;
                 }
                 if (specificFieldNode.valueExpr().get().kind() != SyntaxKind.STRING_LITERAL) {

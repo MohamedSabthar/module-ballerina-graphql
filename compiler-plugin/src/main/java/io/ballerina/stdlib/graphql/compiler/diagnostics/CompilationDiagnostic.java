@@ -100,8 +100,9 @@ public enum CompilationDiagnostic {
 
     DIRECTIVE_LOCATION_NOT_SUPPORTED(DiagnosticMessage.WARNING_200, DiagnosticCode.GRAPHQL_200,
                                      DiagnosticSeverity.WARNING),
-    PASSING_SHORT_HAND_FIELD_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_201,
-                                                                DiagnosticCode.GRAPHQL_201, DiagnosticSeverity.WARNING),
+    PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_201,
+                                                                   DiagnosticCode.GRAPHQL_201,
+                                                                   DiagnosticSeverity.WARNING),
     PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_202,
                                                                               DiagnosticCode.GRAPHQL_202,
                                                                               DiagnosticSeverity.WARNING),

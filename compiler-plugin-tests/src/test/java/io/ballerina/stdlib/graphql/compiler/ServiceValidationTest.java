@@ -1164,7 +1164,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(INVALID_INIT_METHOD_RETURN_TYPE_FOUND_IN_DIRECTIVE, "error?");
-        assertErrorMessage(diagnostic, message, 38, 48);
+        assertErrorMessage(diagnostic, message, 38, 14);
     }
 
     @Test(groups = "invalid")
@@ -1231,6 +1231,20 @@ public class ServiceValidationTest {
         assertErrorMessage(diagnostic, message, 50, 30);
     }
 
+    // TODO: add tests to check warning messages
+    @Test(groups = "warning")
+    public void testDirectiveConfigWithShorthandNotation() {
+        String packagePath = "71_directive_config_with_shorthand_field_notation";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(
+                CompilationDiagnostic.PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        assertWarningMessage(diagnostic, message, 34, 5);
+    }
+
     private DiagnosticResult getDiagnosticResult(String packagePath) {
         Path projectDirPath = RESOURCE_DIRECTORY.resolve(packagePath);
         BuildProject project = BuildProject.load(getEnvironmentBuilder(), projectDirPath);
@@ -1256,6 +1270,13 @@ public class ServiceValidationTest {
         assertErrorLocation(diagnostic.location(), line, column);
     }
 
+    private void assertWarningMessage(Diagnostic diagnostic, String message, int line, int column) {
+        Assert.assertEquals(diagnostic.diagnosticInfo().severity(), DiagnosticSeverity.WARNING);
+        Assert.assertEquals(diagnostic.message(), message);
+        assertErrorLocation(diagnostic.location(), line, column);
+    }
+
+    // TODO: rename the message since now we are using the same method for warnings messsage
     private String getErrorMessage(CompilationDiagnostic compilationDiagnostic, Object... args) {
         return MessageFormat.format(compilationDiagnostic.getDiagnostic(), args);
     }

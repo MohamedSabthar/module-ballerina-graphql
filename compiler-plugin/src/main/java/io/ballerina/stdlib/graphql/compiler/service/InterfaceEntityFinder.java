@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getObjectTypeSymbol;
@@ -83,12 +84,14 @@ public class InterfaceEntityFinder {
                                           ModuleId moduleId) {
         ExecutableDirectiveFinder executableDirectiveFinder = new ExecutableDirectiveFinder(semanticModel, classSymbol,
                                                                                             project, moduleId);
-        if (executableDirectiveFinder.getDirectiveNode().isEmpty()) {
+        Optional<ClassDefinitionNode> directiveNode = executableDirectiveFinder.getDirectiveNode();
+        if (directiveNode.isEmpty()) {
             return;
         }
 
         String directiveName = executableDirectiveFinder.getDirectiveName();
-        this.executableDirectives.put(directiveName, executableDirectiveFinder.getDirectiveNode().get());
+        // TODO: check for duplicate directive names
+        this.executableDirectives.put(directiveName, directiveNode.get());
     }
 
     public boolean isPossibleInterface(String name) {
