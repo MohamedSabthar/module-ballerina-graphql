@@ -26,3 +26,16 @@ enum Direction {
     ASCENDING = "ascending",
     DESCENDING = "descending"
 }
+
+@graphql:DirectiveConfig {
+    'on: [],
+    name: "sort"
+}
+readonly service class Sort {
+    *graphql:Directive;
+    Direction direction;
+
+    function init(Direction direction) {
+        self.direction = direction;
+    }
+}

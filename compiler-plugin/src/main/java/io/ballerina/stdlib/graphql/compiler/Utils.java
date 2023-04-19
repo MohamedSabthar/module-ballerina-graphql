@@ -34,6 +34,9 @@ import io.ballerina.compiler.api.symbols.TypeDescKind;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.ModuleVariableDeclarationNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -49,6 +52,7 @@ import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.hasGraphqlListener;
@@ -70,6 +74,8 @@ public final class Utils {
     public static final String FILE_UPLOAD_IDENTIFIER = "Upload";
     public static final String SERVICE_CONFIG_IDENTIFIER = "ServiceConfig";
     public static final String SUBGRAPH_ANNOTATION_NAME = "Subgraph";
+    private static final String DIRECTIVE = "Directive";
+    private static final String DIRECTIVE_CONFIG = "DirectiveConfig";
 
     private Utils() {
     }
@@ -293,8 +299,9 @@ public final class Utils {
         }
 
         InterfaceEntityFinder interfaceFinder = new InterfaceEntityFinder();
-        // TODO: Fix this, why there is no validation for the service ?
-//        interfaceFinder.populateInterfaces(semanticModel);
+        // TODO: we have only passed the default module id, submodule id is not checked
+        interfaceFinder.populateInterfaces(semanticModel, project,
+                                           project.currentPackage().getDefaultModule().moduleId());
         SchemaGenerator schemaGenerator = new SchemaGenerator(serviceNode, interfaceFinder, semanticModel, project,
                                                               description, isSubgraph);
 
@@ -318,5 +325,55 @@ public final class Utils {
                 return true;
         }
         return false;
+    }
+
+    public static boolean hasDirectiveConfig(ClassSymbol classSymbol) {
+        return classSymbol.annotations().stream().filter(Utils::isDirectiveConfig).findFirst().stream().findFirst()
+                .isPresent();
+    }
+
+    public static boolean hasDirectiveTypeInclusion(ClassSymbol classSymbol) {
+        return classSymbol.typeInclusions().stream().filter(Utils::isGraphqlExecutableDirective).findFirst().stream()
+                .findAny().isPresent();
+    }
+
+    private static boolean isDirectiveConfig(AnnotationSymbol annotationSymbol) {
+        if (annotationSymbol.getName().isEmpty()) {
+            return false;
+        }
+        return annotationSymbol.getName().get().equals(DIRECTIVE_CONFIG) && isGraphqlModuleSymbol(annotationSymbol);
+    }
+
+    private static boolean isGraphqlExecutableDirective(TypeSymbol typeSymbol) {
+        if (typeSymbol.getName().isEmpty() || !isServiceObjectReference(typeSymbol)) {
+            return false;
+        }
+        return typeSymbol.getName().get().equals(DIRECTIVE) && isGraphqlModuleSymbol(typeSymbol);
+    }
+
+    public static Optional<AnnotationNode> getDirectiveConfigAnnotationNode(SemanticModel semanticModel,
+                                                                            ClassDefinitionNode classDefinitionNode) {
+        if (classDefinitionNode.metadata().isEmpty()) {
+            return Optional.empty();
+        }
+        return classDefinitionNode.metadata().get().annotations().stream()
+                .filter(annotationNode -> isDirectiveConfigAnnotationNode(semanticModel, annotationNode)).findFirst();
+    }
+
+    private static boolean isDirectiveConfigAnnotationNode(SemanticModel semanticModel, AnnotationNode annotationNode) {
+        Optional<Symbol> symbol = semanticModel.symbol(annotationNode);
+        if (symbol.isEmpty()) {
+            return false;
+        }
+        AnnotationSymbol annotationSymbol = (AnnotationSymbol) symbol.get();
+        if (annotationSymbol.getName().isEmpty()) {
+            return false;
+        }
+        return annotationSymbol.getName().get().equals(DIRECTIVE_CONFIG) && isGraphqlModuleSymbol(annotationSymbol);
+    }
+
+    public static String getValueFromStringLiteral(BasicLiteralNode basicLiteralNode) {
+        String value = basicLiteralNode.toSourceCode().strip();
+        return value.substring(1, value.length() - 1); // remove quotes
     }
 }

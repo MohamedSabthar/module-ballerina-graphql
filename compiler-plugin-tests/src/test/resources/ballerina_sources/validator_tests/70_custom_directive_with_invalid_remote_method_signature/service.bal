@@ -26,3 +26,28 @@ enum Direction {
     ASCENDING = "ascending",
     DESCENDING = "descending"
 }
+
+@graphql:DirectiveConfig {
+    'on: [graphql:FIELD, graphql:QUERY, graphql:MUTATION],
+    name: "sort"
+}
+readonly service class Sort {
+    *graphql:Directive;
+    Direction direction;
+
+    function init(Direction direction) {
+        self.direction = direction;
+    }
+
+    isolated remote function applyOnField(graphql:Context ctx, graphql:Field 'field, int data) returns anydata|error {
+        return 1;
+    }
+
+    isolated remote function applyOnQuery(graphql:Context ctx, graphql:Field 'field) returns int {
+        return 1;
+    }
+
+    isolated remote function applyOnMutation() {
+
+    }
+}

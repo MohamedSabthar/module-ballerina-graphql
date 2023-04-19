@@ -83,13 +83,35 @@ public enum DiagnosticMessage {
     ERROR_138("failed to add _service service to the subgraph service"),
     ERROR_139("failed to generate schema for type ''{0}''. Type alias for primitive type ''{1}'' is not supported"),
     // TODO: fix 'graphql:' prefix
-    ERROR_140("type inclusion *graphql:Directive is not found in service class ''{0}''"),
-    ERROR_141("annotation @graphql:DirectiveConfig is not found in service class ''{0}''"),
+    ERROR_140("type inclusion ''*graphql:Directive'' is not found in service class ''{0}''"),
+    ERROR_141("annotation ''@graphql:DirectiveConfig'' is not found in service class ''{0}''"),
     ERROR_142("invalid remote method ''{0}'' found in directive service"),
     ERROR_143("invalid resource method ''{0}'' found in directive service"),
-    // TODO: change the error message to more meaningful
-    ERROR_144("invalid remote method signature ''{0}'' found in directive service. The remote method ''{1}'' must have "
-                      + "two parameters of type 'graphql:Context' and 'graphql:Field' as first and second parameters");
+    ERROR_144("invalid signature found for remote method ''{0}'' in directive service. The remote method ''{0}'' must "
+                      + "only have two parameters of type ''graphql:Context'' and ''graphql:Field'' as first and "
+                      + "second parameters"),
+    ERROR_145("invalid directive name ''{0}'' found in directive service. The directive name must be a valid GraphQL "
+                      + "identifier"),
+    ERROR_146("no matching configuration found in ''on'' field of ''graphql:DirectiveConfig'' annotation for the remote"
+                      + " method ''{0}''. Add ''\"{1}\"'' to the ''on'' field array of ''graphql:DirectiveConfig'' "
+                      + "annotation"),
+    ERROR_147("directive service class ''{0}'' does not have any corresponding remote methods for the ''on'' "
+                      + "configuration value ''{1}''"),
+    ERROR_148("invalid signature found for remote method ''{0}'' in directive service. The remote method ''{0}'' must"
+                      + " have return type of type ''anydata|error''"),
+    ERROR_149("invalid return type ''{0}'' found in ''init'' method of directive service. The ''init'' method must "
+                      + "return types other than ''()''"),
+    ERROR_150("the on field of the ''graphql:DirectiveConfig'' annotation must have at least one value"),
+
+
+    WARNING_200("executable directive on ''{0}'' is not yet supported"),
+    WARNING_201("using shorthand notation in ''graphql:DirectiveConfig'' is not yet supported"),
+    WARNING_202("passing non string value for ''name'' field in ''graphql:DirectiveConfig'' is not yet supported. Pass "
+                        + "a string literal instead"),
+    WARNING_203("passing string template for ''name'' field in ''graphql:DirectiveConfig'' is not yet supported. Pass a"
+                        + " string literal instead"),
+    WARNING_204("passing reference value for ''on'' field in ''graphql:DirectiveConfig'' is not yet supported."),
+    WARNING_205("passing string template for ''on'' field in ''graphql:DirectiveConfig'' is not yet supported.");
 
     private final String message;
 

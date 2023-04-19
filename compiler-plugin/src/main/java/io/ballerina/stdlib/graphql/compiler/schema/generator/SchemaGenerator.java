@@ -118,6 +118,7 @@ public class SchemaGenerator {
     public Schema generate() {
         findRootTypes(this.serviceNode);
         findIntrospectionTypes();
+        // TODO: add custom directives
         addEntityTypes();
         return this.schema;
     }

@@ -18,6 +18,7 @@
 
 package io.ballerina.stdlib.graphql.compiler.service;
 
+import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.AnnotationSymbol;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.ObjectTypeSymbol;
@@ -25,8 +26,9 @@ import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDefinitionSymbol;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
-import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.compiler.service.validator.ExecutableDirectiveValidator;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.projects.ModuleId;
+import io.ballerina.projects.Project;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,8 +41,6 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isRecordTypeDefinition;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectDefinition;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectReference;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ExecutableDirectiveValidator.hasDirectiveConfig;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ExecutableDirectiveValidator.hasDirectiveTypeInclusion;
 
 /**
  * Finds and validates possible GraphQL interfaces in a Ballerina service.
@@ -50,7 +50,7 @@ public class InterfaceEntityFinder {
     private final Map<String, List<Symbol>> interfaceImplementations;
     private final Map<String, TypeReferenceTypeSymbol> possibleInterfaces;
     private final Map<String, Symbol> entities;
-    private final Map<String, ClassSymbol> executableDirectives;
+    private final Map<String, ClassDefinitionNode> executableDirectives;
     private static final String ENTITY_ANNOTATION = "Entity";
 
     public InterfaceEntityFinder() {
@@ -60,14 +60,14 @@ public class InterfaceEntityFinder {
         this.executableDirectives = new HashMap<>();
     }
 
-    public void populateInterfaces(SyntaxNodeAnalysisContext context) {
-        for (Symbol symbol : context.semanticModel().moduleSymbols()) {
+    public void populateInterfaces(SemanticModel semanticModel, Project project, ModuleId moduleId) {
+        for (Symbol symbol : semanticModel.moduleSymbols()) {
             if (symbol.getName().isEmpty()) {
                 continue;
             }
             if (isServiceClass(symbol)) {
                 findPossibleInterfaces(symbol);
-                findExecutableDirectives((ClassSymbol) symbol, context);
+                findExecutableDirectives((ClassSymbol) symbol, semanticModel, project, moduleId);
             }
             if (isServiceObjectDefinition(symbol)) {
                 findPossibleInterfaces(symbol);
@@ -79,20 +79,16 @@ public class InterfaceEntityFinder {
         }
     }
 
-    private void findExecutableDirectives(ClassSymbol classSymbol, SyntaxNodeAnalysisContext context) {
-        boolean hasDirectiveTypeInclusion = hasDirectiveTypeInclusion(classSymbol);
-        boolean hasDirectiveConfig = hasDirectiveConfig(classSymbol);
-        if (!hasDirectiveTypeInclusion && !hasDirectiveConfig) {
-            return;
-        }
-        ExecutableDirectiveValidator validator = new ExecutableDirectiveValidator(context, classSymbol);
-        validator.validate();
-        if (validator.isErrorOccurred()) {
+    private void findExecutableDirectives(ClassSymbol classSymbol, SemanticModel semanticModel, Project project,
+                                          ModuleId moduleId) {
+        ExecutableDirectiveFinder executableDirectiveFinder = new ExecutableDirectiveFinder(semanticModel, classSymbol,
+                                                                                            project, moduleId);
+        if (executableDirectiveFinder.getDirectiveNode().isEmpty()) {
             return;
         }
 
-        String directiveName = validator.getDirectiveName();
-        this.executableDirectives.put(directiveName, classSymbol);
+        String directiveName = executableDirectiveFinder.getDirectiveName();
+        this.executableDirectives.put(directiveName, executableDirectiveFinder.getDirectiveNode().get());
     }
 
     public boolean isPossibleInterface(String name) {
@@ -107,7 +103,7 @@ public class InterfaceEntityFinder {
         return entities;
     }
 
-    public Map<String, ClassSymbol> getExecutableDirectives() {
+    public Map<String, ClassDefinitionNode> getExecutableDirectives() {
         return executableDirectives;
     }
 

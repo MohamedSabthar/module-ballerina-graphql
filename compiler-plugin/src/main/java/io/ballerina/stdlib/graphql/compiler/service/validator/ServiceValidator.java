@@ -44,6 +44,7 @@ import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
 import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.ResourcePath;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
@@ -115,6 +116,16 @@ public class ServiceValidator {
             validateServiceDeclaration();
         } else if (serviceNode.kind() == SyntaxKind.OBJECT_CONSTRUCTOR) {
             validateServiceObject();
+        }
+        Map<String, ClassDefinitionNode> executableDirectives = this.interfaceEntityFinder.getExecutableDirectives();
+        ExecutableDirectivesValidator directivesValidator = new ExecutableDirectivesValidator(context,
+                                                                                              executableDirectives);
+        directivesValidator.validate();
+        if (directivesValidator.isErrorOccurred()) {
+            this.errorOccurred = true;
+        }
+        for (MethodSymbol methodSymbol: directivesValidator.getInitMethodSymbols()) {
+            validateDirectiveInputParameters(methodSymbol, methodSymbol.getLocation().get());
         }
     }
 
@@ -553,6 +564,17 @@ public class ServiceValidator {
                     continue;
                 }
                 validateInputParameterType(parameter.typeDescriptor(), inputLocation, isResourceMethod(methodSymbol));
+            }
+        }
+    }
+
+    private void validateDirectiveInputParameters(MethodSymbol methodSymbol, Location location) {
+        FunctionTypeSymbol functionTypeSymbol = methodSymbol.typeDescriptor();
+        if (functionTypeSymbol.params().isPresent()) {
+            List<ParameterSymbol> parameterSymbols = functionTypeSymbol.params().get();
+            for (ParameterSymbol parameter : parameterSymbols) {
+                Location inputLocation = getLocation(parameter, location);
+                validateInputParameterType(parameter.typeDescriptor(), inputLocation, false);
             }
         }
     }

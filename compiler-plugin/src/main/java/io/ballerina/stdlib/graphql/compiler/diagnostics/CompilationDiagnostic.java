@@ -83,9 +83,37 @@ public enum CompilationDiagnostic {
                                            DiagnosticSeverity.ERROR),
     INVALID_RESOURCE_METHOD_INSIDE_DIRECTIVE(DiagnosticMessage.ERROR_143, DiagnosticCode.GRAPHQL_143,
                                              DiagnosticSeverity.ERROR),
-    INVALID_REMOTE_METHOD_SIGNATURE_FOUND_IN_DIRECTIVE_SERVICE_CLASS(DiagnosticMessage.ERROR_144,
-                                                                      DiagnosticCode.GRAPHQL_144,
-                                                                     DiagnosticSeverity.ERROR);
+    REMOTE_METHOD_WITH_INVALID_PARAMETERS_FOUND_IN_DIRECTIVE(DiagnosticMessage.ERROR_144, DiagnosticCode.GRAPHQL_144,
+                                                             DiagnosticSeverity.ERROR),
+    INVALID_DIRECTIVE_NAME(DiagnosticMessage.ERROR_145, DiagnosticCode.GRAPHQL_145, DiagnosticSeverity.ERROR),
+    NO_ON_FIELD_FOUND_FOR_DIRECTIVE_REMOTE_METHOD(DiagnosticMessage.ERROR_146, DiagnosticCode.GRAPHQL_146,
+                                                  DiagnosticSeverity.ERROR),
+    NO_REMOTE_METHOD_FOUND_FOR_ON_FIELD_VALUE(DiagnosticMessage.ERROR_147, DiagnosticCode.GRAPHQL_147,
+                                              DiagnosticSeverity.ERROR),
+    REMOTE_METHOD_WITH_INVALID_RETURN_TYPE_FOUND_IN_DIRECTIVE(DiagnosticMessage.ERROR_148, DiagnosticCode.GRAPHQL_148,
+                                                              DiagnosticSeverity.ERROR),
+    INVALID_INIT_METHOD_RETURN_TYPE_FOUND_IN_DIRECTIVE(DiagnosticMessage.ERROR_149, DiagnosticCode.GRAPHQL_149,
+                                                       DiagnosticSeverity.ERROR),
+    ON_FIELD_MUST_CONTAIN_LEAST_ONE_VALUE_IN_DIRECTIVE_CONFIG(DiagnosticMessage.ERROR_150, DiagnosticCode.GRAPHQL_150,
+                                                              DiagnosticSeverity.ERROR),
+
+
+    DIRECTIVE_LOCATION_NOT_SUPPORTED(DiagnosticMessage.WARNING_200, DiagnosticCode.GRAPHQL_200,
+                                     DiagnosticSeverity.WARNING),
+    PASSING_SHORT_HAND_FIELD_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_201,
+                                                                DiagnosticCode.GRAPHQL_201, DiagnosticSeverity.WARNING),
+    PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_202,
+                                                                              DiagnosticCode.GRAPHQL_202,
+                                                                              DiagnosticSeverity.WARNING),
+    PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_203,
+                                                                             DiagnosticCode.GRAPHQL_203,
+                                                                             DiagnosticSeverity.WARNING),
+    PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_204,
+                                                                     DiagnosticCode.GRAPHQL_204,
+                                                                     DiagnosticSeverity.WARNING),
+    PASSING_STRING_TEMPLATE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_205,
+                                                                           DiagnosticCode.GRAPHQL_205,
+                                                                           DiagnosticSeverity.WARNING);
 
 
     private final String diagnostic;
