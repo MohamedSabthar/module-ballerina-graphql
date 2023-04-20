@@ -35,6 +35,7 @@ import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSym
 import static io.ballerina.stdlib.graphql.compiler.Utils.getDirectiveConfigAnnotationNode;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getValueFromStringLiteral;
 import static io.ballerina.stdlib.graphql.compiler.Utils.hasDirectiveTypeInclusion;
+import static io.ballerina.stdlib.graphql.compiler.Utils.isInitMethod;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_CONFIG_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED;
@@ -82,7 +83,6 @@ public class ExecutableDirectivesValidator {
     private static final String FIELD_ON_FIELD_VALUE = "FIELD";
 
     private static final String GRAPHQL_IDENTIFIER_REGEX = "[_A-Za-z]\\w*";
-    private static final String INIT_METHOD_NAME = "init";
 
     private final SyntaxNodeAnalysisContext context;
     private final Map<String, ClassDefinitionNode> executableDirectives;
@@ -292,13 +292,6 @@ public class ExecutableDirectivesValidator {
             addDiagnosticError(INVALID_RESOURCE_METHOD_INSIDE_DIRECTIVE, getLocation(resourceMethodSymbol, location),
                                resourceMethodSignature);
         }
-    }
-
-    private boolean isInitMethod(MethodSymbol methodSymbol) {
-        if (methodSymbol.getName().isEmpty()) {
-            return false;
-        }
-        return methodSymbol.getName().get().equals(INIT_METHOD_NAME);
     }
 
     private void validateInitMethod(MethodSymbol methodSymbol, Location location) {

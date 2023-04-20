@@ -44,6 +44,7 @@ import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
 import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
@@ -119,8 +120,25 @@ public class SchemaGenerator {
         findRootTypes(this.serviceNode);
         findIntrospectionTypes();
         // TODO: add custom directives
+        addCustomExecutableDirectives();
         addEntityTypes();
         return this.schema;
+    }
+
+    private void addCustomExecutableDirectives() {
+        Map<String, ClassDefinitionNode> directivesMap = this.interfaceEntityFinder.getExecutableDirectives();
+        for (Map.Entry<String, ClassDefinitionNode> entry : directivesMap.entrySet()) {
+            String className = entry.getKey();
+            ClassDefinitionNode classDefinitionNode = entry.getValue();
+            var generator = new ExecutableDirectiveTypeCreator(this.semanticModel, className, classDefinitionNode);
+            Directive directive = generator.generate();
+            for (var param : generator.getInitMethodParameters().entrySet()) {
+                // TODO: add description
+                InputValue inputValue = getArg(param.getKey(), "", param.getValue());
+                directive.addArg(inputValue);
+            }
+            this.schema.addDirective(directive);
+        }
     }
 
     private void addEntityTypes() {

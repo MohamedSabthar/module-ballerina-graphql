@@ -1245,6 +1245,20 @@ public class ServiceValidationTest {
         assertErrorMessage(diagnostic, message, 32, 5);
     }
 
+    @Test(groups = "invalid")
+    public void testCustomDirectivesWithInvalidInitParameter() {
+        String packagePath = "77_custom_directives_with_invalid_init_parameter";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        // TODO: Fix the error message, this error message used in graphql field.
+        // Need a new error message for directive.
+        String message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "sort");
+        assertErrorMessage(diagnostic, message, 32, 5);
+    }
+
     @Test(groups = "not-supported")
     public void testDirectiveConfigWithUnsupportedShorthandNotation() {
         String packagePath = "71_directive_config_with_unsupported_shorthand_field_notation";

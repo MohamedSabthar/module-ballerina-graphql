@@ -76,6 +76,7 @@ public final class Utils {
     public static final String SUBGRAPH_ANNOTATION_NAME = "Subgraph";
     private static final String DIRECTIVE = "Directive";
     private static final String DIRECTIVE_CONFIG = "DirectiveConfig";
+    private static final String INIT_METHOD_NAME = "init";
 
     private Utils() {
     }
@@ -375,5 +376,12 @@ public final class Utils {
     public static String getValueFromStringLiteral(BasicLiteralNode basicLiteralNode) {
         String value = basicLiteralNode.toSourceCode().strip();
         return value.substring(1, value.length() - 1); // remove quotes
+    }
+
+    public static boolean isInitMethod(MethodSymbol methodSymbol) {
+        if (methodSymbol.getName().isEmpty()) {
+            return false;
+        }
+        return methodSymbol.getName().get().equals(INIT_METHOD_NAME);
     }
 }
