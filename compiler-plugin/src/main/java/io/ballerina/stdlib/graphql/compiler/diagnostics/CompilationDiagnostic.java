@@ -111,10 +111,7 @@ public enum CompilationDiagnostic {
                                                                              DiagnosticSeverity.WARNING),
     PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_204,
                                                                      DiagnosticCode.GRAPHQL_204,
-                                                                     DiagnosticSeverity.WARNING),
-    PASSING_STRING_TEMPLATE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_205,
-                                                                           DiagnosticCode.GRAPHQL_205,
-                                                                           DiagnosticSeverity.WARNING);
+                                                                     DiagnosticSeverity.WARNING);
 
 
     private final String diagnostic;

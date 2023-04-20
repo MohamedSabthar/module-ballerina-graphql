@@ -24,6 +24,7 @@ import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 import io.ballerina.tools.diagnostics.Location;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,6 @@ import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagno
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
-import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_STRING_TEMPLATE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.REMOTE_METHOD_WITH_INVALID_PARAMETERS_FOUND_IN_DIRECTIVE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.REMOTE_METHOD_WITH_INVALID_RETURN_TYPE_FOUND_IN_DIRECTIVE;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.getLocation;
@@ -88,6 +88,7 @@ public class ExecutableDirectivesValidator {
     private final SyntaxNodeAnalysisContext context;
     private final Map<String, ClassDefinitionNode> executableDirectives;
     private final List<MethodSymbol> initMethodSymbols = new ArrayList<>();
+    private final Map<String, String> onFieldRemoteMethodMapping = new HashMap();
 
     private Set<String> onFieldValues;
     private Set<String> remoteMethodNames;
@@ -97,6 +98,21 @@ public class ExecutableDirectivesValidator {
                                          Map<String, ClassDefinitionNode> executableDirectives) {
         this.context = context;
         this.executableDirectives = executableDirectives;
+        addOnFieldRemoteMethodMapping();
+    }
+
+    private void addOnFieldRemoteMethodMapping() {
+        // on field value -> remote method name
+        this.onFieldRemoteMethodMapping.put(QUERY_ON_FIELD_VALUE, APPLY_ON_QUERY);
+        this.onFieldRemoteMethodMapping.put(MUTATION_ON_FIELD_VALUE, APPLY_ON_MUTATION);
+        this.onFieldRemoteMethodMapping.put(SUBSCRIPTION_ON_FIELD_VALUE, APPLY_ON_SUBSCRIPTION);
+        this.onFieldRemoteMethodMapping.put(FIELD_ON_FIELD_VALUE, APPLY_ON_FIELD);
+
+        // remote method name -> on field value
+        this.onFieldRemoteMethodMapping.put(APPLY_ON_QUERY, QUERY_ON_FIELD_VALUE);
+        this.onFieldRemoteMethodMapping.put(APPLY_ON_MUTATION, MUTATION_ON_FIELD_VALUE);
+        this.onFieldRemoteMethodMapping.put(APPLY_ON_SUBSCRIPTION, SUBSCRIPTION_ON_FIELD_VALUE);
+        this.onFieldRemoteMethodMapping.put(APPLY_ON_FIELD, FIELD_ON_FIELD_VALUE);
     }
 
     public void validate() {
@@ -154,17 +170,17 @@ public class ExecutableDirectivesValidator {
             String fieldName = specificFieldNode.fieldName().toString().trim();
             if (fieldName.equals(NAME_FIELD_NAME)) {
                 if (specificFieldNode.valueExpr().isEmpty()) {
-                    addDiagnosticWarning(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED, field.location());
+                    addDiagnosticWarning(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED,
+                                         field.location());
+                    continue;
+                }
+                if (specificFieldNode.valueExpr().get().kind() == SyntaxKind.STRING_TEMPLATE_EXPRESSION) {
+                    addDiagnosticWarning(PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED,
+                                         field.location());
                     continue;
                 }
                 if (specificFieldNode.valueExpr().get().kind() != SyntaxKind.STRING_LITERAL) {
                     addDiagnosticWarning(PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED,
-                                         field.location());
-                    continue;
-                }
-                ExpressionNode stringLiteral = specificFieldNode.valueExpr().get();
-                if (!(stringLiteral instanceof BasicLiteralNode)) {
-                    addDiagnosticWarning(PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED,
                                          field.location());
                     continue;
                 }
@@ -201,11 +217,6 @@ public class ExecutableDirectivesValidator {
                     = (ListConstructorExpressionNode) expressionNode;
             for (Node member : listConstructorExpressionNode.expressions()) {
                 if (member.kind() == SyntaxKind.STRING_LITERAL) {
-                    if (!(member instanceof BasicLiteralNode)) {
-                        addDiagnosticWarning(PASSING_STRING_TEMPLATE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED,
-                                             member.location());
-                        continue;
-                    }
                     String fieldValue = getValueFromStringLiteral((BasicLiteralNode) member);
                     this.onFieldValues.add(fieldValue);
                 } else if (member.kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
@@ -220,12 +231,21 @@ public class ExecutableDirectivesValidator {
             addDiagnosticError(ON_FIELD_MUST_CONTAIN_LEAST_ONE_VALUE_IN_DIRECTIVE_CONFIG, valueLocation);
         }
         for (String onFieldValue : this.onFieldValues) {
-            if (!onFieldValue.equals(QUERY_ON_FIELD_VALUE) && !onFieldValue.equals(MUTATION_ON_FIELD_VALUE)
-                    && !onFieldValue.equals(SUBSCRIPTION_ON_FIELD_VALUE) && !onFieldValue.equals(
-                    FIELD_ON_FIELD_VALUE)) {
+            if (!isSupportedOnFieldLocation(onFieldValue)) {
                 addDiagnosticWarning(DIRECTIVE_LOCATION_NOT_SUPPORTED, valueLocation, onFieldValue);
             }
         }
+    }
+
+    private boolean isSupportedOnFieldLocation(String onFieldValue) {
+        switch (onFieldValue) {
+            case QUERY_ON_FIELD_VALUE:
+            case MUTATION_ON_FIELD_VALUE:
+            case SUBSCRIPTION_ON_FIELD_VALUE:
+            case FIELD_ON_FIELD_VALUE:
+                return true;
+        }
+        return false;
     }
 
     private void validateDirectiveServiceMember(Node node, Location location) {
@@ -355,7 +375,8 @@ public class ExecutableDirectivesValidator {
 
     private void validateOnFieldToRemoteMethodMapping(Location location, String directiveClassName) {
         for (String onFieldValue : this.onFieldValues) {
-            if (!this.remoteMethodNames.contains(getRemoteMethodMapping(onFieldValue))) {
+            if (isSupportedOnFieldLocation(onFieldValue) && !this.remoteMethodNames.contains(
+                    getRemoteMethodMapping(onFieldValue))) {
                 addDiagnosticError(NO_REMOTE_METHOD_FOUND_FOR_ON_FIELD_VALUE, location, directiveClassName,
                                    onFieldValue);
             }
@@ -363,35 +384,11 @@ public class ExecutableDirectivesValidator {
     }
 
     private String getRemoteMethodMapping(String fieldName) {
-        switch (fieldName) {
-            case QUERY_ON_FIELD_VALUE:
-                return APPLY_ON_QUERY;
-            case MUTATION_ON_FIELD_VALUE:
-                return APPLY_ON_MUTATION;
-            case SUBSCRIPTION_ON_FIELD_VALUE:
-                return APPLY_ON_SUBSCRIPTION;
-            case FIELD_ON_FIELD_VALUE:
-                return APPLY_ON_FIELD;
-            default:
-                return null;
-
-        }
+        return this.onFieldRemoteMethodMapping.getOrDefault(fieldName, null);
     }
 
     private String getOnFieldValueMapping(String remoteMethodName) {
-        switch (remoteMethodName) {
-            case APPLY_ON_QUERY:
-                return QUERY_ON_FIELD_VALUE;
-            case APPLY_ON_MUTATION:
-                return MUTATION_ON_FIELD_VALUE;
-            case APPLY_ON_SUBSCRIPTION:
-                return SUBSCRIPTION_ON_FIELD_VALUE;
-            case APPLY_ON_FIELD:
-                return FIELD_ON_FIELD_VALUE;
-            default:
-                return null;
-
-        }
+        return this.onFieldRemoteMethodMapping.getOrDefault(remoteMethodName, null);
     }
 
     private void addDiagnosticError(CompilationDiagnostic compilationDiagnostic, Location location, Object... args) {

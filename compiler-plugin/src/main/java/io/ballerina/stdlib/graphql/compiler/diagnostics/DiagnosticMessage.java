@@ -110,8 +110,7 @@ public enum DiagnosticMessage {
                         + "a string literal instead"),
     WARNING_203("passing string template for ''name'' field in ''graphql:DirectiveConfig'' is not yet supported. Pass a"
                         + " string literal instead"),
-    WARNING_204("passing reference value for ''on'' field in ''graphql:DirectiveConfig'' is not yet supported."),
-    WARNING_205("passing string template for ''on'' field in ''graphql:DirectiveConfig'' is not yet supported.");
+    WARNING_204("passing reference value for ''on'' field in ''graphql:DirectiveConfig'' is not yet supported.");
 
     private final String message;
 

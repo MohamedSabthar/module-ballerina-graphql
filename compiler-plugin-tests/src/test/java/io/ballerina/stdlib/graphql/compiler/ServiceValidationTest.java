@@ -77,6 +77,10 @@ import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagno
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.NO_ON_FIELD_FOUND_FOR_DIRECTIVE_REMOTE_METHOD;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.NO_REMOTE_METHOD_FOUND_FOR_ON_FIELD_VALUE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.ON_FIELD_MUST_CONTAIN_LEAST_ONE_VALUE_IN_DIRECTIVE_CONFIG;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.REMOTE_METHOD_WITH_INVALID_PARAMETERS_FOUND_IN_DIRECTIVE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.REMOTE_METHOD_WITH_INVALID_RETURN_TYPE_FOUND_IN_DIRECTIVE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.RESOURCE_METHOD_INSIDE_INTERCEPTOR;
@@ -1232,17 +1236,82 @@ public class ServiceValidationTest {
     }
 
     // TODO: add tests to check warning messages
-    @Test(groups = "warning")
-    public void testDirectiveConfigWithShorthandNotation() {
-        String packagePath = "71_directive_config_with_shorthand_field_notation";
+    @Test(groups = "not-supported")
+    public void testDirectiveConfigWithUnsupportedShorthandNotation() {
+        String packagePath = "71_directive_config_with_unsupported_shorthand_field_notation";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.warningCount(), 1);
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(
-                CompilationDiagnostic.PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        String message = getErrorMessage(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED);
         assertWarningMessage(diagnostic, message, 34, 5);
+    }
+
+    @Test(groups = "not-supported")
+    public void testDirectiveConfigNameFieldWithoutStringLiteral() {
+        String packagePath = "72_directive_config_name_field_without_string_literal";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        assertWarningMessage(diagnostic, message, 34, 5);
+    }
+
+    @Test(groups = "not-supported")
+    public void testDirectiveConfigNameFieldWithUnsupportedTemplateString() {
+        String packagePath = "73_directive_config_name_field_with_unsupported_template_string";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        assertWarningMessage(diagnostic, message, 34, 5);
+    }
+
+    @Test(groups = {"not-supported", "invalid"})
+    public void testDirectiveConfigOnFieldWithUnsupportedNameReference() {
+        String packagePath = "74_directive_config_on_field_with_unsupported_name_reference";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        assertWarningMessage(diagnostic, message, 33, 5);
+
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        diagnosticIterator = diagnosticResult.errors().iterator();
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(NO_ON_FIELD_FOUND_FOR_DIRECTIVE_REMOTE_METHOD, "applyOnField", "FIELD");
+        assertErrorMessage(diagnostic, message, 43, 30);
+    }
+
+    @Test(groups = "not-supported")
+    public void testDirectiveConfigOnFieldWithUnsupportedDirectiveLocation() {
+        String packagePath = "75_directive_config_on_field_with_unsupported_directive_location";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 4);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED, "VARIABLE_DEFINITION");
+        assertWarningMessage(diagnostic, message, 31, 10);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED, "FRAGMENT_SPREAD");
+        assertWarningMessage(diagnostic, message, 31, 10);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED, "FRAGMENT_DEFINITION");
+        assertWarningMessage(diagnostic, message, 31, 10);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED, "INLINE_FRAGMENT");
+        assertWarningMessage(diagnostic, message, 31, 10);
     }
 
     private DiagnosticResult getDiagnosticResult(String packagePath) {
@@ -1276,7 +1345,7 @@ public class ServiceValidationTest {
         assertErrorLocation(diagnostic.location(), line, column);
     }
 
-    // TODO: rename the message since now we are using the same method for warnings messsage
+    // TODO: rename the message since now we are using the same method for warnings message
     private String getErrorMessage(CompilationDiagnostic compilationDiagnostic, Object... args) {
         return MessageFormat.format(compilationDiagnostic.getDiagnostic(), args);
     }
