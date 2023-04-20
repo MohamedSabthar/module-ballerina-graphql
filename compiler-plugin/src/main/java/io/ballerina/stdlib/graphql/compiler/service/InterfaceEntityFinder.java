@@ -89,9 +89,9 @@ public class InterfaceEntityFinder {
             return;
         }
 
-        String directiveName = executableDirectiveFinder.getDirectiveName();
+        String directiveClassName = executableDirectiveFinder.getDirectiveClassName();
         // TODO: check for duplicate directive names
-        this.executableDirectives.put(directiveName, directiveNode.get());
+        this.executableDirectives.put(directiveClassName, directiveNode.get());
     }
 
     public boolean isPossibleInterface(String name) {

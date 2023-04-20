@@ -102,6 +102,7 @@ public enum DiagnosticMessage {
     ERROR_149("invalid return type ''{0}'' found in ''init'' method of directive service. The ''init'' method must "
                       + "return types other than ''()''"),
     ERROR_150("the on field of the ''graphql:DirectiveConfig'' annotation must have at least one value"),
+    ERROR_151("directive name ''{0}'' already in use"),
 
 
     WARNING_200("executable directive on ''{0}'' is not yet supported"),

@@ -96,8 +96,10 @@ public enum CompilationDiagnostic {
                                                        DiagnosticSeverity.ERROR),
     ON_FIELD_MUST_CONTAIN_LEAST_ONE_VALUE_IN_DIRECTIVE_CONFIG(DiagnosticMessage.ERROR_150, DiagnosticCode.GRAPHQL_150,
                                                               DiagnosticSeverity.ERROR),
+    DIRECTIVE_NAME_ALREADY_IN_USE(DiagnosticMessage.ERROR_151, DiagnosticCode.GRAPHQL_151 , DiagnosticSeverity.ERROR),
 
 
+    // Warnings
     DIRECTIVE_LOCATION_NOT_SUPPORTED(DiagnosticMessage.WARNING_200, DiagnosticCode.GRAPHQL_200,
                                      DiagnosticSeverity.WARNING),
     PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED(DiagnosticMessage.WARNING_201,

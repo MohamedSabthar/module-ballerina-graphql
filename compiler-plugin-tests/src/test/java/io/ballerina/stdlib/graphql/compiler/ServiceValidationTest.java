@@ -1235,7 +1235,18 @@ public class ServiceValidationTest {
         assertErrorMessage(diagnostic, message, 50, 30);
     }
 
-    // TODO: add tests to check warning messages
+    @Test(groups = "invalid")
+    public void testCustomDirectivesWithSameName() {
+        String packagePath = "76_custom_directives_with_same_name";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_NAME_ALREADY_IN_USE, "sort");
+        assertErrorMessage(diagnostic, message, 32, 5);
+    }
+
     @Test(groups = "not-supported")
     public void testDirectiveConfigWithUnsupportedShorthandNotation() {
         String packagePath = "71_directive_config_with_unsupported_shorthand_field_notation";

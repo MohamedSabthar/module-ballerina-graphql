@@ -38,6 +38,7 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.hasDirectiveTypeInclusi
 import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_CONFIG_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_NAME_ALREADY_IN_USE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_TYPE_INCLUSION_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_DIRECTIVE_NAME;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INIT_METHOD_RETURN_TYPE_FOUND_IN_DIRECTIVE;
@@ -88,7 +89,8 @@ public class ExecutableDirectivesValidator {
     private final SyntaxNodeAnalysisContext context;
     private final Map<String, ClassDefinitionNode> executableDirectives;
     private final List<MethodSymbol> initMethodSymbols = new ArrayList<>();
-    private final Map<String, String> onFieldRemoteMethodMapping = new HashMap();
+    private final Map<String, String> onFieldRemoteMethodMapping = new HashMap<>();
+    private final Set<String> validatedDirectiveNames = new HashSet<>();
 
     private Set<String> onFieldValues;
     private Set<String> remoteMethodNames;
@@ -117,13 +119,13 @@ public class ExecutableDirectivesValidator {
 
     public void validate() {
         for (Map.Entry<String, ClassDefinitionNode> entry : this.executableDirectives.entrySet()) {
-            String directiveName = entry.getKey();
+            String directiveClassName = entry.getKey();
             ClassDefinitionNode classDefinitionNode = entry.getValue();
-            validateDirective(directiveName, classDefinitionNode);
+            validateDirective(directiveClassName, classDefinitionNode);
         }
     }
 
-    private void validateDirective(String directiveName, ClassDefinitionNode classDefinitionNode) {
+    private void validateDirective(String directiveClassName, ClassDefinitionNode classDefinitionNode) {
         this.onFieldValues = new HashSet<>();
         this.remoteMethodNames = new HashSet<>();
         Optional<Symbol> symbol = this.context.semanticModel().symbol(classDefinitionNode);
@@ -133,13 +135,14 @@ public class ExecutableDirectivesValidator {
         ClassSymbol classSymbol = (ClassSymbol) symbol.get();
         Location location = classSymbol.getLocation().orElse(classDefinitionNode.location());
         validateDirectiveTypeInclusion(classSymbol, location);
-        validateDirectiveConfig(classDefinitionNode, classSymbol, directiveName);
+        validateDirectiveConfig(classDefinitionNode, classSymbol, directiveClassName);
 
         for (Node member : classDefinitionNode.members()) {
             validateDirectiveServiceMember(member, location);
         }
-        validateOnFieldToRemoteMethodMapping(location, classSymbol.getName().orElse(directiveName));
+        validateOnFieldToRemoteMethodMapping(location, directiveClassName);
     }
+
 
     private void validateDirectiveTypeInclusion(ClassSymbol classSymbol, Location location) {
         String className = classSymbol.getName().orElse(ANONYMOUS_CLASS_NAME);
@@ -150,7 +153,7 @@ public class ExecutableDirectivesValidator {
     }
 
     private void validateDirectiveConfig(ClassDefinitionNode classDefinitionNode, ClassSymbol classSymbol,
-                                         String directiveName) {
+                                         String directiveClassName) {
         String className = classSymbol.getName().orElse(ANONYMOUS_CLASS_NAME);
         Optional<AnnotationNode> directiveConfigAnnotationNode = getDirectiveConfigAnnotationNode(
                 this.context.semanticModel(), classDefinitionNode);
@@ -159,9 +162,10 @@ public class ExecutableDirectivesValidator {
                                className);
             return;
         }
+        String directiveName = directiveClassName;
         // noinspection OptionalGetWithoutIsPresent
         MappingConstructorExpressionNode expressionNode = directiveConfigAnnotationNode.get().annotValue().get();
-        Location onValueLocation;
+        Location nameFieldLocation = expressionNode.location();
         for (MappingFieldNode field : expressionNode.fields()) {
             if (field.kind() != SyntaxKind.SPECIFIC_FIELD) {
                 continue;
@@ -169,38 +173,58 @@ public class ExecutableDirectivesValidator {
             SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
             String fieldName = specificFieldNode.fieldName().toString().trim();
             if (fieldName.equals(NAME_FIELD_NAME)) {
-                if (specificFieldNode.valueExpr().isEmpty()) {
-                    addDiagnosticWarning(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED,
-                                         field.location());
-                    continue;
-                }
-                if (specificFieldNode.valueExpr().get().kind() == SyntaxKind.STRING_TEMPLATE_EXPRESSION) {
-                    addDiagnosticWarning(PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED,
-                                         field.location());
-                    continue;
-                }
-                if (specificFieldNode.valueExpr().get().kind() != SyntaxKind.STRING_LITERAL) {
-                    addDiagnosticWarning(PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED,
-                                         field.location());
-                    continue;
+                nameFieldLocation = field.location();
+                String nameFieldString = getNameFromDirectiveConfig(specificFieldNode, field.location());
+                if (nameFieldString != null) {
+                    directiveName = nameFieldString;
                 }
                 validateDirectiveName(directiveName, field.location());
             } else if (fieldName.equals(ON_FIELD_NAME)) {
-                if (specificFieldNode.valueExpr().isEmpty()) {
-                    continue;
-                }
-                onValueLocation = specificFieldNode.valueExpr().get().location();
-                SyntaxKind syntaxKind = specificFieldNode.valueExpr().get().kind();
-                if (syntaxKind != SyntaxKind.QUALIFIED_NAME_REFERENCE && syntaxKind != SyntaxKind.LIST_CONSTRUCTOR
-                        && syntaxKind != SyntaxKind.STRING_LITERAL) {
-                    addDiagnosticWarning(PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED,
-                                         field.location());
-                    continue;
-                }
-                readOnFieldValues(specificFieldNode.valueExpr().get());
-                validateOnFieldValues(onValueLocation == null ? expressionNode.location() : onValueLocation);
+                validateDirectiveConfigOnField(expressionNode, specificFieldNode, field.location());
             }
         }
+        updateValidatedDirectiveNameSet(directiveName, nameFieldLocation);
+    }
+
+    private void updateValidatedDirectiveNameSet(String directiveName, Location location) {
+        if (this.validatedDirectiveNames.contains(directiveName)) {
+            addDiagnosticError(DIRECTIVE_NAME_ALREADY_IN_USE, location, directiveName);
+            return;
+        }
+        this.validatedDirectiveNames.add(directiveName);
+    }
+
+    private void validateDirectiveConfigOnField(MappingConstructorExpressionNode expressionNode,
+                                                SpecificFieldNode specificFieldNode, Location location) {
+        if (specificFieldNode.valueExpr().isEmpty()) {
+            return;
+        }
+        Location onValueLocation = specificFieldNode.valueExpr().get().location();
+        SyntaxKind syntaxKind = specificFieldNode.valueExpr().get().kind();
+        if (syntaxKind != SyntaxKind.QUALIFIED_NAME_REFERENCE && syntaxKind != SyntaxKind.LIST_CONSTRUCTOR
+                && syntaxKind != SyntaxKind.STRING_LITERAL) {
+            addDiagnosticWarning(PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
+            return;
+        }
+        readOnFieldValues(specificFieldNode.valueExpr().get());
+        validateOnFieldValues(onValueLocation == null ? expressionNode.location() : onValueLocation);
+    }
+
+    private String getNameFromDirectiveConfig(SpecificFieldNode specificFieldNode, Location location) {
+        if (specificFieldNode.valueExpr().isEmpty()) {
+            addDiagnosticWarning(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
+            return null;
+        }
+        if (specificFieldNode.valueExpr().get().kind() == SyntaxKind.STRING_TEMPLATE_EXPRESSION) {
+            addDiagnosticWarning(PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
+            return null;
+        }
+        if (specificFieldNode.valueExpr().get().kind() != SyntaxKind.STRING_LITERAL) {
+            addDiagnosticWarning(PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
+            return null;
+        }
+        BasicLiteralNode basicLiteralNode = (BasicLiteralNode) specificFieldNode.valueExpr().get();
+        return getValueFromStringLiteral(basicLiteralNode);
     }
 
     private void validateDirectiveName(String directiveName, Location location) {
@@ -322,8 +346,8 @@ public class ExecutableDirectivesValidator {
         }
 
         TypeDescKind returnTypeKind = returnTypedesc.get().typeKind();
-        if (returnTypeKind != TypeDescKind.ANYDATA && returnTypeKind != TypeDescKind.ERROR
-                && !isValidUnionReturnType(returnTypedesc.get())) {
+        if (returnTypeKind != TypeDescKind.ANYDATA && returnTypeKind != TypeDescKind.ERROR && !isValidUnionReturnType(
+                returnTypedesc.get())) {
             addDiagnosticError(REMOTE_METHOD_WITH_INVALID_RETURN_TYPE_FOUND_IN_DIRECTIVE, location, methodName);
         }
     }
