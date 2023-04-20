@@ -2,15 +2,8 @@ package io.ballerina.stdlib.graphql.compiler.service;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
-import io.ballerina.compiler.syntax.tree.AnnotationNode;
-import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
-import io.ballerina.compiler.syntax.tree.ExpressionNode;
-import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
-import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
 import io.ballerina.projects.ModuleId;
@@ -20,8 +13,6 @@ import io.ballerina.stdlib.graphql.compiler.service.validator.ExecutableDirectiv
 import java.util.Collection;
 import java.util.Optional;
 
-import static io.ballerina.stdlib.graphql.compiler.Utils.getDirectiveConfigAnnotationNode;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getValueFromStringLiteral;
 import static io.ballerina.stdlib.graphql.compiler.Utils.hasDirectiveConfig;
 import static io.ballerina.stdlib.graphql.compiler.Utils.hasDirectiveTypeInclusion;
 

@@ -910,8 +910,6 @@ public class ServiceValidationTest {
 
     @Test(groups = "invalid")
     public void testNonDistinctInterface() {
-        // TODO: check for non distinct object
-        // https://github.com/ballerina-platform/ballerina-standard-library/issues/3337
         String packagePath = "53_non_distinct_interface";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 2);

@@ -90,7 +90,6 @@ public class InterfaceEntityFinder {
         }
 
         String directiveClassName = executableDirectiveFinder.getDirectiveClassName();
-        // TODO: check for duplicate directive names
         this.executableDirectives.put(directiveClassName, directiveNode.get());
     }
 

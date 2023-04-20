@@ -117,14 +117,20 @@ public class ServiceValidator {
         } else if (serviceNode.kind() == SyntaxKind.OBJECT_CONSTRUCTOR) {
             validateServiceObject();
         }
+        validateCustomExecutableDirectives();
+    }
+
+    private void validateCustomExecutableDirectives() {
         Map<String, ClassDefinitionNode> executableDirectives = this.interfaceEntityFinder.getExecutableDirectives();
-        ExecutableDirectivesValidator directivesValidator = new ExecutableDirectivesValidator(context,
-                                                                                              executableDirectives);
-        directivesValidator.validate();
-        if (directivesValidator.isErrorOccurred()) {
+        if (executableDirectives.isEmpty()) {
+            return;
+        }
+        ExecutableDirectivesValidator validator = new ExecutableDirectivesValidator(context, executableDirectives);
+        validator.validate();
+        if (validator.isErrorOccurred()) {
             this.errorOccurred = true;
         }
-        for (MethodSymbol methodSymbol: directivesValidator.getInitMethodSymbols()) {
+        for (MethodSymbol methodSymbol : validator.getInitMethodSymbols()) {
             validateDirectiveInputParameters(methodSymbol, methodSymbol.getLocation().get());
         }
     }

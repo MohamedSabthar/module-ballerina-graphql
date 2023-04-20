@@ -61,8 +61,6 @@ import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUt
  */
 public class ExecutableDirectivesValidator {
 
-    public static final String ANONYMOUS_CLASS_NAME = "$anonymous";
-
     // Directive optional method names
     private static final String APPLY_ON_QUERY = "applyOnQuery";
     private static final String APPLY_ON_MUTATION = "applyOnMutation";
@@ -91,9 +89,9 @@ public class ExecutableDirectivesValidator {
     private final List<MethodSymbol> initMethodSymbols = new ArrayList<>();
     private final Map<String, String> onFieldRemoteMethodMapping = new HashMap<>();
     private final Set<String> validatedDirectiveNames = new HashSet<>();
+    private final Set<String> onFieldValues = new HashSet<>();
+    private final Set<String> remoteMethodNames = new HashSet<>();
 
-    private Set<String> onFieldValues;
-    private Set<String> remoteMethodNames;
     private boolean errorOccurred = false;
 
     public ExecutableDirectivesValidator(SyntaxNodeAnalysisContext context,
@@ -126,16 +124,15 @@ public class ExecutableDirectivesValidator {
     }
 
     private void validateDirective(String directiveClassName, ClassDefinitionNode classDefinitionNode) {
-        this.onFieldValues = new HashSet<>();
-        this.remoteMethodNames = new HashSet<>();
-        Optional<Symbol> symbol = this.context.semanticModel().symbol(classDefinitionNode);
-        if (symbol.isEmpty()) {
-            return;
-        }
-        ClassSymbol classSymbol = (ClassSymbol) symbol.get();
+        this.onFieldValues.clear();
+        this.remoteMethodNames.clear();
+
+        // No need to check isPresent(), already validated in ExecutableDirectiveNodeVisitor
+        // noinspection OptionalGetWithoutIsPresent
+        ClassSymbol classSymbol = (ClassSymbol) this.context.semanticModel().symbol(classDefinitionNode).get();
         Location location = classSymbol.getLocation().orElse(classDefinitionNode.location());
-        validateDirectiveTypeInclusion(classSymbol, location);
-        validateDirectiveConfig(classDefinitionNode, classSymbol, directiveClassName);
+        validateDirectiveTypeInclusion(classSymbol, directiveClassName, location);
+        validateDirectiveConfig(classDefinitionNode, directiveClassName);
 
         for (Node member : classDefinitionNode.members()) {
             validateDirectiveServiceMember(member, location);
@@ -143,29 +140,32 @@ public class ExecutableDirectivesValidator {
         validateOnFieldToRemoteMethodMapping(location, directiveClassName);
     }
 
-
-    private void validateDirectiveTypeInclusion(ClassSymbol classSymbol, Location location) {
-        String className = classSymbol.getName().orElse(ANONYMOUS_CLASS_NAME);
+    private void validateDirectiveTypeInclusion(ClassSymbol classSymbol, String className, Location location) {
         if (hasDirectiveTypeInclusion(classSymbol)) {
             return;
         }
         addDiagnosticError(DIRECTIVE_TYPE_INCLUSION_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS, location, className);
     }
 
-    private void validateDirectiveConfig(ClassDefinitionNode classDefinitionNode, ClassSymbol classSymbol,
-                                         String directiveClassName) {
-        String className = classSymbol.getName().orElse(ANONYMOUS_CLASS_NAME);
-        Optional<AnnotationNode> directiveConfigAnnotationNode = getDirectiveConfigAnnotationNode(
-                this.context.semanticModel(), classDefinitionNode);
-        if (directiveConfigAnnotationNode.isEmpty()) {
+    private void validateDirectiveConfig(ClassDefinitionNode classDefinitionNode, String directiveClassName) {
+        Optional<AnnotationNode> configAnnotationNode = getDirectiveConfigAnnotationNode(this.context.semanticModel(),
+                                                                                         classDefinitionNode);
+        if (configAnnotationNode.isEmpty()) {
             addDiagnosticError(DIRECTIVE_CONFIG_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS, classDefinitionNode.location(),
-                               className);
+                               directiveClassName);
             return;
         }
-        String directiveName = directiveClassName;
-        // noinspection OptionalGetWithoutIsPresent
-        MappingConstructorExpressionNode expressionNode = directiveConfigAnnotationNode.get().annotValue().get();
+        Optional<MappingConstructorExpressionNode> annotationValue = configAnnotationNode.get().annotValue();
+        if (annotationValue.isEmpty()) {
+            return;
+        }
+        validateDirectiveConfigFields(directiveClassName, annotationValue.get());
+    }
+
+    private void validateDirectiveConfigFields(String directiveClassName,
+                                               MappingConstructorExpressionNode expressionNode) {
         Location nameFieldLocation = expressionNode.location();
+        String directiveName = directiveClassName;
         for (MappingFieldNode field : expressionNode.fields()) {
             if (field.kind() != SyntaxKind.SPECIFIC_FIELD) {
                 continue;
@@ -174,9 +174,10 @@ public class ExecutableDirectivesValidator {
             String fieldName = specificFieldNode.fieldName().toString().trim();
             if (fieldName.equals(NAME_FIELD_NAME)) {
                 nameFieldLocation = field.location();
-                String nameFieldString = getNameFromDirectiveConfig(specificFieldNode, field.location());
-                if (nameFieldString != null) {
-                    directiveName = nameFieldString;
+                String overriddenDirectiveName = getNameFromDirectiveConfigNameField(specificFieldNode,
+                                                                                     field.location());
+                if (overriddenDirectiveName != null) {
+                    directiveName = overriddenDirectiveName;
                 }
                 validateDirectiveName(directiveName, field.location());
             } else if (fieldName.equals(ON_FIELD_NAME)) {
@@ -210,7 +211,7 @@ public class ExecutableDirectivesValidator {
         validateOnFieldValues(onValueLocation == null ? expressionNode.location() : onValueLocation);
     }
 
-    private String getNameFromDirectiveConfig(SpecificFieldNode specificFieldNode, Location location) {
+    private String getNameFromDirectiveConfigNameField(SpecificFieldNode specificFieldNode, Location location) {
         if (specificFieldNode.valueExpr().isEmpty()) {
             addDiagnosticWarning(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
             return null;
@@ -282,7 +283,6 @@ public class ExecutableDirectivesValidator {
             if (isRemoteMethod(methodSymbol)) {
                 validateRemoteMethod(methodSymbol, location);
             } else if (isInitMethod(methodSymbol)) {
-                // TODO: validate init method
                 validateInitMethod(methodSymbol, location);
                 this.initMethodSymbols.add(methodSymbol);
             }
