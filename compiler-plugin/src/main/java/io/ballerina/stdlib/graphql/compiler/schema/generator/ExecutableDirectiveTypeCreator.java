@@ -8,6 +8,7 @@ import io.ballerina.compiler.api.symbols.SymbolKind;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.ListConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
@@ -90,7 +91,7 @@ public class ExecutableDirectiveTypeCreator {
                 BasicLiteralNode basicLiteralNode = (BasicLiteralNode) specificFieldNode.valueExpr().get();
                 this.directiveName = getValueFromStringLiteral(basicLiteralNode);
             } else if (fieldName.equals(DIRECTIVE_ON_FIELD)) {
-                var expressionNode = specificFieldNode.valueExpr().get();
+                ExpressionNode expressionNode = specificFieldNode.valueExpr().get();
                 if (expressionNode.kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
                     this.onFieldValues.add(
                             expressionNode.toString().split(SyntaxKind.COLON_TOKEN.stringValue())[1].trim());
@@ -122,11 +123,10 @@ public class ExecutableDirectiveTypeCreator {
                 if (!isInitMethod(methodSymbol)) {
                     continue;
                 }
-                var params = methodSymbol.typeDescriptor().params();
-                if (params.isEmpty()) {
+                if (methodSymbol.typeDescriptor().params().isEmpty()) {
                     return;
                 }
-                this.parameters.addAll(params.get());
+                this.parameters.addAll(methodSymbol.typeDescriptor().params().get());
             }
         }
     }

@@ -173,8 +173,9 @@ public class SchemaGenerator {
         for (Map.Entry<String, ClassDefinitionNode> entry : directivesMap.entrySet()) {
             String className = entry.getKey();
             ClassDefinitionNode classDefinitionNode = entry.getValue();
-            var generator = new ExecutableDirectiveTypeCreator(this.semanticModel, className, classDefinitionNode,
-                                                               this.typeCreator);
+            ExecutableDirectiveTypeCreator generator = new ExecutableDirectiveTypeCreator(this.semanticModel, className,
+                                                                                          classDefinitionNode,
+                                                                                          this.typeCreator);
             Directive directive = generator.generate();
             if (directive == null) {
                 continue;
