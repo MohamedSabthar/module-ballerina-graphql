@@ -26,13 +26,15 @@ import java.util.Optional;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getDirectiveConfigAnnotationNode;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getValueFromStringLiteral;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isInitMethod;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
 
+/**
+ * Creates directive type from a Ballerina directive class node.
+ */
 public class ExecutableDirectiveTypeCreator {
     private static final String DIRECTIVE_NAME_FIELD = "name";
     private static final String DIRECTIVE_ON_FIELD = "on";
     private final List<String> onFieldValues = new ArrayList<>();
-    private final Map<String, ParameterSymbol> parameters = new HashMap();
+    private final Map<String, ParameterSymbol> parameters = new HashMap<>();
     private final ClassDefinitionNode directiveNode;
     private final SemanticModel semanticModel;
     private String directiveName;
@@ -73,6 +75,9 @@ public class ExecutableDirectiveTypeCreator {
             String fieldName = specificFieldNode.fieldName().toString().trim();
             if (fieldName.equals(DIRECTIVE_NAME_FIELD)) {
                 if (specificFieldNode.valueExpr().isEmpty()) {
+                    continue;
+                }
+                if (specificFieldNode.valueExpr().get().kind() != SyntaxKind.STRING_LITERAL) {
                     continue;
                 }
                 BasicLiteralNode basicLiteralNode = (BasicLiteralNode) specificFieldNode.valueExpr().get();

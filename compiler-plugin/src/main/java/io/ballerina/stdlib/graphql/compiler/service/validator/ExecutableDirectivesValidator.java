@@ -1,6 +1,7 @@
 package io.ballerina.stdlib.graphql.compiler.service.validator;
 
 import io.ballerina.compiler.api.symbols.ClassSymbol;
+import io.ballerina.compiler.api.symbols.FunctionTypeSymbol;
 import io.ballerina.compiler.api.symbols.MethodSymbol;
 import io.ballerina.compiler.api.symbols.ParameterSymbol;
 import io.ballerina.compiler.api.symbols.ResourceMethodSymbol;
@@ -23,7 +24,6 @@ import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 import io.ballerina.tools.diagnostics.Location;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -86,18 +86,20 @@ public class ExecutableDirectivesValidator {
 
     private final SyntaxNodeAnalysisContext context;
     private final Map<String, ClassDefinitionNode> executableDirectives;
-    private final List<MethodSymbol> initMethodSymbols = new ArrayList<>();
     private final Map<String, String> onFieldRemoteMethodMapping = new HashMap<>();
     private final Set<String> validatedDirectiveNames = new HashSet<>();
     private final Set<String> onFieldValues = new HashSet<>();
     private final Set<String> remoteMethodNames = new HashSet<>();
+    private final InputTypeValidator inputTypeValidator;
 
     private boolean errorOccurred = false;
 
     public ExecutableDirectivesValidator(SyntaxNodeAnalysisContext context,
-                                         Map<String, ClassDefinitionNode> executableDirectives) {
+                                         Map<String, ClassDefinitionNode> executableDirectives,
+                                         InputTypeValidator inputTypeValidator) {
         this.context = context;
         this.executableDirectives = executableDirectives;
+        this.inputTypeValidator = inputTypeValidator;
         addOnFieldRemoteMethodMapping();
     }
 
@@ -284,13 +286,25 @@ public class ExecutableDirectivesValidator {
                 validateRemoteMethod(methodSymbol, location);
             } else if (isInitMethod(methodSymbol)) {
                 validateInitMethod(methodSymbol, location);
-                this.initMethodSymbols.add(methodSymbol);
+                validateDirectiveInputParameters(methodSymbol, location);
             }
         } else if (symbol.kind() == SymbolKind.RESOURCE_METHOD) {
             ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) symbol;
             String resourceMethodSignature = resourceMethodSymbol.signature();
             addDiagnosticError(INVALID_RESOURCE_METHOD_INSIDE_DIRECTIVE, getLocation(resourceMethodSymbol, location),
                                resourceMethodSignature);
+        }
+    }
+
+
+    private void validateDirectiveInputParameters(MethodSymbol methodSymbol, Location location) {
+        FunctionTypeSymbol functionTypeSymbol = methodSymbol.typeDescriptor();
+        if (functionTypeSymbol.params().isPresent()) {
+            List<ParameterSymbol> parameterSymbols = functionTypeSymbol.params().get();
+            for (ParameterSymbol parameter : parameterSymbols) {
+                Location inputLocation = getLocation(parameter, location);
+                this.inputTypeValidator.validateInputParameterType(parameter.typeDescriptor(), inputLocation, false);
+            }
         }
     }
 
@@ -418,10 +432,6 @@ public class ExecutableDirectivesValidator {
     }
 
     public boolean isErrorOccurred() {
-        return this.errorOccurred;
-    }
-
-    public List<MethodSymbol> getInitMethodSymbols() {
-        return this.initMethodSymbols;
+        return this.errorOccurred || this.inputTypeValidator.isErrorOccurred();
     }
 }

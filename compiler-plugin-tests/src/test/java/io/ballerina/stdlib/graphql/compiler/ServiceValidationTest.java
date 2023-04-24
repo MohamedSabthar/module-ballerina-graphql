@@ -1255,7 +1255,7 @@ public class ServiceValidationTest {
         Diagnostic diagnostic = diagnosticIterator.next();
         // TODO: Fix the error message, this error message used in graphql field.
         // Need a new error message for directive.
-        String message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "sort");
+        String message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "json");
         assertErrorMessage(diagnostic, message, 32, 5);
     }
 

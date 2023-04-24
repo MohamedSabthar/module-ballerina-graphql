@@ -132,6 +132,9 @@ public class SchemaGenerator {
             ClassDefinitionNode classDefinitionNode = entry.getValue();
             var generator = new ExecutableDirectiveTypeCreator(this.semanticModel, className, classDefinitionNode);
             Directive directive = generator.generate();
+            if (directive == null) {
+                continue;
+            }
             for (var param : generator.getInitMethodParameters().entrySet()) {
                 // TODO: add description
                 InputValue inputValue = getArg(param.getKey(), "", param.getValue());
