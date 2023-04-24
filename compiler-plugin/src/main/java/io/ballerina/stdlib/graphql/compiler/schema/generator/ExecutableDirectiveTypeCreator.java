@@ -19,9 +19,7 @@ import io.ballerina.stdlib.graphql.commons.types.DirectiveLocation;
 import io.ballerina.stdlib.graphql.commons.types.InputValue;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static io.ballerina.stdlib.graphql.compiler.Utils.getDirectiveConfigAnnotationNode;
@@ -36,7 +34,7 @@ public class ExecutableDirectiveTypeCreator {
     private static final String DIRECTIVE_ON_FIELD = "on";
     private final TypeCreator typeCreator;
     private final List<String> onFieldValues = new ArrayList<>();
-    private final Map<String, ParameterSymbol> parameters = new HashMap<>();
+    private final List<ParameterSymbol> parameters = new ArrayList<>();
     private final ClassDefinitionNode directiveNode;
     private final SemanticModel semanticModel;
     private String directiveName;
@@ -62,10 +60,11 @@ public class ExecutableDirectiveTypeCreator {
         }
 
         Directive directive = new Directive(this.directiveName, "", directiveLocations);
-        for (Map.Entry<String, ParameterSymbol> entry : this.parameters.entrySet()) {
+        for (ParameterSymbol parameterSymbol : this.parameters) {
             // TODO: obtain description from documentation
             // TODO: add description
-            InputValue inputValue = this.typeCreator.getArg(entry.getKey(), "", entry.getValue());
+            String paramName = parameterSymbol.getName().get();
+            InputValue inputValue = this.typeCreator.getArg(paramName, "", parameterSymbol);
             directive.addArg(inputValue);
         }
         return directive;
@@ -127,15 +126,8 @@ public class ExecutableDirectiveTypeCreator {
                 if (params.isEmpty()) {
                     return;
                 }
-                for (var param : params.get()) {
-                    this.parameters.put(param.getName().get(), param);
-                }
+                this.parameters.addAll(params.get());
             }
         }
-    }
-
-
-    public Map<String, ParameterSymbol> getInitMethodParameters() {
-        return this.parameters;
     }
 }
