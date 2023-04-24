@@ -31,7 +31,7 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isInitMethod;
  */
 public class ExecutableDirectiveTypeCreator {
     private static final String DIRECTIVE_NAME_FIELD = "name";
-    private static final String DIRECTIVE_ON_FIELD = "on";
+    private static final String DIRECTIVE_ON_FIELD = "'on";
     private final TypeCreator typeCreator;
     private final List<String> onFieldValues = new ArrayList<>();
     private final List<ParameterSymbol> parameters = new ArrayList<>();
