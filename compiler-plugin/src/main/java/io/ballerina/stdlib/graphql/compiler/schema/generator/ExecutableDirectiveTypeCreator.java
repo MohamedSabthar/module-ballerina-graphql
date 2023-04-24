@@ -16,6 +16,7 @@ import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.stdlib.graphql.commons.types.Directive;
 import io.ballerina.stdlib.graphql.commons.types.DirectiveLocation;
+import io.ballerina.stdlib.graphql.commons.types.InputValue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isInitMethod;
 public class ExecutableDirectiveTypeCreator {
     private static final String DIRECTIVE_NAME_FIELD = "name";
     private static final String DIRECTIVE_ON_FIELD = "on";
+    private final TypeCreator typeCreator;
     private final List<String> onFieldValues = new ArrayList<>();
     private final Map<String, ParameterSymbol> parameters = new HashMap<>();
     private final ClassDefinitionNode directiveNode;
@@ -40,10 +42,11 @@ public class ExecutableDirectiveTypeCreator {
     private String directiveName;
 
     public ExecutableDirectiveTypeCreator(SemanticModel semanticModel, String directiveClassName,
-                                          ClassDefinitionNode directiveNode) {
+                                          ClassDefinitionNode directiveNode, TypeCreator typeCreator) {
         this.semanticModel = semanticModel;
         this.directiveName = directiveClassName;
         this.directiveNode = directiveNode;
+        this.typeCreator = typeCreator;
     }
 
     public Directive generate() {
@@ -58,9 +61,14 @@ public class ExecutableDirectiveTypeCreator {
             directiveLocations.add(DirectiveLocation.valueOf(onFieldValue));
         }
 
-        // TODO: obtain description from documentation
-        return new Directive(this.directiveName, "", directiveLocations);
-        // TODO: add arguments
+        Directive directive = new Directive(this.directiveName, "", directiveLocations);
+        for (Map.Entry<String, ParameterSymbol> entry : this.parameters.entrySet()) {
+            // TODO: obtain description from documentation
+            // TODO: add description
+            InputValue inputValue = this.typeCreator.getArg(entry.getKey(), "", entry.getValue());
+            directive.addArg(inputValue);
+        }
+        return directive;
     }
 
     private void readAnnotation() {
