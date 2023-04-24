@@ -36,6 +36,7 @@ public class InputTypeValidator {
     private TypeSymbol rootInputParameterTypeSymbol;
     private int arrayDimension = 0;
     private boolean errorOccurred = false;
+    private String directiveClassName;
 
     public InputTypeValidator(SyntaxNodeAnalysisContext context, List<TypeSymbol> existingInputObjectTypes,
                               List<TypeSymbol> existingReturnTypes, List<String> currentFieldPath) {
@@ -59,6 +60,16 @@ public class InputTypeValidator {
         }
     }
 
+    public void validateDirectiveInputParameterType(TypeSymbol typeSymbol, Location location,
+                                                    String directiveClassName) {
+        this.directiveClassName = directiveClassName;
+        if (isFileUploadParameter(typeSymbol)) {
+            addDiagnostic(CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_DIRECTIVE, location, directiveClassName);
+        } else {
+            validateInputType(typeSymbol, location, false);
+        }
+        this.directiveClassName = null;
+    }
 
     private void validateInputType(TypeSymbol typeSymbol, Location location, boolean isResourceMethod) {
         setRootInputParameterTypeSymbol(typeSymbol);
@@ -89,12 +100,22 @@ public class InputTypeValidator {
                 validateInputParameterType((IntersectionTypeSymbol) typeSymbol, location, isResourceMethod);
                 break;
             case RECORD:
-                addDiagnostic(CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE, location, typeSymbol.signature(),
-                              getCurrentFieldPath());
+                if (this.directiveClassName == null) {
+                    addDiagnostic(CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE, location, typeSymbol.signature(),
+                                  getCurrentFieldPath());
+                } else {
+                    addDiagnostic(CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE_IN_DIRECTIVE, location,
+                                  typeSymbol.signature(), this.directiveClassName);
+                }
                 break;
             default:
-                addDiagnostic(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, location,
-                              rootInputParameterTypeSymbol.signature(), getCurrentFieldPath());
+                if (this.directiveClassName == null) {
+                    addDiagnostic(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, location,
+                                  rootInputParameterTypeSymbol.signature(), getCurrentFieldPath());
+                } else {
+                    addDiagnostic(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE_IN_DIRECTIVE, location,
+                                  rootInputParameterTypeSymbol.signature(), this.directiveClassName);
+                }
         }
         if (isRootInputParameterTypeSymbol(typeSymbol)) {
             resetRootInputParameterTypeSymbol();
@@ -155,8 +176,13 @@ public class InputTypeValidator {
         int dataTypeCount = 0;
         for (TypeSymbol memberType : unionTypeSymbol.userSpecifiedMemberTypes()) {
             if (memberType.typeKind() == TypeDescKind.ERROR) {
-                addDiagnostic(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, location,
-                              TypeDescKind.ERROR.getName(), this.getCurrentFieldPath());
+                if (this.directiveClassName == null) {
+                    addDiagnostic(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, location,
+                                  TypeDescKind.ERROR.getName(), this.getCurrentFieldPath());
+                } else {
+                    addDiagnostic(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE_IN_DIRECTIVE, location,
+                                  TypeDescKind.ERROR.getName(), this.directiveClassName);
+                }
             } else if (memberType.typeKind() != TypeDescKind.NIL) {
                 foundDataType = true;
                 dataTypeCount++;
@@ -187,8 +213,14 @@ public class InputTypeValidator {
     private void validateInputParameterType(RecordTypeSymbol recordTypeSymbol, Location location, String recordTypeName,
                                             boolean isResourceMethod) {
         if (this.existingReturnTypes.contains(recordTypeSymbol)) {
-            addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, location, getCurrentFieldPath(),
-                          recordTypeName);
+            if (this.directiveClassName == null) {
+                addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, location,
+                              getCurrentFieldPath(), recordTypeName);
+            } else {
+                addDiagnostic(CompilationDiagnostic.INVALID_DIRECTIVE_INPUT_OBJECT_PARAM, location,
+                              this.directiveClassName, recordTypeName);
+            }
+
         } else {
             if (this.existingInputObjectTypes.contains(recordTypeSymbol)) {
                 return;

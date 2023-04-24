@@ -137,7 +137,7 @@ public class ExecutableDirectivesValidator {
         validateDirectiveConfig(classDefinitionNode, directiveClassName);
 
         for (Node member : classDefinitionNode.members()) {
-            validateDirectiveServiceMember(member, location);
+            validateDirectiveServiceMember(member, location, directiveClassName);
         }
         validateOnFieldToRemoteMethodMapping(location, directiveClassName);
     }
@@ -147,6 +147,11 @@ public class ExecutableDirectivesValidator {
             return;
         }
         addDiagnosticError(DIRECTIVE_TYPE_INCLUSION_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS, location, className);
+    }
+
+    private void addDiagnosticError(CompilationDiagnostic compilationDiagnostic, Location location, Object... args) {
+        updateContext(this.context, compilationDiagnostic, location, args);
+        this.errorOccurred = true;
     }
 
     private void validateDirectiveConfig(ClassDefinitionNode classDefinitionNode, String directiveClassName) {
@@ -213,29 +218,6 @@ public class ExecutableDirectivesValidator {
         validateOnFieldValues(onValueLocation == null ? expressionNode.location() : onValueLocation);
     }
 
-    private String getNameFromDirectiveConfigNameField(SpecificFieldNode specificFieldNode, Location location) {
-        if (specificFieldNode.valueExpr().isEmpty()) {
-            addDiagnosticWarning(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
-            return null;
-        }
-        if (specificFieldNode.valueExpr().get().kind() == SyntaxKind.STRING_TEMPLATE_EXPRESSION) {
-            addDiagnosticWarning(PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
-            return null;
-        }
-        if (specificFieldNode.valueExpr().get().kind() != SyntaxKind.STRING_LITERAL) {
-            addDiagnosticWarning(PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
-            return null;
-        }
-        BasicLiteralNode basicLiteralNode = (BasicLiteralNode) specificFieldNode.valueExpr().get();
-        return getValueFromStringLiteral(basicLiteralNode);
-    }
-
-    private void validateDirectiveName(String directiveName, Location location) {
-        if (!directiveName.matches(GRAPHQL_IDENTIFIER_REGEX)) {
-            addDiagnosticError(INVALID_DIRECTIVE_NAME, location, directiveName);
-        }
-    }
-
     private void readOnFieldValues(ExpressionNode expressionNode) {
         if (expressionNode.kind() == SyntaxKind.QUALIFIED_NAME_REFERENCE) {
             this.onFieldValues.add(expressionNode.toString().split(SyntaxKind.COLON_TOKEN.stringValue())[1].trim());
@@ -275,7 +257,34 @@ public class ExecutableDirectivesValidator {
         return false;
     }
 
-    private void validateDirectiveServiceMember(Node node, Location location) {
+    private String getNameFromDirectiveConfigNameField(SpecificFieldNode specificFieldNode, Location location) {
+        if (specificFieldNode.valueExpr().isEmpty()) {
+            addDiagnosticWarning(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
+            return null;
+        }
+        if (specificFieldNode.valueExpr().get().kind() == SyntaxKind.STRING_TEMPLATE_EXPRESSION) {
+            addDiagnosticWarning(PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
+            return null;
+        }
+        if (specificFieldNode.valueExpr().get().kind() != SyntaxKind.STRING_LITERAL) {
+            addDiagnosticWarning(PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED, location);
+            return null;
+        }
+        BasicLiteralNode basicLiteralNode = (BasicLiteralNode) specificFieldNode.valueExpr().get();
+        return getValueFromStringLiteral(basicLiteralNode);
+    }
+
+    private void addDiagnosticWarning(CompilationDiagnostic compilationDiagnostic, Location location, Object... args) {
+        updateContext(this.context, compilationDiagnostic, location, args);
+    }
+
+    private void validateDirectiveName(String directiveName, Location location) {
+        if (!directiveName.matches(GRAPHQL_IDENTIFIER_REGEX)) {
+            addDiagnosticError(INVALID_DIRECTIVE_NAME, location, directiveName);
+        }
+    }
+
+    private void validateDirectiveServiceMember(Node node, Location location, String directiveClassName) {
         if (this.context.semanticModel().symbol(node).isEmpty()) {
             return;
         }
@@ -286,7 +295,7 @@ public class ExecutableDirectivesValidator {
                 validateRemoteMethod(methodSymbol, location);
             } else if (isInitMethod(methodSymbol)) {
                 validateInitMethod(methodSymbol, location);
-                validateDirectiveInputParameters(methodSymbol, location);
+                validateDirectiveInputs(methodSymbol, location, directiveClassName);
             }
         } else if (symbol.kind() == SymbolKind.RESOURCE_METHOD) {
             ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) symbol;
@@ -296,14 +305,14 @@ public class ExecutableDirectivesValidator {
         }
     }
 
-
-    private void validateDirectiveInputParameters(MethodSymbol methodSymbol, Location location) {
+    private void validateDirectiveInputs(MethodSymbol methodSymbol, Location location, String directiveClassName) {
         FunctionTypeSymbol functionTypeSymbol = methodSymbol.typeDescriptor();
         if (functionTypeSymbol.params().isPresent()) {
             List<ParameterSymbol> parameterSymbols = functionTypeSymbol.params().get();
             for (ParameterSymbol parameter : parameterSymbols) {
                 Location inputLocation = getLocation(parameter, location);
-                this.inputTypeValidator.validateInputParameterType(parameter.typeDescriptor(), inputLocation, false);
+                this.inputTypeValidator.validateDirectiveInputParameterType(parameter.typeDescriptor(), inputLocation,
+                                                                            directiveClassName);
             }
         }
     }
@@ -404,6 +413,10 @@ public class ExecutableDirectivesValidator {
         return false;
     }
 
+    private String getOnFieldValueMapping(String remoteMethodName) {
+        return this.onFieldRemoteMethodMapping.getOrDefault(remoteMethodName, null);
+    }
+
     private void validateOnFieldToRemoteMethodMapping(Location location, String directiveClassName) {
         for (String onFieldValue : this.onFieldValues) {
             if (isSupportedOnFieldLocation(onFieldValue) && !this.remoteMethodNames.contains(
@@ -416,19 +429,6 @@ public class ExecutableDirectivesValidator {
 
     private String getRemoteMethodMapping(String fieldName) {
         return this.onFieldRemoteMethodMapping.getOrDefault(fieldName, null);
-    }
-
-    private String getOnFieldValueMapping(String remoteMethodName) {
-        return this.onFieldRemoteMethodMapping.getOrDefault(remoteMethodName, null);
-    }
-
-    private void addDiagnosticError(CompilationDiagnostic compilationDiagnostic, Location location, Object... args) {
-        updateContext(this.context, compilationDiagnostic, location, args);
-        this.errorOccurred = true;
-    }
-
-    private void addDiagnosticWarning(CompilationDiagnostic compilationDiagnostic, Location location, Object... args) {
-        updateContext(this.context, compilationDiagnostic, location, args);
     }
 
     public boolean isErrorOccurred() {

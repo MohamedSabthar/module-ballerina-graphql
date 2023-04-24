@@ -103,6 +103,13 @@ public enum DiagnosticMessage {
                       + "return types other than ''()''"),
     ERROR_150("the on field of the ''graphql:DirectiveConfig'' annotation must have at least one value"),
     ERROR_151("directive name ''{0}'' already in use"),
+    ERROR_152(
+            "invalid input parameter type ''graphql:Upload'' found in init method of directive service class ''{0}''"),
+    ERROR_153("anonymous record ''{0}'' cannot be used as an input object type in init method of directive service "
+                      + "class ''{1}''"),
+    ERROR_154("invalid input parameter type ''{0}'' used in init method of directive service class ''{1}''"),
+    ERROR_155("the init method of directive service class ''{0}'' use output type ''{1}'' as an input type. A GraphQL "
+                      + "field cannot use an output type as an input type"),
 
 
     WARNING_200("executable directive on ''{0}'' is not yet supported"),

@@ -96,7 +96,14 @@ public enum CompilationDiagnostic {
                                                        DiagnosticSeverity.ERROR),
     ON_FIELD_MUST_CONTAIN_LEAST_ONE_VALUE_IN_DIRECTIVE_CONFIG(DiagnosticMessage.ERROR_150, DiagnosticCode.GRAPHQL_150,
                                                               DiagnosticSeverity.ERROR),
-    DIRECTIVE_NAME_ALREADY_IN_USE(DiagnosticMessage.ERROR_151, DiagnosticCode.GRAPHQL_151 , DiagnosticSeverity.ERROR),
+    DIRECTIVE_NAME_ALREADY_IN_USE(DiagnosticMessage.ERROR_151, DiagnosticCode.GRAPHQL_151, DiagnosticSeverity.ERROR),
+    INVALID_FILE_UPLOAD_IN_DIRECTIVE(DiagnosticMessage.ERROR_152, DiagnosticCode.GRAPHQL_152, DiagnosticSeverity.ERROR),
+    INVALID_ANONYMOUS_INPUT_TYPE_IN_DIRECTIVE(DiagnosticMessage.ERROR_153, DiagnosticCode.GRAPHQL_153,
+                                              DiagnosticSeverity.ERROR),
+    INVALID_INPUT_PARAMETER_TYPE_IN_DIRECTIVE(DiagnosticMessage.ERROR_154, DiagnosticCode.GRAPHQL_154,
+                                              DiagnosticSeverity.ERROR),
+    INVALID_DIRECTIVE_INPUT_OBJECT_PARAM(DiagnosticMessage.ERROR_155, DiagnosticCode.GRAPHQL_155,
+                                         DiagnosticSeverity.ERROR),
 
 
     // Warnings

@@ -39,13 +39,17 @@ import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagno
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_TYPE_INCLUSION_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_ANONYMOUS_FIELD_TYPE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE_IN_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_DIRECTIVE_INPUT_OBJECT_PARAM;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_DIRECTIVE_NAME;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_FIELD_NAME;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_DIRECTIVE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_FUNCTION;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_HIERARCHICAL_RESOURCE_PATH;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INIT_METHOD_RETURN_TYPE_FOUND_IN_DIRECTIVE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE_IN_DIRECTIVE;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INPUT_TYPE_UNION;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_LISTENER_INIT;
 import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_MULTIPLE_LISTENERS;
@@ -1246,17 +1250,28 @@ public class ServiceValidationTest {
     }
 
     @Test(groups = "invalid")
-    public void testCustomDirectivesWithInvalidInitParameter() {
-        String packagePath = "77_custom_directives_with_invalid_init_parameter";
+    public void testCustomDirectivesWithInvalidInputParameters() {
+        String packagePath = "77_custom_directives_with_invalid_input_parameters";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
-        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Assert.assertEquals(diagnosticResult.errorCount(), 4);
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        // TODO: Fix the error message, this error message used in graphql field.
-        // Need a new error message for directive.
-        String message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "json");
-        assertErrorMessage(diagnostic, message, 32, 5);
+        String message = getErrorMessage(INVALID_FILE_UPLOAD_IN_DIRECTIVE, "Sort");
+        assertErrorMessage(diagnostic, message, 37, 34);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE_IN_DIRECTIVE, "json", "Sort");
+        assertErrorMessage(diagnostic, message, 37, 47);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(INVALID_DIRECTIVE_INPUT_OBJECT_PARAM, "Sort", "Student");
+        assertErrorMessage(diagnostic, message, 37, 66);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(INVALID_ANONYMOUS_INPUT_TYPE_IN_DIRECTIVE, "record {|string name; anydata...;|}",
+                                  "Sort");
+        assertErrorMessage(diagnostic, message, 37, 98);
     }
 
     @Test(groups = "not-supported")

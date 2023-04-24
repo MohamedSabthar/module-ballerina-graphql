@@ -17,10 +17,14 @@
 import ballerina/graphql;
 
 service on new graphql:Listener(9090) {
-    resource function get names() returns string[] {
-        return ["sabthar", "mahroof"];
+    resource function get students() returns Student[] {
+        return [{name:"sabthar"}, {name:"mahroof"}];
     }
 }
+
+public type Student record {
+    string name;
+};
 
 @graphql:DirectiveConfig {
     'on: [graphql:FIELD],
@@ -30,7 +34,7 @@ readonly service class Sort {
     *graphql:Directive;
     json direction;
 
-    function init(json direction) {
+    function init(graphql:Upload upload, json direction, Student student, record { string name;} anon) {
         self.direction = direction.cloneReadOnly();
     }
 
