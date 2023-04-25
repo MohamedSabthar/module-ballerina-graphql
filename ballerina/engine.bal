@@ -15,7 +15,7 @@
 // under the License.
 
 import ballerina/jballerina.java;
-
+import ballerina/io;
 import graphql.parser;
 
 isolated class Engine {
@@ -237,6 +237,15 @@ isolated class Engine {
         parser:FieldNode fieldNode = 'field.getInternalNode();
         parser:RootOperationType operationType = 'field.getOperationType();
         (readonly & Interceptor)? interceptor = context.getNextInterceptor();
+        parser:DirectiveNode[] directives = fieldNode.getDirectives();
+        foreach parser:DirectiveNode directive in directives {
+            io:println("Directive");
+            io:println("name: " , directive.getName());
+            typedesc<Directive> directiveType = self.directives.get(directive.getName());
+            io:println("class: ", directiveType);
+            io:println("aguments: ", directive.getArguments());
+            Directive directiveService = self.createDirectiveService(directiveType, directive);
+        }
         __Type fieldType = 'field.getFieldType();
         any|error fieldValue;
         if operationType == parser:OPERATION_QUERY {
@@ -378,5 +387,9 @@ isolated class Engine {
 
     isolated function getInterceptorName(readonly & Interceptor interceptor) returns string = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    } external;
+
+    isolated function createDirectiveService(typedesc<Directive> serviceType, parser:DirectiveNode directiveNode) returns Directive = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.DirectiveServiceCreator"
     } external;
 }

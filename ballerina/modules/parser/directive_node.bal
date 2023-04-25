@@ -19,14 +19,14 @@ public readonly class DirectiveNode {
 
     private string name;
     private Location location;
-    private ArgumentNode[] argumentNodes;
+    private ArgumentNode[] arguments;
     private DirectiveLocation directiveLocation;
 
     public isolated function init(string name, Location location, DirectiveLocation directiveLocation,
-                                  ArgumentNode[] argumentNodes = []) {
+                                  ArgumentNode[] arguments = []) {
         self.name = name;
         self.location = location.cloneReadOnly();
-        self.argumentNodes = argumentNodes.cloneReadOnly();
+        self.arguments = arguments.cloneReadOnly();
         self.directiveLocation = directiveLocation;
     }
 
@@ -43,14 +43,14 @@ public readonly class DirectiveNode {
     }
 
     public isolated function getArguments() returns ArgumentNode[] {
-        return self.argumentNodes;
+        return self.arguments;
     }
 
     public isolated function getDirectiveLocation() returns DirectiveLocation {
         return self.directiveLocation;
     }
 
-    public isolated function modifyWith(ArgumentNode[] argumentNodes) returns DirectiveNode {
-        return new (self.name, self.location, self.directiveLocation, argumentNodes);
+    public isolated function modifyWith(ArgumentNode[] arguments) returns DirectiveNode {
+        return new (self.name, self.location, self.directiveLocation, arguments);
     }
 }
