@@ -173,14 +173,14 @@ public class SchemaGenerator {
         for (Map.Entry<String, ClassDefinitionNode> entry : directivesMap.entrySet()) {
             String className = entry.getKey();
             ClassDefinitionNode classDefinitionNode = entry.getValue();
-            ExecutableDirectiveTypeCreator generator = new ExecutableDirectiveTypeCreator(this.semanticModel, className,
-                                                                                          classDefinitionNode,
-                                                                                          this.typeCreator);
+            CustomExecutableDirectiveTypeCreator generator = new CustomExecutableDirectiveTypeCreator(
+                    this.semanticModel, className, classDefinitionNode, this.typeCreator);
             Directive directive = generator.generate();
             if (directive == null) {
                 continue;
             }
             this.schema.addDirective(directive);
+            this.schema.addCustomDirectiveToClassNameMapping(directive.getName(), className);
         }
     }
 

@@ -30,7 +30,7 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isInitMethod;
 /**
  * Creates directive type from a Ballerina directive class node.
  */
-public class ExecutableDirectiveTypeCreator {
+public class CustomExecutableDirectiveTypeCreator {
     private static final String DIRECTIVE_NAME_FIELD = "name";
     private static final String DIRECTIVE_ON_FIELD = "'on";
     private final TypeCreator typeCreator;
@@ -40,8 +40,8 @@ public class ExecutableDirectiveTypeCreator {
     private final SemanticModel semanticModel;
     private String directiveName;
 
-    public ExecutableDirectiveTypeCreator(SemanticModel semanticModel, String directiveClassName,
-                                          ClassDefinitionNode directiveNode, TypeCreator typeCreator) {
+    public CustomExecutableDirectiveTypeCreator(SemanticModel semanticModel, String directiveClassName,
+                                                ClassDefinitionNode directiveNode, TypeCreator typeCreator) {
         this.semanticModel = semanticModel;
         this.directiveName = directiveClassName;
         this.directiveNode = directiveNode;
@@ -60,6 +60,7 @@ public class ExecutableDirectiveTypeCreator {
             directiveLocations.add(DirectiveLocation.valueOf(onFieldValue));
         }
 
+        // TODO: repeatable directives
         Directive directive = new Directive(this.directiveName, "", directiveLocations);
         for (ParameterSymbol parameterSymbol : this.parameters) {
             // TODO: obtain description from documentation

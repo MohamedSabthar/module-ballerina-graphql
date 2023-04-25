@@ -23,9 +23,11 @@ isolated class Engine {
     private final int? maxQueryDepth;
     private final readonly & (readonly & Interceptor)[] interceptors;
     private final readonly & boolean introspection;
+    private final readonly & map<typedesc<Directive>> directives;
 
     isolated function init(string schemaString, int? maxQueryDepth, Service s,
-                           readonly & (readonly & Interceptor)[] interceptors, boolean introspection)
+                           readonly & (readonly & Interceptor)[] interceptors, boolean introspection,
+                           readonly & map<typedesc<Directive>> directives)
     returns Error? {
         if maxQueryDepth is int && maxQueryDepth < 1 {
             return error Error("Max query depth value must be a positive integer");
@@ -34,6 +36,7 @@ isolated class Engine {
         self.schema = check createSchema(schemaString);
         self.interceptors = interceptors;
         self.introspection = introspection;
+        self.directives = directives;
         self.addService(s);
     }
 

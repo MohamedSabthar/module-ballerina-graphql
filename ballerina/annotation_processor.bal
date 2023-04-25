@@ -80,3 +80,12 @@ isolated function getIntrospection(GraphqlServiceConfig? serviceConfig) returns 
     }
     return true;
 }
+
+isolated function getCustomExecutablenDirectives (GraphqlServiceConfig? serviceConfig)
+returns readonly & map<typedesc<Directive>> {
+    readonly & map<typedesc<Directive>>? directives = serviceConfig?.directives;
+    if directives is readonly & map<typedesc<Directive>> {
+        return directives;
+    }
+    return {};
+}

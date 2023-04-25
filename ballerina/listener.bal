@@ -55,12 +55,13 @@ public class Listener {
         string schemaString = getSchemaString(serviceConfig);
         int? maxQueryDepth = getMaxQueryDepth(serviceConfig);
         readonly & (readonly & Interceptor)[] interceptors = getServiceInterceptors(serviceConfig);
+        readonly & map<typedesc<Directive>> directives = getCustomExecutablenDirectives(serviceConfig);
         boolean introspection = getIntrospection(serviceConfig);
         Engine engine;
         if graphiql.enabled {
             check validateGraphiqlPath(graphiql.path);
             string gqlServiceBasePath = name is () ? "" : getBasePath(name);
-            engine = check new (schemaString, maxQueryDepth, s, interceptors, introspection);
+            engine = check new (schemaString, maxQueryDepth, s, interceptors, introspection, directives);
             __Schema & readonly schema = engine.getSchema();
             __Type? subscriptionType = schema.subscriptionType;
             HttpService graphiqlService = subscriptionType is __Type
@@ -72,7 +73,7 @@ public class Listener {
                 return error Error("Error occurred while attaching the GraphiQL endpoint", result);
             }
         } else {
-            engine = check new (schemaString, maxQueryDepth, s, interceptors, introspection);
+            engine = check new (schemaString, maxQueryDepth, s, interceptors, introspection, directives);
         }
 
         HttpService httpService = getHttpService(engine, serviceConfig);
