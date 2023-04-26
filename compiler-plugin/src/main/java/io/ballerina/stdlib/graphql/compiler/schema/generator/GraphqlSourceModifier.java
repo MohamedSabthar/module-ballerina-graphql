@@ -91,6 +91,7 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
     private int entityUnionSuffix = 0;
     private String entityUnionTypeName;
     private List<String> entities;
+    private Map<String, String> customDirectivesClassNameMap;
     private boolean isSubgraph = false;
 
     public GraphqlSourceModifier(Map<DocumentId, GraphqlModifierContext> modifierContextMap) {
@@ -125,6 +126,7 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
         Map<Node, Schema> nodeSchemaMap = modifierContext.getNodeSchemaMap();
         for (Map.Entry<Node, Schema> entry : nodeSchemaMap.entrySet()) {
             Schema schema = entry.getValue();
+            this.customDirectivesClassNameMap = schema.getCustomDirectiveClassNameMap();
             this.isSubgraph = schema.isSubgraph();
             this.entities = schema.getEntities().stream().map(Type::getName).collect(Collectors.toList());
             String prefix = getGraphqlModulePrefix(rootNode);
@@ -158,6 +160,7 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
                 if (nodeMap.containsKey(member)) {
                     this.entityUnionTypeName = this.entityTypeNamesMap.get(member);
                     Schema schema = nodeSchemaMap.get(member);
+                    this.customDirectivesClassNameMap = schema.getCustomDirectiveClassNameMap();
                     isSubgraph = schema.isSubgraph();
                     if (schema.getEntities().size() > 0) {
                         this.entities = schema.getEntities().stream().map(Type::getName).collect(Collectors.toList());
@@ -374,6 +377,8 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
             fields.add(separator);
         }
         fields.add(getSchemaStringFieldNode(schemaString));
+        fields.add(NodeFactory.createToken(SyntaxKind.COMMA_TOKEN));
+        fields.add(getDirectivesFieldNode());
         return NodeFactory.createSeparatedNodeList(fields);
     }
 
@@ -392,12 +397,12 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
         return NodeFactory.createAnnotationNode(atToken, nameReferenceNode, annotValue);
     }
 
-    private MappingConstructorExpressionNode getAnnotationExpression(String schemaString) {
-        Token openBraceToken = NodeFactory.createToken(SyntaxKind.OPEN_BRACE_TOKEN);
-        Token closeBraceToken = NodeFactory.createToken(SyntaxKind.CLOSE_BRACE_TOKEN);
-        SpecificFieldNode specificFieldNode = getSchemaStringFieldNode(schemaString);
-        SeparatedNodeList<MappingFieldNode> separatedNodeList = NodeFactory.createSeparatedNodeList(specificFieldNode);
-        return NodeFactory.createMappingConstructorExpressionNode(openBraceToken, separatedNodeList, closeBraceToken);
+    private SpecificFieldNode getDirectivesFieldNode() {
+        Node fieldName = NodeFactory.createIdentifierToken("directives");
+        Token colon = NodeFactory.createToken(SyntaxKind.COLON_TOKEN);
+        String expression = getDirectiveMapInitializer();
+        ExpressionNode fieldValue = NodeParser.parseExpression(expression);
+        return NodeFactory.createSpecificFieldNode(null, fieldName, colon, fieldValue);
     }
 
     private SpecificFieldNode getSchemaStringFieldNode(String schemaString) {
@@ -406,6 +411,23 @@ public class GraphqlSourceModifier implements ModifierTask<SourceModifierContext
         String expression = "\"" + schemaString + "\"";
         ExpressionNode fieldValue = NodeParser.parseExpression(expression);
         return NodeFactory.createSpecificFieldNode(null, fieldName, colon, fieldValue);
+    }
+
+    // TODO: convert using NodeFactory api
+    private String getDirectiveMapInitializer() {
+        List<String> mapFields = this.customDirectivesClassNameMap.entrySet().stream()
+                .map(entry -> "\"" + entry.getKey() + "\"" + ":" + entry.getValue()).collect(Collectors.toList());
+        return "{" + String.join(", ", mapFields) + "}";
+    }
+
+    private MappingConstructorExpressionNode getAnnotationExpression(String schemaString) {
+        Token openBraceToken = NodeFactory.createToken(SyntaxKind.OPEN_BRACE_TOKEN);
+        Token closeBraceToken = NodeFactory.createToken(SyntaxKind.CLOSE_BRACE_TOKEN);
+        SpecificFieldNode schemaStringField = getSchemaStringFieldNode(schemaString);
+        SpecificFieldNode directivesField = getDirectivesFieldNode();
+        SeparatedNodeList<MappingFieldNode> separatedNodeList = NodeFactory.createSeparatedNodeList(
+                schemaStringField, NodeFactory.createToken(SyntaxKind.COMMA_TOKEN), directivesField);
+        return NodeFactory.createMappingConstructorExpressionNode(openBraceToken, separatedNodeList, closeBraceToken);
     }
 
     private String getSchemaAsEncodedString(Schema schema) throws IOException {

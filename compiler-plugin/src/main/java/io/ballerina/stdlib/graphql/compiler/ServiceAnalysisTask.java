@@ -27,6 +27,7 @@ import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.DocumentId;
+import io.ballerina.projects.ModuleId;
 import io.ballerina.projects.Project;
 import io.ballerina.projects.plugins.AnalysisTask;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
@@ -65,9 +66,9 @@ public abstract class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnal
         return serviceValidator;
     }
 
-    public InterfaceEntityFinder getInterfaceFinder(SemanticModel semanticModel) {
+    public InterfaceEntityFinder getInterfaceFinder(SemanticModel semanticModel, Project project, ModuleId moduleId) {
         InterfaceEntityFinder interfaceEntityFinder = new InterfaceEntityFinder();
-        interfaceEntityFinder.populateInterfaces(semanticModel);
+        interfaceEntityFinder.populateInterfaces(semanticModel, project, moduleId);
         return interfaceEntityFinder;
     }
 

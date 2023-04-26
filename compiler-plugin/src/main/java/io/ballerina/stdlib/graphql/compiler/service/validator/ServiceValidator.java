@@ -44,6 +44,7 @@ import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
 import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.ResourcePath;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
@@ -66,7 +67,6 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isDistinctServiceClass;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isDistinctServiceReference;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isFileUploadParameter;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isPrimitiveTypeSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isResourceMethod;
@@ -91,13 +91,12 @@ public class ServiceValidator {
     private final InterfaceEntityFinder interfaceEntityFinder;
     private final SyntaxNodeAnalysisContext context;
     private final Node serviceNode;
-    private int arrayDimension = 0;
     private boolean errorOccurred;
     private boolean hasQueryType;
     private final boolean isSubgraph;
-    private TypeSymbol rootInputParameterTypeSymbol;
 
     private final List<String> currentFieldPath;
+    private final InputTypeValidator inputTypeValidator;
 
     public ServiceValidator(SyntaxNodeAnalysisContext context, Node serviceNode,
                             InterfaceEntityFinder interfaceEntityFinder, boolean isSubgraph) {
@@ -108,6 +107,8 @@ public class ServiceValidator {
         this.hasQueryType = false;
         this.currentFieldPath = new ArrayList<>();
         this.isSubgraph = isSubgraph;
+        this.inputTypeValidator = new InputTypeValidator(context, existingInputObjectTypes, existingReturnTypes,
+                                                         currentFieldPath);
     }
 
     public void validate() {
@@ -115,6 +116,17 @@ public class ServiceValidator {
             validateServiceDeclaration();
         } else if (serviceNode.kind() == SyntaxKind.OBJECT_CONSTRUCTOR) {
             validateServiceObject();
+        }
+        validateCustomExecutableDirectives();
+    }
+
+    private void validateCustomExecutableDirectives() {
+        Map<String, ClassDefinitionNode> executableDirectives = this.interfaceEntityFinder.getExecutableDirectives();
+        ExecutableDirectivesValidator validator = new ExecutableDirectivesValidator(this.context, executableDirectives,
+                                                                                    this.inputTypeValidator);
+        validator.validate();
+        if (validator.isErrorOccurred()) {
+            this.errorOccurred = true;
         }
     }
 
@@ -142,7 +154,7 @@ public class ServiceValidator {
     }
 
     public boolean isErrorOccurred() {
-        return this.errorOccurred;
+        return this.errorOccurred || this.inputTypeValidator.isErrorOccurred();
     }
 
     private void validateService() {
@@ -552,166 +564,12 @@ public class ServiceValidator {
                 if (isValidGraphqlParameter(parameter.typeDescriptor())) {
                     continue;
                 }
-                validateInputParameterType(parameter.typeDescriptor(), inputLocation, isResourceMethod(methodSymbol));
+                this.inputTypeValidator.validateInputParameterType(parameter.typeDescriptor(), inputLocation,
+                                                                   isResourceMethod(methodSymbol));
             }
         }
     }
 
-    private void validateInputParameterType(TypeSymbol typeSymbol, Location location, boolean isResourceMethod) {
-        if (isFileUploadParameter(typeSymbol)) {
-            String methodName = currentFieldPath.get(currentFieldPath.size() - 1);
-            if (this.arrayDimension > 1) {
-                addDiagnostic(CompilationDiagnostic.MULTI_DIMENSIONAL_UPLOAD_ARRAY, location, methodName);
-            }
-            if (isResourceMethod) {
-                addDiagnostic(CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION, location, methodName);
-            }
-        } else {
-            validateInputType(typeSymbol, location, isResourceMethod);
-        }
-    }
-
-    private void validateInputType(TypeSymbol typeSymbol, Location location, boolean isResourceMethod) {
-        setRootInputParameterTypeSymbol(typeSymbol);
-        switch (typeSymbol.typeKind()) {
-            case INT:
-            case INT_SIGNED8:
-            case INT_UNSIGNED8:
-            case INT_SIGNED16:
-            case INT_UNSIGNED16:
-            case INT_SIGNED32:
-            case INT_UNSIGNED32:
-            case STRING:
-            case STRING_CHAR:
-            case BOOLEAN:
-            case DECIMAL:
-            case FLOAT:
-                break;
-            case TYPE_REFERENCE:
-                validateInputParameterType((TypeReferenceTypeSymbol) typeSymbol, location, isResourceMethod);
-                break;
-            case UNION:
-                validateInputParameterType((UnionTypeSymbol) typeSymbol, location, isResourceMethod);
-                break;
-            case ARRAY:
-                validateInputParameterType((ArrayTypeSymbol) typeSymbol, location, isResourceMethod);
-                break;
-            case INTERSECTION:
-                validateInputParameterType((IntersectionTypeSymbol) typeSymbol, location, isResourceMethod);
-                break;
-            case RECORD:
-                addDiagnostic(CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE, location, typeSymbol.signature(),
-                              getCurrentFieldPath());
-                break;
-            default:
-                addDiagnostic(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, location,
-                              rootInputParameterTypeSymbol.signature(), getCurrentFieldPath());
-        }
-        if (isRootInputParameterTypeSymbol(typeSymbol)) {
-            resetRootInputParameterTypeSymbol();
-        }
-    }
-
-    private void setRootInputParameterTypeSymbol(TypeSymbol typeSymbol) {
-        if (rootInputParameterTypeSymbol == null) {
-            rootInputParameterTypeSymbol = typeSymbol;
-        }
-    }
-
-    private void resetRootInputParameterTypeSymbol() {
-        rootInputParameterTypeSymbol = null;
-    }
-
-    private boolean isRootInputParameterTypeSymbol(TypeSymbol typeSymbol) {
-        return rootInputParameterTypeSymbol == typeSymbol;
-    }
-
-    private void validateInputParameterType(ArrayTypeSymbol arrayTypeSymbol, Location location,
-                                            boolean isResourceMethod) {
-        this.arrayDimension++;
-        TypeSymbol memberTypeSymbol = arrayTypeSymbol.memberTypeDescriptor();
-        validateInputParameterType(memberTypeSymbol, location, isResourceMethod);
-        this.arrayDimension--;
-    }
-
-    private void validateInputParameterType(TypeReferenceTypeSymbol typeSymbol, Location location,
-                                            boolean isResourceMethod) {
-        TypeSymbol typeDescriptor = typeSymbol.typeDescriptor();
-        Symbol typeDefinition = typeSymbol.definition();
-        // noinspection OptionalGetWithoutIsPresent
-        String typeName = typeDefinition.getName().get();
-        if (typeDefinition.kind() == SymbolKind.ENUM) {
-            if (isReservedFederatedTypeName(typeName)) {
-                addDiagnostic(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE, location, typeName);
-            }
-            return;
-        }
-        if (typeDefinition.kind() == SymbolKind.TYPE_DEFINITION && typeDescriptor.typeKind() == TypeDescKind.RECORD) {
-            validateInputParameterType((RecordTypeSymbol) typeDescriptor, location, typeName, isResourceMethod);
-            return;
-        }
-        if (isPrimitiveTypeSymbol(typeDescriptor)) {
-            // noinspection OptionalGetWithoutIsPresent
-            addDiagnostic(CompilationDiagnostic.UNSUPPORTED_PRIMITIVE_TYPE_ALIAS, getLocation(typeSymbol, location),
-                          typeSymbol.getName().get(), typeDescriptor.typeKind().getName());
-            return;
-        }
-        validateInputParameterType(typeDescriptor, location, isResourceMethod);
-    }
-
-    private void validateInputParameterType(UnionTypeSymbol unionTypeSymbol, Location location,
-                                            boolean isResourceMethod) {
-        boolean foundDataType = false;
-        int dataTypeCount = 0;
-        for (TypeSymbol memberType : unionTypeSymbol.userSpecifiedMemberTypes()) {
-            if (memberType.typeKind() == TypeDescKind.ERROR) {
-                addDiagnostic(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, location,
-                              TypeDescKind.ERROR.getName(), this.getCurrentFieldPath());
-            } else if (memberType.typeKind() != TypeDescKind.NIL) {
-                foundDataType = true;
-                dataTypeCount++;
-                if (memberType.typeKind() != TypeDescKind.SINGLETON) {
-                    validateInputParameterType(memberType, location, isResourceMethod);
-                }
-            }
-        }
-        if (!foundDataType) {
-            addDiagnostic(CompilationDiagnostic.INVALID_INPUT_TYPE, location);
-        } else if (dataTypeCount > 1) {
-            addDiagnostic(CompilationDiagnostic.INVALID_INPUT_TYPE_UNION, location);
-        }
-    }
-
-    private void validateInputParameterType(IntersectionTypeSymbol intersectionTypeSymbol, Location location,
-                                            boolean isResourceMethod) {
-        TypeSymbol effectiveType = getEffectiveType(intersectionTypeSymbol);
-        if (effectiveType.typeKind() == TypeDescKind.RECORD) {
-            String typeName = effectiveType.getName().orElse(effectiveType.signature());
-            validateInputParameterType((RecordTypeSymbol) effectiveType, location, typeName, isResourceMethod);
-        } else {
-            validateInputParameterType(effectiveType, location, isResourceMethod);
-        }
-    }
-
-    private void validateInputParameterType(RecordTypeSymbol recordTypeSymbol, Location location, String recordTypeName,
-                                            boolean isResourceMethod) {
-        if (this.existingReturnTypes.contains(recordTypeSymbol)) {
-            addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, location, getCurrentFieldPath(),
-                          recordTypeName);
-        } else {
-            if (this.existingInputObjectTypes.contains(recordTypeSymbol)) {
-                return;
-            }
-            this.existingInputObjectTypes.add(recordTypeSymbol);
-            if (isReservedFederatedTypeName(recordTypeName)) {
-                addDiagnostic(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE, location,
-                              recordTypeName);
-            }
-            for (RecordFieldSymbol recordFieldSymbol : recordTypeSymbol.fieldDescriptors().values()) {
-                validateInputType(recordFieldSymbol.typeDescriptor(), location, isResourceMethod);
-            }
-        }
-    }
 
     private void validateServiceClassDefinition(ClassSymbol classSymbol, Location location) {
         if (this.visitedClassesAndObjectTypeDefinitions.contains(classSymbol)) {

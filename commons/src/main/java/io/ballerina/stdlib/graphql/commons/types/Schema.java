@@ -21,6 +21,7 @@ package io.ballerina.stdlib.graphql.commons.types;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,8 @@ public class Schema implements Serializable {
     public static final String SERVICE_RESOLVER_NAME = "_service";
     public static final String ENTITIES_RESOLVER_NAME = "_entities";
 
+    private final Map<String, String> customDirectiveClassNameMap;
+
     /**
      * Creates the schema.
      *
@@ -55,6 +58,7 @@ public class Schema implements Serializable {
         this.directives = new ArrayList<>();
         this.entities = new ArrayList<>();
         this.isSubgraph = isSubgraph;
+        this.customDirectiveClassNameMap = new HashMap<>();
     }
 
     /**
@@ -227,5 +231,14 @@ public class Schema implements Serializable {
 
     public boolean isSubgraph() {
         return isSubgraph;
+    }
+
+    // TODO: this function is not related to the schema class, it should be moved to a different class
+    public void addCustomDirectiveToClassNameMapping(String directiveName, String className) {
+        this.customDirectiveClassNameMap.put(directiveName, className);
+    }
+
+    public Map<String, String> getCustomDirectiveClassNameMap() {
+        return customDirectiveClassNameMap;
     }
 }

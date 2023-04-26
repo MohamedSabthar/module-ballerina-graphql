@@ -26,11 +26,15 @@ import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TypeDefinitionSymbol;
 import io.ballerina.compiler.api.symbols.TypeReferenceTypeSymbol;
 import io.ballerina.compiler.api.symbols.TypeSymbol;
+import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
+import io.ballerina.projects.ModuleId;
+import io.ballerina.projects.Project;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getObjectTypeSymbol;
@@ -43,23 +47,30 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectReferenc
  * Finds and validates possible GraphQL interfaces in a Ballerina service.
  */
 public class InterfaceEntityFinder {
+    // TODO: rename this class to ModuleSymbolFinder 0r something similar
     private final Map<String, List<Symbol>> interfaceImplementations;
     private final Map<String, TypeReferenceTypeSymbol> possibleInterfaces;
     private final Map<String, Symbol> entities;
+    private final Map<String, ClassDefinitionNode> executableDirectives;
     private static final String ENTITY_ANNOTATION = "Entity";
 
     public InterfaceEntityFinder() {
         this.interfaceImplementations = new HashMap<>();
         this.possibleInterfaces = new HashMap<>();
         this.entities = new HashMap<>();
+        this.executableDirectives = new HashMap<>();
     }
 
-    public void populateInterfaces(SemanticModel semanticModel) {
+    public void populateInterfaces(SemanticModel semanticModel, Project project, ModuleId moduleId) {
         for (Symbol symbol : semanticModel.moduleSymbols()) {
             if (symbol.getName().isEmpty()) {
                 continue;
             }
-            if (isServiceClass(symbol) || isServiceObjectDefinition(symbol)) {
+            if (isServiceClass(symbol)) {
+                findPossibleInterfaces(symbol);
+                findExecutableDirectives((ClassSymbol) symbol, semanticModel, project, moduleId);
+            }
+            if (isServiceObjectDefinition(symbol)) {
                 findPossibleInterfaces(symbol);
             }
             if (isEntity(symbol)) {
@@ -67,6 +78,19 @@ public class InterfaceEntityFinder {
                 this.entities.put(entityName, symbol);
             }
         }
+    }
+
+    private void findExecutableDirectives(ClassSymbol classSymbol, SemanticModel semanticModel, Project project,
+                                          ModuleId moduleId) {
+        ExecutableDirectiveFinder executableDirectiveFinder = new ExecutableDirectiveFinder(semanticModel, classSymbol,
+                                                                                            project, moduleId);
+        Optional<ClassDefinitionNode> directiveNode = executableDirectiveFinder.getDirectiveNode();
+        if (directiveNode.isEmpty()) {
+            return;
+        }
+
+        String directiveClassName = executableDirectiveFinder.getDirectiveClassName();
+        this.executableDirectives.put(directiveClassName, directiveNode.get());
     }
 
     public boolean isPossibleInterface(String name) {
@@ -79,6 +103,10 @@ public class InterfaceEntityFinder {
 
     public Map<String, Symbol> getEntities() {
         return entities;
+    }
+
+    public Map<String, ClassDefinitionNode> getExecutableDirectives() {
+        return executableDirectives;
     }
 
     private void findPossibleInterfaces(Symbol serviceObjectTypeDefinitionOrServiceClass) {

@@ -15,7 +15,7 @@
 // under the License.
 
 import ballerina/jballerina.java;
-
+// import ballerina/io;
 import graphql.parser;
 
 isolated class Engine {
@@ -23,9 +23,11 @@ isolated class Engine {
     private final int? maxQueryDepth;
     private final readonly & (readonly & Interceptor)[] interceptors;
     private final readonly & boolean introspection;
+    private final readonly & map<typedesc<Directive>> directives;
 
     isolated function init(string schemaString, int? maxQueryDepth, Service s,
-                           readonly & (readonly & Interceptor)[] interceptors, boolean introspection)
+                           readonly & (readonly & Interceptor)[] interceptors, boolean introspection,
+                           readonly & map<typedesc<Directive>> directives)
     returns Error? {
         if maxQueryDepth is int && maxQueryDepth < 1 {
             return error Error("Max query depth value must be a positive integer");
@@ -34,6 +36,7 @@ isolated class Engine {
         self.schema = check createSchema(schemaString);
         self.interceptors = interceptors;
         self.introspection = introspection;
+        self.directives = directives;
         self.addService(s);
     }
 
@@ -238,7 +241,19 @@ isolated class Engine {
         any|error fieldValue;
         if operationType == parser:OPERATION_QUERY {
             if interceptor is () {
-                fieldValue = self.resolveResourceMethod(context, 'field);
+                parser:DirectiveNode? directive = 'field.getNextCustomExecutableDirective();
+                if directive is () {
+                    fieldValue = self.resolveResourceMethod(context, 'field);
+                } else {
+                    Directive directiveService = self.createDirectiveService(self.directives.get(directive.getName()), directive);
+                    any|error directiveValue = self.executeDirective(directiveService, 'field, context, "applyOnField");
+                    anydata|error interceptValue = validateInterceptorReturnValue(fieldType, directiveValue,directive.getName());
+                    if interceptValue is error {
+                        fieldValue = interceptValue;
+                    } else {
+                        return interceptValue;
+                    }
+                }
             } else {
                 any|error result = self.executeInterceptor(interceptor, 'field, context);
                 anydata|error interceptValue = validateInterceptorReturnValue(fieldType, result,
@@ -252,6 +267,7 @@ isolated class Engine {
         } else if operationType == parser:OPERATION_MUTATION {
             if interceptor is () {
                 fieldValue = self.resolveRemoteMethod(context, 'field);
+                // TODO: execute directives here
             } else {
                 any|error result = self.executeInterceptor(interceptor, 'field, context);
                 anydata|error interceptValue = validateInterceptorReturnValue(fieldType, result,
@@ -265,6 +281,7 @@ isolated class Engine {
         } else {
             if interceptor is () {
                 fieldValue = 'field.getFieldValue();
+                // TODO: execute directives here
             } else {
                 any|error result = self.executeInterceptor(interceptor, 'field, context);
                 anydata|error interceptValue = validateInterceptorReturnValue(fieldType, result,
@@ -375,5 +392,14 @@ isolated class Engine {
 
     isolated function getInterceptorName(readonly & Interceptor interceptor) returns string = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    } external;
+
+    isolated function createDirectiveService(typedesc<Directive> serviceType, parser:DirectiveNode directiveNode) returns Directive = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.DirectiveServiceCreator"
+    } external;
+
+    isolated function executeDirective(Directive directive, Field fieldNode, Context context, string methodName)
+    returns any|error = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.DirectiveServiceCreator"
     } external;
 }

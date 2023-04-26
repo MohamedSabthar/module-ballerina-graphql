@@ -243,7 +243,8 @@ type __Directive record {|
     __InputValue[] args = [];
 |};
 
-enum __DirectiveLocation {
+# Represents the locations where an executable directives can be applied.
+public enum ExecutableDirectiveLocation {
     QUERY,
     MUTATION,
     SUBSCRIPTION,
@@ -251,7 +252,10 @@ enum __DirectiveLocation {
     FRAGMENT_DEFINITION,
     FRAGMENT_SPREAD,
     INLINE_FRAGMENT,
-    VARIABLE_DEFINITION,
+    VARIABLE_DEFINITION
+}
+
+enum TypeSystemDirectiveLocation{
     SCHEMA,
     SCALAR,
     OBJECT,
@@ -264,6 +268,8 @@ enum __DirectiveLocation {
     INPUT_OBJECT,
     INPUT_FIELD_DEFINITION
 }
+
+type __DirectiveLocation TypeSystemDirectiveLocation|ExecutableDirectiveLocation;
 
 type ParseResult record {|
     parser:DocumentNode document;

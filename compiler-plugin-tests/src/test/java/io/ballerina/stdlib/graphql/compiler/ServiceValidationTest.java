@@ -35,6 +35,61 @@ import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.Iterator;
 
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_CONFIG_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.DIRECTIVE_TYPE_INCLUSION_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_ANONYMOUS_FIELD_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE_IN_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_DIRECTIVE_INPUT_OBJECT_PARAM;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_DIRECTIVE_NAME;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_FIELD_NAME;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_FUNCTION;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_HIERARCHICAL_RESOURCE_PATH;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INIT_METHOD_RETURN_TYPE_FOUND_IN_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE_IN_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_INPUT_TYPE_UNION;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_LISTENER_INIT;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_MULTIPLE_LISTENERS;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_PATH_PARAMETERS;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_REMOTE_METHOD_INSIDE_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_REMOTE_METHOD_INSIDE_INTERCEPTOR;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RESOURCE_METHOD_INSIDE_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RESOURCE_PATH;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RETURN_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RETURN_TYPE_ANY;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RETURN_TYPE_CLASS;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RETURN_TYPE_ERROR;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RETURN_TYPE_ERROR_OR_NIL;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RETURN_TYPE_INPUT_OBJECT;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_RETURN_TYPE_NIL;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_ROOT_RESOURCE_ACCESSOR;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_SUBSCRIBE_RESOURCE_RETURN_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_USE_OF_RESERVED_REMOTE_METHOD_NAME;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_USE_OF_RESERVED_RESOURCE_PATH;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.MULTI_DIMENSIONAL_UPLOAD_ARRAY;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.NON_DISTINCT_INTERFACE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.NON_DISTINCT_INTERFACE_IMPLEMENTATION;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.NO_ON_FIELD_FOUND_FOR_DIRECTIVE_REMOTE_METHOD;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.NO_REMOTE_METHOD_FOUND_FOR_ON_FIELD_VALUE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.ON_FIELD_MUST_CONTAIN_LEAST_ONE_VALUE_IN_DIRECTIVE_CONFIG;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.REMOTE_METHOD_WITH_INVALID_PARAMETERS_FOUND_IN_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.REMOTE_METHOD_WITH_INVALID_RETURN_TYPE_FOUND_IN_DIRECTIVE;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.RESOURCE_METHOD_INSIDE_INTERCEPTOR;
+import static io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic.UNSUPPORTED_PRIMITIVE_TYPE_ALIAS;
+
 /**
  * This class includes tests for Ballerina Graphql compiler plugin service validation.
  */
@@ -212,7 +267,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_MULTIPLE_LISTENERS, 19, 1);
+        assertError(diagnostic, INVALID_MULTIPLE_LISTENERS, 19, 1);
     }
 
     @Test(groups = "invalid")
@@ -221,7 +276,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS);
+        String message = getErrorMessage(MISSING_RESOURCE_FUNCTIONS);
         assertErrorMessage(diagnostic, message, 19, 1);
     }
 
@@ -233,11 +288,11 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_ROOT_RESOURCE_ACCESSOR, "post", "greeting");
+        String message = getErrorMessage(INVALID_ROOT_RESOURCE_ACCESSOR, "post", "greeting");
         assertErrorMessage(diagnostic, message, 20, 23);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS);
+        message = getErrorMessage(MISSING_RESOURCE_FUNCTIONS);
         assertErrorMessage(diagnostic, message, 19, 1);
     }
 
@@ -249,75 +304,75 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "map", "Query.greeting");
+        String message = getErrorMessage(INVALID_RETURN_TYPE, "map", "Query.greeting");
         assertErrorMessage(diagnostic, message, 28, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "json", "Query.greeting");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "json", "Query.greeting");
         assertErrorMessage(diagnostic, message, 34, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "byte", "Query.greeting");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "byte", "Query.greeting");
         assertErrorMessage(diagnostic, message, 41, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "byte", "Query.greeting");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "byte", "Query.greeting");
         assertErrorMessage(diagnostic, message, 48, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "float");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "float");
         assertErrorMessage(diagnostic, message, 55, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "decimal");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "decimal");
         assertErrorMessage(diagnostic, message, 55, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "Person");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "Person");
         assertErrorMessage(diagnostic, message, 61, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "string");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "string");
         assertErrorMessage(diagnostic, message, 61, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "Person");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "Person");
         assertErrorMessage(diagnostic, message, 67, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "Student");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "Student");
         assertErrorMessage(diagnostic, message, 67, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "service object {}", "Query.foo");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "service object {}", "Query.foo");
         assertErrorMessage(diagnostic, message, 74, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.NON_DISTINCT_INTERFACE, "Interceptor");
+        message = getErrorMessage(NON_DISTINCT_INTERFACE, "Interceptor");
         assertErrorMessage(diagnostic, message, 93, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FUNCTION, "Interceptor", "execute");
+        message = getErrorMessage(INVALID_FUNCTION, "Interceptor", "execute");
         assertErrorMessage(diagnostic, message, 75, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS);
+        message = getErrorMessage(MISSING_RESOURCE_FUNCTIONS);
         assertErrorMessage(diagnostic, message, 93, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.NON_DISTINCT_INTERFACE_IMPLEMENTATION, "ServiceInterceptor");
+        message = getErrorMessage(NON_DISTINCT_INTERFACE_IMPLEMENTATION, "ServiceInterceptor");
         assertErrorMessage(diagnostic, message, 83, 24);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_SUBSCRIBE_RESOURCE_RETURN_TYPE, "int", "foo");
+        message = getErrorMessage(INVALID_SUBSCRIBE_RESOURCE_RETURN_TYPE, "int", "foo");
         assertErrorMessage(diagnostic, message, 99, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_SUBSCRIBE_RESOURCE_RETURN_TYPE, "int|string", "bar");
+        message = getErrorMessage(INVALID_SUBSCRIBE_RESOURCE_RETURN_TYPE, "int|string", "bar");
         assertErrorMessage(diagnostic, message, 103, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_CLASS, "Foo", "Query.foo");
+        message = getErrorMessage(INVALID_RETURN_TYPE_CLASS, "Foo", "Query.foo");
         assertErrorMessage(diagnostic, message, 112, 7);
     }
 
@@ -329,41 +384,39 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "json", "Query.greet");
+        String message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "json", "Query.greet");
         assertErrorMessage(diagnostic, message, 21, 38);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "map<string>", "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "map<string>", "Query.greet");
         assertErrorMessage(diagnostic, message, 27, 45);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "byte[]", "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "byte[]", "Query.greet");
         assertErrorMessage(diagnostic, message, 33, 40);
 
         diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_INPUT_TYPE_UNION, 44, 39);
+        assertError(diagnostic, INVALID_INPUT_TYPE_UNION, 44, 39);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "byte[]", "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "byte[]", "Query.greet");
         assertErrorMessage(diagnostic, message, 50, 49);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "any", "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "any", "Query.greet");
         assertErrorMessage(diagnostic, message, 56, 37);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "anydata", "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "anydata", "Query.greet");
         assertErrorMessage(diagnostic, message, 62, 41);
 
         String subModulePrefix = "graphql_test/test_package.types:0.1.0:";
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, subModulePrefix + "Headers",
-                                  "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, subModulePrefix + "Headers", "Query.greet");
         assertErrorMessage(diagnostic, message, 68, 47);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, subModulePrefix + "Service",
-                                  "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, subModulePrefix + "Service", "Query.greet");
         assertErrorMessage(diagnostic, message, 74, 47);
     }
 
@@ -373,7 +426,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_ERROR_OR_NIL, "Query.greeting");
+        String message = getErrorMessage(INVALID_RETURN_TYPE_ERROR_OR_NIL, "Query.greeting");
         assertErrorMessage(diagnostic, message, 20, 5);
     }
 
@@ -383,7 +436,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_NIL, "Query.greeting");
+        String message = getErrorMessage(INVALID_RETURN_TYPE_NIL, "Query.greeting");
         assertErrorMessage(diagnostic, message, 20, 5);
     }
 
@@ -393,7 +446,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_ERROR, "Query.greeting");
+        String message = getErrorMessage(INVALID_RETURN_TYPE_ERROR, "Query.greeting");
         assertErrorMessage(diagnostic, message, 20, 5);
     }
 
@@ -405,19 +458,19 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 29, 58);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 29, 58);
 
         diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 30, 64);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 30, 64);
 
         diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 31, 75);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 31, 75);
 
         diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 32, 81);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 32, 81);
 
         diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 34, 64);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 34, 64);
     }
 
     @Test(groups = "invalid")
@@ -428,22 +481,22 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_INPUT_TYPE_UNION, 20, 48);
+        assertError(diagnostic, INVALID_INPUT_TYPE_UNION, 20, 48);
 
         diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "json?", "Query.greet");
+        String message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "json?", "Query.greet");
         assertErrorMessage(diagnostic, message, 26, 39);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "map<string>?", "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "map<string>?", "Query.greet");
         assertErrorMessage(diagnostic, message, 32, 46);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "byte[]?", "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "byte[]?", "Query.greet");
         assertErrorMessage(diagnostic, message, 38, 41);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "error", "Query.greet");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "error", "Query.greet");
         assertErrorMessage(diagnostic, message, 44, 46);
     }
 
@@ -455,19 +508,19 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "Age");
+        String message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "Age");
         assertErrorMessage(diagnostic, message, 20, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "CivilStatus");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "CivilStatus");
         assertErrorMessage(diagnostic, message, 20, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "Age");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "Age");
         assertErrorMessage(diagnostic, message, 26, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_UNION_MEMBER_TYPE, "CivilStatus");
+        message = getErrorMessage(INVALID_UNION_MEMBER_TYPE, "CivilStatus");
         assertErrorMessage(diagnostic, message, 32, 5);
     }
 
@@ -480,15 +533,14 @@ public class ServiceValidationTest {
 
         // Same erroneous class is used in two different GraphQL services. Hence, the duplication of errors.
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR, "post",
-                                         "generalGreeting");
+        String message = getErrorMessage(INVALID_RESOURCE_FUNCTION_ACCESSOR, "post", "generalGreeting");
         assertErrorMessage(diagnostic, message, 44, 23);
 
         diagnostic = diagnosticIterator.next();
         assertErrorMessage(diagnostic, message, 44, 23);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR, "post", "status");
+        message = getErrorMessage(INVALID_RESOURCE_FUNCTION_ACCESSOR, "post", "status");
         assertErrorMessage(diagnostic, message, 50, 23);
 
         diagnostic = diagnosticIterator.next();
@@ -504,14 +556,14 @@ public class ServiceValidationTest {
 
         // Same erroneous class is used in two different GraphQL services. Hence, the duplication of errors.
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "json", "Query.greet.greeting");
+        String message = getErrorMessage(INVALID_RETURN_TYPE, "json", "Query.greet.greeting");
         assertErrorMessage(diagnostic, message, 45, 23);
 
         diagnostic = diagnosticIterator.next();
         assertErrorMessage(diagnostic, message, 45, 23);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "byte", "Query.greet.greeting");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "byte", "Query.greet.greeting");
         assertErrorMessage(diagnostic, message, 52, 23);
 
         diagnostic = diagnosticIterator.next();
@@ -527,23 +579,19 @@ public class ServiceValidationTest {
 
         // Same erroneous class is used in two different GraphQL services. Hence, the duplication of errors.
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "json",
-                                         "Query.greet.generalGreeting");
+        String message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "json", "Query.greet.generalGreeting");
         assertErrorMessage(diagnostic, message, 44, 48);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "json",
-                                  "Query.greet.generalGreeting");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "json", "Query.greet.generalGreeting");
         assertErrorMessage(diagnostic, message, 44, 48);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "map<string>",
-                                  "Query.greet.status");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "map<string>", "Query.greet.status");
         assertErrorMessage(diagnostic, message, 50, 46);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, "map<string>",
-                                  "Query.greet.status");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, "map<string>", "Query.greet.status");
         assertErrorMessage(diagnostic, message, 50, 46);
     }
 
@@ -555,16 +603,16 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 24, 58);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 24, 58);
 
         diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 25, 64);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 25, 64);
 
         diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 26, 75);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 26, 75);
 
         diagnostic = diagnosticIterator.next();
-        assertError(diagnostic, CompilationDiagnostic.INVALID_LISTENER_INIT, 27, 81);
+        assertError(diagnostic, INVALID_LISTENER_INIT, 27, 81);
     }
 
     @Test(groups = "invalid")
@@ -575,36 +623,35 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_FIELD_NAME, "Query.__liftCount", "__liftCount");
+        String message = getErrorMessage(INVALID_FIELD_NAME, "Query.__liftCount", "__liftCount");
         assertErrorMessage(diagnostic, message, 42, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FIELD_NAME, "Query.lift.__id", "__id");
+        message = getErrorMessage(INVALID_FIELD_NAME, "Query.lift.__id", "__id");
         assertErrorMessage(diagnostic, message, 50, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FIELD_NAME, "Query.lift.getStatus.__elevationgain",
-                                  "__elevationgain");
+        message = getErrorMessage(INVALID_FIELD_NAME, "Query.lift.getStatus.__elevationgain", "__elevationgain");
         assertErrorMessage(diagnostic, message, 50, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FIELD_NAME, "Query.mountain.name.__first", "__first");
+        message = getErrorMessage(INVALID_FIELD_NAME, "Query.mountain.name.__first", "__first");
         assertErrorMessage(diagnostic, message, 61, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FIELD_NAME, "Query.mountain.__name.last", "__name");
+        message = getErrorMessage(INVALID_FIELD_NAME, "Query.mountain.__name.last", "__name");
         assertErrorMessage(diagnostic, message, 65, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FIELD_NAME, "Query.__mountain.id", "__mountain");
+        message = getErrorMessage(INVALID_FIELD_NAME, "Query.__mountain.id", "__mountain");
         assertErrorMessage(diagnostic, message, 69, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FIELD_NAME, "Query.mountain.getTrail.__name", "__name");
+        message = getErrorMessage(INVALID_FIELD_NAME, "Query.mountain.getTrail.__name", "__name");
         assertErrorMessage(diagnostic, message, 36, 23);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FIELD_NAME, "Mutation.__addTrail", "__addTrail");
+        message = getErrorMessage(INVALID_FIELD_NAME, "Mutation.__addTrail", "__addTrail");
         assertErrorMessage(diagnostic, message, 77, 5);
     }
 
@@ -616,11 +663,11 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_ANY, "Query.name");
+        String message = getErrorMessage(INVALID_RETURN_TYPE_ANY, "Query.name");
         assertErrorMessage(diagnostic, message, 20, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_ANY, "Query.age");
+        message = getErrorMessage(INVALID_RETURN_TYPE_ANY, "Query.age");
         assertErrorMessage(diagnostic, message, 24, 5);
     }
 
@@ -630,7 +677,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS);
+        String message = getErrorMessage(MISSING_RESOURCE_FUNCTIONS);
         assertErrorMessage(diagnostic, message, 19, 1);
     }
 
@@ -640,7 +687,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "json", "Mutation.setName");
+        String message = getErrorMessage(INVALID_RETURN_TYPE, "json", "Mutation.setName");
         assertErrorMessage(diagnostic, message, 23, 5);
     }
 
@@ -650,7 +697,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_FUNCTION, "Person", "setName");
+        String message = getErrorMessage(INVALID_FUNCTION, "Person", "setName");
         assertErrorMessage(diagnostic, message, 36, 21);
     }
 
@@ -660,7 +707,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS);
+        String message = getErrorMessage(MISSING_RESOURCE_FUNCTIONS);
         assertErrorMessage(diagnostic, message, 25, 15);
     }
 
@@ -671,45 +718,43 @@ public class ServiceValidationTest {
         Assert.assertEquals(diagnosticResult.errorCount(), 11);
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.profile",
-                                         "Person");
+        String message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.profile", "Person");
         assertErrorMessage(diagnostic, message, 39, 42);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.book", "Person");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.book", "Person");
         assertErrorMessage(diagnostic, message, 48, 37);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_INPUT_OBJECT, "Query.location", "Location");
+        message = getErrorMessage(INVALID_RETURN_TYPE_INPUT_OBJECT, "Query.location", "Location");
         assertErrorMessage(diagnostic, message, 61, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.locationArray",
-                                  "Location");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.locationArray", "Location");
         assertErrorMessage(diagnostic, message, 77, 50);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.details", "Person");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.details", "Person");
         assertErrorMessage(diagnostic, message, 83, 42);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.details", "Person");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.details", "Person");
         assertErrorMessage(diagnostic, message, 95, 43);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.details", "Person");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.details", "Person");
         assertErrorMessage(diagnostic, message, 110, 43);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.book", "Person");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.book", "Person");
         assertErrorMessage(diagnostic, message, 122, 39);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.book", "Person");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.book", "Person");
         assertErrorMessage(diagnostic, message, 134, 40);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_INPUT_OBJECT, "Query.person", "Person");
+        message = getErrorMessage(INVALID_RETURN_TYPE_INPUT_OBJECT, "Query.person", "Person");
         assertErrorMessage(diagnostic, message, 153, 5);
     }
 
@@ -720,13 +765,11 @@ public class ServiceValidationTest {
         Assert.assertEquals(diagnosticResult.errorCount(), 2);
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE,
-                                         TEST_MODULE_PREFIX + "Context", "Query.profile");
+        String message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, TEST_MODULE_PREFIX + "Context", "Query.profile");
         assertErrorMessage(diagnostic, message, 21, 43);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, TEST_MODULE_PREFIX + "Context",
-                                  "Mutation.updateName");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, TEST_MODULE_PREFIX + "Context", "Mutation.updateName");
         assertErrorMessage(diagnostic, message, 25, 40);
     }
 
@@ -736,7 +779,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_ERROR_OR_NIL, "Query.profile.err");
+        String message = getErrorMessage(INVALID_RETURN_TYPE_ERROR_OR_NIL, "Query.profile.err");
         assertErrorMessage(diagnostic, message, 25, 5);
     }
 
@@ -748,24 +791,22 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.profile",
-                                         "Person");
+        String message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.profile", "Person");
         assertErrorMessage(diagnostic, message, 35, 44);
 
         diagnostic = diagnosticIterator.next();
         assertErrorMessage(diagnostic, message, 44, 44);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.book", "Person");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.book", "Person");
         assertErrorMessage(diagnostic, message, 59, 39);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_INPUT_OBJECT, "Query.location", "Location");
+        message = getErrorMessage(INVALID_RETURN_TYPE_INPUT_OBJECT, "Query.location", "Location");
         assertErrorMessage(diagnostic, message, 72, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.locationArray",
-                                  "Location");
+        message = getErrorMessage(INVALID_RESOURCE_INPUT_OBJECT_PARAM, "Query.locationArray", "Location");
         assertErrorMessage(diagnostic, message, 88, 52);
     }
 
@@ -777,23 +818,23 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_PATH_PARAMETERS, "[string id]");
+        String message = getErrorMessage(INVALID_PATH_PARAMETERS, "[string id]");
         assertErrorMessage(diagnostic, message, 20, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_PATH_PARAMETERS, "[string... ids]");
+        message = getErrorMessage(INVALID_PATH_PARAMETERS, "[string... ids]");
         assertErrorMessage(diagnostic, message, 24, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_PATH, ".");
+        message = getErrorMessage(INVALID_RESOURCE_PATH, ".");
         assertErrorMessage(diagnostic, message, 28, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_PATH_PARAMETERS, "[int... ids]");
+        message = getErrorMessage(INVALID_PATH_PARAMETERS, "[int... ids]");
         assertErrorMessage(diagnostic, message, 32, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_HIERARCHICAL_RESOURCE_PATH, "profile/names");
+        message = getErrorMessage(INVALID_HIERARCHICAL_RESOURCE_PATH, "profile/names");
         assertErrorMessage(diagnostic, message, 36, 5);
     }
 
@@ -805,68 +846,59 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "stream",
-                                         "Query.getImage.byteStream");
+        String message = getErrorMessage(INVALID_RETURN_TYPE, "stream", "Query.getImage.byteStream");
         assertErrorMessage(diagnostic, message, 36, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "stream",
-                                  "Query.getImageIfExist.byteStream");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "stream", "Query.getImageIfExist.byteStream");
         assertErrorMessage(diagnostic, message, 43, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "stream", "Query.getImages.byteStream");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "stream", "Query.getImages.byteStream");
         assertErrorMessage(diagnostic, message, 50, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION, "upload");
+        message = getErrorMessage(INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION, "upload");
         assertErrorMessage(diagnostic, message, 57, 58);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION, "uploadMultiple");
+        message = getErrorMessage(INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION, "uploadMultiple");
         assertErrorMessage(diagnostic, message, 64, 68);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION, "uploadFile");
+        message = getErrorMessage(INVALID_FILE_UPLOAD_IN_RESOURCE_FUNCTION, "uploadFile");
         assertErrorMessage(diagnostic, message, 71, 63);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "stream",
-                                  "Mutation.uploadAndGet.byteStream");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "stream", "Mutation.uploadAndGet.byteStream");
         assertErrorMessage(diagnostic, message, 82, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "stream",
-                                  "Mutation.uploadAndGet.byteStream");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "stream", "Mutation.uploadAndGet.byteStream");
         assertErrorMessage(diagnostic, message, 93, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "stream",
-                                  "Mutation.uploadAndGetMultiple.byteStream");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "stream", "Mutation.uploadAndGetMultiple.byteStream");
         assertErrorMessage(diagnostic, message, 104, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.MULTI_DIMENSIONAL_UPLOAD_ARRAY, "upload");
+        message = getErrorMessage(MULTI_DIMENSIONAL_UPLOAD_ARRAY, "upload");
         assertErrorMessage(diagnostic, message, 115, 56);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, TEST_MODULE_PREFIX + "File",
-                                  "Query.uploadFile");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, TEST_MODULE_PREFIX + "File", "Query.uploadFile");
         assertErrorMessage(diagnostic, message, 122, 52);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_INPUT_PARAMETER_TYPE, TEST_MODULE_PREFIX + "File",
-                                  "Mutation.upload");
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE, TEST_MODULE_PREFIX + "File", "Mutation.upload");
         assertErrorMessage(diagnostic, message, 133, 33);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "stream",
-                                  "Query.uploadFile.file.byteStream");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "stream", "Query.uploadFile.file.byteStream");
         assertErrorMessage(diagnostic, message, 140, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "stream",
-                                  "Mutation.upload.file.byteStream");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "stream", "Mutation.upload.file.byteStream");
         assertErrorMessage(diagnostic, message, 154, 5);
     }
 
@@ -876,25 +908,23 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.NON_DISTINCT_INTERFACE_IMPLEMENTATION, "Teacher");
+        String message = getErrorMessage(NON_DISTINCT_INTERFACE_IMPLEMENTATION, "Teacher");
         assertErrorMessage(diagnostic, message, 59, 31);
     }
 
     @Test(groups = "invalid")
     public void testNonDistinctInterface() {
-        // TODO: check for non distinct object
-        // https://github.com/ballerina-platform/ballerina-standard-library/issues/3337
         String packagePath = "53_non_distinct_interface";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 2);
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.NON_DISTINCT_INTERFACE, "Person");
+        String message = getErrorMessage(NON_DISTINCT_INTERFACE, "Person");
         assertErrorMessage(diagnostic, message, 20, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.NON_DISTINCT_INTERFACE_IMPLEMENTATION, "Teacher");
+        message = getErrorMessage(NON_DISTINCT_INTERFACE_IMPLEMENTATION, "Teacher");
         assertErrorMessage(diagnostic, message, 59, 31);
     }
 
@@ -906,11 +936,11 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR, "read", "id");
+        String message = getErrorMessage(INVALID_RESOURCE_FUNCTION_ACCESSOR, "read", "id");
         assertErrorMessage(diagnostic, message, 54, 32);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR, "post", "subject");
+        message = getErrorMessage(INVALID_RESOURCE_FUNCTION_ACCESSOR, "post", "subject");
         assertErrorMessage(diagnostic, message, 86, 32);
     }
 
@@ -920,7 +950,7 @@ public class ServiceValidationTest {
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
         Assert.assertEquals(diagnosticResult.errorCount(), 1);
         Diagnostic diagnostic = diagnosticResult.errors().iterator().next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "map", "Query.name.names");
+        String message = getErrorMessage(INVALID_RETURN_TYPE, "map", "Query.name.names");
         assertErrorMessage(diagnostic, message, 90, 32);
     }
 
@@ -932,16 +962,15 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS);
+        String message = getErrorMessage(MISSING_RESOURCE_FUNCTIONS);
         assertErrorMessage(diagnostic, message, 19, 1);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE, "byte",
-                                  "Subscription.profiles.bytes");
+        message = getErrorMessage(INVALID_RETURN_TYPE, "byte", "Subscription.profiles.bytes");
         assertErrorMessage(diagnostic, message, 31, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR, "subscribe", "age");
+        message = getErrorMessage(INVALID_RESOURCE_FUNCTION_ACCESSOR, "subscribe", "age");
         assertErrorMessage(diagnostic, message, 61, 32);
     }
 
@@ -953,12 +982,12 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.RESOURCE_METHOD_INSIDE_INTERCEPTOR,
+        String message = getErrorMessage(RESOURCE_METHOD_INSIDE_INTERCEPTOR,
                                          "isolated resource function get name (int id) returns string");
         assertErrorMessage(diagnostic, message, 27, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_REMOTE_METHOD_INSIDE_INTERCEPTOR,
+        message = getErrorMessage(INVALID_REMOTE_METHOD_INSIDE_INTERCEPTOR,
                                   "isolated remote function updateName(string name) returns string");
         assertErrorMessage(diagnostic, message, 34, 5);
     }
@@ -971,44 +1000,41 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_ANONYMOUS_FIELD_TYPE,
+        String message = getErrorMessage(INVALID_ANONYMOUS_FIELD_TYPE,
                                          "record {|int number; string street; string city;|}", "Query.profile.address");
         assertErrorMessage(diagnostic, message, 26, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_ANONYMOUS_FIELD_TYPE,
-                                  "record {|int number; string street; string city;|}", "Query.address");
+        message = getErrorMessage(INVALID_ANONYMOUS_FIELD_TYPE, "record {|int number; string street; string city;|}",
+                                  "Query.address");
         assertErrorMessage(diagnostic, message, 38, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_ANONYMOUS_FIELD_TYPE,
-                                  "record {|string name; int age;|}", "Query.class.profile");
+        message = getErrorMessage(INVALID_ANONYMOUS_FIELD_TYPE, "record {|string name; int age;|}",
+                                  "Query.class.profile");
         assertErrorMessage(diagnostic, message, 52, 23);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE,
-                                  "record {|string name; int age;|}", "Query.name");
+        message = getErrorMessage(INVALID_ANONYMOUS_INPUT_TYPE, "record {|string name; int age;|}", "Query.name");
         assertErrorMessage(diagnostic, message, 58, 67);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_ANONYMOUS_INPUT_TYPE,
-                                  "record {|string name; int age;|}", "Query.school.name");
+        message = getErrorMessage(INVALID_ANONYMOUS_INPUT_TYPE, "record {|string name; int age;|}", "Query.school"
+                + ".name");
         assertErrorMessage(diagnostic, message, 68, 67);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_ANONYMOUS_FIELD_TYPE,
-                                  "record {|int number; string street; string city;|}", "Mutation.updateName.address");
+        message = getErrorMessage(INVALID_ANONYMOUS_FIELD_TYPE, "record {|int number; string street; string city;|}",
+                                  "Mutation.updateName.address");
         assertErrorMessage(diagnostic, message, 78, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_ANONYMOUS_FIELD_TYPE,
-                                  "record {|int number; string street; string city;|}",
+        message = getErrorMessage(INVALID_ANONYMOUS_FIELD_TYPE, "record {|int number; string street; string city;|}",
                                   "Subscription.profiles.address");
         assertErrorMessage(diagnostic, message, 96, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_ANONYMOUS_FIELD_TYPE,
-                                  "record {|int number; string street; string city;|}",
+        message = getErrorMessage(INVALID_ANONYMOUS_FIELD_TYPE, "record {|int number; string street; string city;|}",
                                   "Query.company.profile.address");
         assertErrorMessage(diagnostic, message, 112, 5);
     }
@@ -1021,15 +1047,15 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_RESOURCE_PATH, "_entities");
+        String message = getErrorMessage(INVALID_USE_OF_RESERVED_RESOURCE_PATH, "_entities");
         assertErrorMessage(diagnostic, message, 20, 23);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_RESOURCE_PATH, "_service");
+        message = getErrorMessage(INVALID_USE_OF_RESERVED_RESOURCE_PATH, "_service");
         assertErrorMessage(diagnostic, message, 24, 23);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_REMOTE_METHOD_NAME, "_entities");
+        message = getErrorMessage(INVALID_USE_OF_RESERVED_REMOTE_METHOD_NAME, "_entities");
         assertErrorMessage(diagnostic, message, 34, 21);
     }
 
@@ -1041,34 +1067,31 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE, "Query.any",
-                                         "_Any");
+        String message = getErrorMessage(INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE, "Query.any", "_Any");
         assertErrorMessage(diagnostic, message, 43, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE,
-                                  "Mutation.services", "_Service");
+        message = getErrorMessage(INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE, "Mutation.services", "_Service");
         assertErrorMessage(diagnostic, message, 36, 15);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE, "FieldSet");
+        message = getErrorMessage(INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE, "FieldSet");
         assertErrorMessage(diagnostic, message, 51, 45);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE, "Query.linkImport",
-                                  "link__Import");
+        message = getErrorMessage(INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE, "Query.linkImport", "link__Import");
         assertErrorMessage(diagnostic, message, 55, 5);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE,
-                                  "Query.linkPurpose", "link__Purpose");
+        message = getErrorMessage(INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE, "Query.linkPurpose", "link__Purpose");
         assertErrorMessage(diagnostic, message, 27, 6);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE, "link__Purpose");
+        message = getErrorMessage(INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE, "link__Purpose");
         assertErrorMessage(diagnostic, message, 63, 51);
     }
-    
+
+    @Test(groups = "invalid")
     public void testUnsupportedPrimitiveTypeAlias() {
         String packagePath = "61_unsupported_primitive_type_alias";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
@@ -1076,13 +1099,257 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.UNSUPPORTED_PRIMITIVE_TYPE_ALIAS, "Id", "int");
+        String message = getErrorMessage(UNSUPPORTED_PRIMITIVE_TYPE_ALIAS, "Id", "int");
         // error message for return type with primitive type alias
         assertErrorMessage(diagnostic, message, 19, 6);
 
         diagnostic = diagnosticIterator.next();
         // a duplicate error message is expected for input type with primitive type alias
         assertErrorMessage(diagnostic, message, 19, 6);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithInValidName() {
+        String packagePath = "62_custom_directive_with_invalid_name";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(INVALID_DIRECTIVE_NAME, "-invalid-name-");
+        assertErrorMessage(diagnostic, message, 32, 5);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithoutDirectiveTypeInclusion() {
+        String packagePath = "63_custom_directive_without_directive_type_inclusion";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(DIRECTIVE_TYPE_INCLUSION_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS, "Sort");
+        assertErrorMessage(diagnostic, message, 34, 24);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithoutDirectiveConfig() {
+        String packagePath = "64_custom_directive_without_directive_config";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 2);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(DIRECTIVE_CONFIG_NOT_FOUND_IN_DIRECTIVE_SERVICE_CLASS, "Sort");
+        assertErrorMessage(diagnostic, message, 30, 1);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(NO_ON_FIELD_FOUND_FOR_DIRECTIVE_REMOTE_METHOD, "applyOnField", "FIELD");
+        assertErrorMessage(diagnostic, message, 38, 30);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithInvalidResourceMethod() {
+        String packagePath = "65_custom_directive_with_invalid_resource_method";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(INVALID_RESOURCE_METHOD_INSIDE_DIRECTIVE,
+                                         "isolated resource function get data () returns json");
+        assertErrorMessage(diagnostic, message, 46, 23);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithInvalidInitMethodSignature() {
+        String packagePath = "66_custom_directive_with_invalid_init_method_signature";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(INVALID_INIT_METHOD_RETURN_TYPE_FOUND_IN_DIRECTIVE, "error?");
+        assertErrorMessage(diagnostic, message, 38, 14);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithInvalidInvalidRemoteMethodName() {
+        String packagePath = "67_custom_directive_with_invalid_remote_method_name";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 2);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(INVALID_REMOTE_METHOD_INSIDE_DIRECTIVE, "execute");
+        assertErrorMessage(diagnostic, message, 42, 30);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(NO_REMOTE_METHOD_FOUND_FOR_ON_FIELD_VALUE, "Sort", "FIELD");
+        assertErrorMessage(diagnostic, message, 34, 24);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithInvalidInvalidOnField() {
+        String packagePath = "68_custom_directive_with_invalid_on_field";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(ON_FIELD_MUST_CONTAIN_LEAST_ONE_VALUE_IN_DIRECTIVE_CONFIG);
+        assertErrorMessage(diagnostic, message, 31, 10);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithoutMatchingRemoteMethod() {
+        String packagePath = "69_custom_directive_without_matching_remote_method";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(NO_REMOTE_METHOD_FOUND_FOR_ON_FIELD_VALUE, "Sort", "QUERY");
+        assertErrorMessage(diagnostic, message, 34, 24);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectiveWithInvalidRemoteMethodSignature() {
+        String packagePath = "70_custom_directive_with_invalid_remote_method_signature";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 4);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(REMOTE_METHOD_WITH_INVALID_PARAMETERS_FOUND_IN_DIRECTIVE, "applyOnField");
+        assertErrorMessage(diagnostic, message, 42, 30);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(REMOTE_METHOD_WITH_INVALID_RETURN_TYPE_FOUND_IN_DIRECTIVE, "applyOnQuery");
+        assertErrorMessage(diagnostic, message, 46, 30);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(REMOTE_METHOD_WITH_INVALID_PARAMETERS_FOUND_IN_DIRECTIVE, "applyOnMutation");
+        assertErrorMessage(diagnostic, message, 50, 30);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(REMOTE_METHOD_WITH_INVALID_RETURN_TYPE_FOUND_IN_DIRECTIVE, "applyOnMutation");
+        assertErrorMessage(diagnostic, message, 50, 30);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectivesWithSameName() {
+        String packagePath = "76_custom_directives_with_same_name";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_NAME_ALREADY_IN_USE, "sort");
+        assertErrorMessage(diagnostic, message, 32, 5);
+    }
+
+    @Test(groups = "invalid")
+    public void testCustomDirectivesWithInvalidInputParameters() {
+        String packagePath = "77_custom_directives_with_invalid_input_parameters";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 4);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(INVALID_FILE_UPLOAD_IN_DIRECTIVE, "Sort");
+        assertErrorMessage(diagnostic, message, 37, 34);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(INVALID_INPUT_PARAMETER_TYPE_IN_DIRECTIVE, "json", "Sort");
+        assertErrorMessage(diagnostic, message, 37, 47);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(INVALID_DIRECTIVE_INPUT_OBJECT_PARAM, "Sort", "Student");
+        assertErrorMessage(diagnostic, message, 37, 66);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(INVALID_ANONYMOUS_INPUT_TYPE_IN_DIRECTIVE, "record {|string name; anydata...;|}",
+                                  "Sort");
+        assertErrorMessage(diagnostic, message, 37, 98);
+    }
+
+    @Test(groups = "not-supported")
+    public void testDirectiveConfigWithUnsupportedShorthandNotation() {
+        String packagePath = "71_directive_config_with_unsupported_shorthand_field_notation";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(PASSING_SHORT_HAND_NOTATION_FOR_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        assertWarningMessage(diagnostic, message, 34, 5);
+    }
+
+    @Test(groups = "not-supported")
+    public void testDirectiveConfigNameFieldWithoutStringLiteral() {
+        String packagePath = "72_directive_config_name_field_without_string_literal";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(PASSING_NON_STRING_VALUE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        assertWarningMessage(diagnostic, message, 34, 5);
+    }
+
+    @Test(groups = "not-supported")
+    public void testDirectiveConfigNameFieldWithUnsupportedTemplateString() {
+        String packagePath = "73_directive_config_name_field_with_unsupported_template_string";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(PASSING_STRING_TEMPLATE_FOR_NAME_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        assertWarningMessage(diagnostic, message, 34, 5);
+    }
+
+    @Test(groups = {"not-supported", "invalid"})
+    public void testDirectiveConfigOnFieldWithUnsupportedNameReference() {
+        String packagePath = "74_directive_config_on_field_with_unsupported_name_reference";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(PASSING_REFERENCE_FOR_ON_FIELD_IN_DIRECTIVE_CONFIG_NOT_SUPPORTED);
+        assertWarningMessage(diagnostic, message, 33, 5);
+
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        diagnosticIterator = diagnosticResult.errors().iterator();
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(NO_ON_FIELD_FOUND_FOR_DIRECTIVE_REMOTE_METHOD, "applyOnField", "FIELD");
+        assertErrorMessage(diagnostic, message, 43, 30);
+    }
+
+    @Test(groups = "not-supported")
+    public void testDirectiveConfigOnFieldWithUnsupportedDirectiveLocation() {
+        String packagePath = "75_directive_config_on_field_with_unsupported_directive_location";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 4);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED, "VARIABLE_DEFINITION");
+        assertWarningMessage(diagnostic, message, 31, 10);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED, "FRAGMENT_SPREAD");
+        assertWarningMessage(diagnostic, message, 31, 10);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED, "FRAGMENT_DEFINITION");
+        assertWarningMessage(diagnostic, message, 31, 10);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.DIRECTIVE_LOCATION_NOT_SUPPORTED, "INLINE_FRAGMENT");
+        assertWarningMessage(diagnostic, message, 31, 10);
     }
 
     private DiagnosticResult getDiagnosticResult(String packagePath) {
@@ -1110,6 +1377,13 @@ public class ServiceValidationTest {
         assertErrorLocation(diagnostic.location(), line, column);
     }
 
+    private void assertWarningMessage(Diagnostic diagnostic, String message, int line, int column) {
+        Assert.assertEquals(diagnostic.diagnosticInfo().severity(), DiagnosticSeverity.WARNING);
+        Assert.assertEquals(diagnostic.message(), message);
+        assertErrorLocation(diagnostic.location(), line, column);
+    }
+
+    // TODO: rename the message since now we are using the same method for warnings message
     private String getErrorMessage(CompilationDiagnostic compilationDiagnostic, Object... args) {
         return MessageFormat.format(compilationDiagnostic.getDiagnostic(), args);
     }

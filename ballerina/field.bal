@@ -26,6 +26,7 @@ public class Field {
     private (string|int)[] path;
     private string[] resourcePath;
     private readonly & Interceptor[] fieldInterceptors;
+    private int nextCustomExecutableDirectiveIndex = 0;
 
     isolated function init(parser:FieldNode internalNode, __Type fieldType, service object {}? serviceObject = (),
                            (string|int)[] path = [], parser:RootOperationType operationType = parser:OPERATION_QUERY,
@@ -114,4 +115,18 @@ public class Field {
     isolated function getFieldInterceptors() returns readonly & Interceptor[] {
         return self.fieldInterceptors;
     }
+
+    isolated function getNextCustomExecutableDirective() returns parser:DirectiveNode? {
+        parser:DirectiveNode[] directives = self.internalNode.getDirectives().filter(isCustomExecutableDirecitve);
+        if (self.nextCustomExecutableDirectiveIndex < directives.length()) {
+            parser:DirectiveNode directive = directives[self.nextCustomExecutableDirectiveIndex];
+            self.nextCustomExecutableDirectiveIndex += 1;
+            return directive;
+        }
+        return ();
+    }
+}
+
+isolated function isCustomExecutableDirecitve(parser:DirectiveNode directive) returns boolean {
+    return directive.getName() != "skip" && directive.getName() != "include";
 }

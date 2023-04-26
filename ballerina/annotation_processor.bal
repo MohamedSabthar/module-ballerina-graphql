@@ -115,3 +115,12 @@ isolated function getResourceAnnotation(service object {} serviceObject, parser:
         string[] path, string methodName) returns GraphqlResourceConfig? = @java:Method {
     'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
 } external;
+
+isolated function getCustomExecutablenDirectives (GraphqlServiceConfig? serviceConfig)
+returns readonly & map<typedesc<Directive>> {
+    readonly & map<typedesc<Directive>>? directives = serviceConfig?.directives;
+    if directives is readonly & map<typedesc<Directive>> {
+        return directives;
+    }
+    return {};
+}
