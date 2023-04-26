@@ -157,7 +157,6 @@ public isolated class Context {
                 return next;
             }
         }
-        self.resetInterceptorCount();
         return;
     }
 
