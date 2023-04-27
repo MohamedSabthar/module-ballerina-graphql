@@ -178,7 +178,7 @@ public class Engine {
         return null;
     }
 
-    public static Object executeInterceptor(Environment environment, BObject interceptor, BObject field,
+    public static Object executeInterceptorRemoteMethod(Environment environment, BObject interceptor, BObject field,
                                             BObject context) {
         Future future = environment.markAsync();
         ExecutionCallback executionCallback = new ExecutionCallback(future);
@@ -282,7 +282,7 @@ public class Engine {
                                                       BObject context, BString methodName) {
         Future future = environment.markAsync();
         ExecutionCallback executionCallback = new ExecutionCallback(future);
-        ServiceType serviceType = (ServiceType) directiveService.getType();
+        ServiceType serviceType = (ServiceType) directiveService.getOriginalType();
         RemoteMethodType remoteMethod = getRemoteMethod(serviceType, methodName.getValue());
         Type returnType = TypeCreator.createUnionType(PredefinedTypes.TYPE_ANY, PredefinedTypes.TYPE_NULL);
         if (remoteMethod != null) {

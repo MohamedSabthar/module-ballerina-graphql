@@ -237,81 +237,34 @@ isolated class Engine {
         parser:FieldNode fieldNode = 'field.getInternalNode();
         parser:RootOperationType operationType = 'field.getOperationType();
         (readonly & Interceptor)? interceptor = context.getNextInterceptor('field);
-        __Type fieldType = 'field.getFieldType();
         any|error fieldValue;
-        if operationType == parser:OPERATION_QUERY {
-            if interceptor is () {
-                parser:DirectiveNode? directive = 'field.getNextCustomExecutableDirective();
-                if directive is () {
-                    fieldValue = self.resolveResourceMethod(context, 'field);
-                } else {
-                    anydata|error directiveValue = self.executeDirective(context, 'field, directive);
-                    if directiveValue is error {
-                        fieldValue = directiveValue;
-                    } else {
-                        return directiveValue;
-                    }
-                }
-            } else {
-                any|error result = self.executeInterceptor(interceptor, 'field, context);
-                anydata|error interceptValue = validateInterceptorReturnValue(fieldType, result,
-                                                                              self.getInterceptorName(interceptor));
-                if interceptValue is error {
-                    fieldValue = interceptValue;
-                } else {
-                    return interceptValue;
-                }
+        do {
+            if interceptor is readonly & Interceptor {
+                return check self.executeInterceptor(context, 'field, interceptor);
+            } 
+            parser:DirectiveNode? directive = 'field.getNextCustomExecutableDirective();
+            if directive is parser:DirectiveNode {
+                return check self.executeDirective(context, 'field, directive);
             }
-        } else if operationType == parser:OPERATION_MUTATION {
-            if interceptor is () {
-                parser:DirectiveNode? directive = 'field.getNextCustomExecutableDirective();
-                if directive is () {
-                    fieldValue = self.resolveRemoteMethod(context, 'field);
-                } else {
-                    anydata|error directiveValue = self.executeDirective(context, 'field, directive);
-                    if directiveValue is error {
-                        fieldValue = directiveValue;
-                    } else {
-                        return directiveValue;
-                    }
-                }
+            if operationType == parser:OPERATION_QUERY {
+                fieldValue = self.resolveResourceMethod(context, 'field);
+            } else if operationType == parser:OPERATION_MUTATION {
+                fieldValue = self.resolveRemoteMethod(context, 'field);
             } else {
-                any|error result = self.executeInterceptor(interceptor, 'field, context);
-                anydata|error interceptValue = validateInterceptorReturnValue(fieldType, result,
-                                                                              self.getInterceptorName(interceptor));
-                if interceptValue is error {
-                    fieldValue = interceptValue;
-                } else {
-                    return interceptValue;
-                }
+                fieldValue = 'field.getFieldValue();
             }
-        } else {
-            if interceptor is () {
-                parser:DirectiveNode? directive = 'field.getNextCustomExecutableDirective();
-                if directive is () {
-                    fieldValue = 'field.getFieldValue();
-                } else {
-                    anydata|error directiveValue = self.executeDirective(context, 'field, directive);
-                    if directiveValue is error {
-                        fieldValue = directiveValue;
-                    } else {
-                        return directiveValue;
-                    }
-                }
-            } else {
-                any|error result = self.executeInterceptor(interceptor, 'field, context);
-                anydata|error interceptValue = validateInterceptorReturnValue(fieldType, result,
-                                                                              self.getInterceptorName(interceptor));
-                if interceptValue is error {
-                    fieldValue = interceptValue;
-                } else {
-                    return interceptValue;
-                }
-            }
+        } on fail error err {
+            fieldValue = err;
         }
-        ResponseGenerator responseGenerator = new (self, context, fieldType, 'field.getPath().clone(),
+        ResponseGenerator responseGenerator = new (self, context, 'field.getFieldType(), 'field.getPath().clone(),
                                                    operationType == parser:OPERATION_MUTATION);
         return responseGenerator.getResult(fieldValue, fieldNode);
+    }
+
+    isolated function executeInterceptor(Context context, Field 'field, readonly & Interceptor interceptor) returns anydata|error {
+        any|error result = self.executeInterceptorRemoteMethod(interceptor, 'field, context);
+        string inteceptorName = self.getInterceptorName(interceptor);
+        return validateInterceptorReturnValue('field.getFieldType(), result, inteceptorName);
     }
 
     isolated function executeDirective(Context context, Field 'field, parser:DirectiveNode directive)
@@ -409,7 +362,7 @@ isolated class Engine {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
 
-    isolated function executeInterceptor(readonly & Interceptor interceptor, Field fieldNode, Context context)
+    isolated function executeInterceptorRemoteMethod(readonly & Interceptor interceptor, Field fieldNode, Context context)
     returns any|error = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;

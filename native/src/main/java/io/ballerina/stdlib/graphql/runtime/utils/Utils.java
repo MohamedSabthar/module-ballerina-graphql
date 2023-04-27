@@ -38,7 +38,7 @@ public class Utils {
 
     // Inter-op function names
     static final String EXECUTE_RESOURCE_FUNCTION = "executeQueryResource";
-    static final String EXECUTE_INTERCEPTOR_FUNCTION = "executeInterceptor";
+    static final String EXECUTE_INTERCEPTOR_FUNCTION = "executeInterceptorRemoteMethod";
     static final String EXECUTE_DIRECTIVE_REMOTE_METHOD = "executeDirectiveRemoteMethod";
 
     // Internal type names

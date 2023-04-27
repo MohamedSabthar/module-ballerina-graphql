@@ -126,7 +126,3 @@ public class Field {
         return ();
     }
 }
-
-isolated function isCustomExecutableDirecitve(parser:DirectiveNode directive) returns boolean {
-    return directive.getName() != "skip" && directive.getName() != "include";
-}

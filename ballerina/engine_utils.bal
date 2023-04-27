@@ -123,3 +123,7 @@ public isolated function getSdlString(string encodedSchemaString, map<subgraph:F
 returns string|error = @java:Method {
     'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
 } external;
+
+isolated function isCustomExecutableDirecitve(parser:DirectiveNode directive) returns boolean {
+    return directive.getName() != "skip" && directive.getName() != "include";
+}
