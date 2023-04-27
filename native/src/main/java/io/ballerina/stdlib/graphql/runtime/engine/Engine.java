@@ -23,6 +23,7 @@ import io.ballerina.runtime.api.Future;
 import io.ballerina.runtime.api.PredefinedTypes;
 import io.ballerina.runtime.api.creators.ErrorCreator;
 import io.ballerina.runtime.api.creators.TypeCreator;
+import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.types.MethodType;
 import io.ballerina.runtime.api.types.ObjectType;
 import io.ballerina.runtime.api.types.RemoteMethodType;
@@ -36,6 +37,7 @@ import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
+import io.ballerina.runtime.api.values.BTypedesc;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
 
 import java.io.ByteArrayInputStream;
@@ -43,8 +45,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.COLON;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.GET_ACCESSOR;
@@ -56,6 +60,7 @@ import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.RESOURCE_CO
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.SUBSCRIBE_ACCESSOR;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isPathsMatching;
 import static io.ballerina.stdlib.graphql.runtime.utils.ModuleUtils.getModule;
+import static io.ballerina.stdlib.graphql.runtime.utils.Utils.DIRECTIVE_EXECUTION_STRAND;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.ERROR_TYPE;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.INTERCEPTOR_EXECUTION_STRAND;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.INTERNAL_NODE;
@@ -109,19 +114,17 @@ public class Engine {
         ServiceType serviceType = (ServiceType) service.getType();
         UnionType typeUnion = TypeCreator.createUnionType(PredefinedTypes.TYPE_STREAM, PredefinedTypes.TYPE_ERROR);
         for (ResourceMethodType resourceMethod : serviceType.getResourceMethods()) {
-            if (SUBSCRIBE_ACCESSOR.equals(resourceMethod.getAccessor()) &&
-                    fieldName.getValue().equals(resourceMethod.getResourcePath()[0])) {
+            if (SUBSCRIBE_ACCESSOR.equals(resourceMethod.getAccessor()) && fieldName.getValue()
+                    .equals(resourceMethod.getResourcePath()[0])) {
                 ArgumentHandler argumentHandler = new ArgumentHandler(resourceMethod, context, fieldObject);
                 Object[] args = argumentHandler.getArguments();
                 ObjectType objectType = (ObjectType) TypeUtils.getReferredType(service.getType());
                 if (objectType.isIsolated() && objectType.isIsolated(resourceMethod.getName())) {
-                    env.getRuntime()
-                            .invokeMethodAsyncConcurrently(service, resourceMethod.getName(), null,
-                                                           null, executionCallback, null, typeUnion, args);
+                    env.getRuntime().invokeMethodAsyncConcurrently(service, resourceMethod.getName(), null, null,
+                                                                   executionCallback, null, typeUnion, args);
                 } else {
-                    env.getRuntime()
-                            .invokeMethodAsyncSequentially(service, resourceMethod.getName(), null,
-                                                           null, executionCallback, null, typeUnion, args);
+                    env.getRuntime().invokeMethodAsyncSequentially(service, resourceMethod.getName(), null, null,
+                                                                   executionCallback, null, typeUnion, args);
                 }
             }
         }
@@ -186,14 +189,33 @@ public class Engine {
             Object[] arguments = getInterceptorArguments(context, field);
             if (serviceType.isIsolated() && serviceType.isIsolated(remoteMethod.getName())) {
                 environment.getRuntime().invokeMethodAsyncConcurrently(interceptor, remoteMethod.getName(), null,
-                        INTERCEPTOR_EXECUTION_STRAND, executionCallback, null, returnType, arguments);
+                                                                       INTERCEPTOR_EXECUTION_STRAND, executionCallback,
+                                                                       null, returnType, arguments);
             } else {
                 environment.getRuntime().invokeMethodAsyncSequentially(interceptor, remoteMethod.getName(), null,
-                        INTERCEPTOR_EXECUTION_STRAND, executionCallback, null,
-                        returnType, arguments);
+                                                                       INTERCEPTOR_EXECUTION_STRAND, executionCallback,
+                                                                       null, returnType, arguments);
             }
         }
         return null;
+    }
+
+    private static RemoteMethodType getRemoteMethod(ServiceType serviceType, String methodName) {
+        for (RemoteMethodType remoteMethod : serviceType.getRemoteMethods()) {
+            if (remoteMethod.getName().equals(methodName)) {
+                return remoteMethod;
+            }
+        }
+        return null;
+    }
+
+    private static Object[] getInterceptorArguments(BObject context, BObject field) {
+        Object[] args = new Object[4];
+        args[0] = context;
+        args[1] = true;
+        args[2] = field;
+        args[3] = true;
+        return args;
     }
 
     public static Object getResourceMethod(BObject service, BArray path) {
@@ -220,24 +242,6 @@ public class Engine {
         return result;
     }
 
-    public static RemoteMethodType getRemoteMethod(ServiceType serviceType, String methodName) {
-        for (RemoteMethodType remoteMethod : serviceType.getRemoteMethods()) {
-            if (remoteMethod.getName().equals(methodName)) {
-                return remoteMethod;
-            }
-        }
-        return null;
-    }
-
-    private static Object[] getInterceptorArguments(BObject context, BObject field) {
-        Object[] args = new Object[4];
-        args[0] = context;
-        args[1] = true;
-        args[2] = field;
-        args[3] = true;
-        return args;
-    }
-
     public static BString getInterceptorName(BObject interceptor) {
         ServiceType serviceType = (ServiceType) interceptor.getType();
         return StringUtils.fromString(serviceType.getName());
@@ -259,5 +263,49 @@ public class Engine {
             return methodType.getAnnotation(identifier);
         }
         return null;
+    }
+
+    public static BObject createDirectiveService(BTypedesc serviceTypeDesc, BObject directiveNode) {
+        ServiceType serviceType = (ServiceType) serviceTypeDesc.getDescribingType();
+        // TODO: find a way to obtain init method
+        Optional<MethodType> methodType = Arrays.stream(serviceType.getMethods())
+                .filter(method -> method.getName().equals("init")).findFirst();
+        if (methodType.isEmpty()) {
+            return ValueCreator.createObjectValue(serviceType.getPackage(), serviceType.getName());
+        }
+        // MethodType initMethod = methodType.get();
+        // Parameter[] parameters = initMethod.getParameters();
+        return ValueCreator.createObjectValue(serviceType.getPackage(), serviceType.getName());
+    }
+
+    public static Object executeDirectiveRemoteMethod(Environment environment, BObject directiveService, BObject field,
+                                                      BObject context, BString methodName) {
+        Future future = environment.markAsync();
+        ExecutionCallback executionCallback = new ExecutionCallback(future);
+        ServiceType serviceType = (ServiceType) directiveService.getType();
+        RemoteMethodType remoteMethod = getRemoteMethod(serviceType, methodName.getValue());
+        Type returnType = TypeCreator.createUnionType(PredefinedTypes.TYPE_ANY, PredefinedTypes.TYPE_NULL);
+        if (remoteMethod != null) {
+            Object[] arguments = getDirectiveMethodArguments(context, field);
+            if (serviceType.isIsolated() && serviceType.isIsolated(remoteMethod.getName())) {
+                environment.getRuntime().invokeMethodAsyncConcurrently(directiveService, remoteMethod.getName(), null,
+                                                                       DIRECTIVE_EXECUTION_STRAND, executionCallback,
+                                                                       null, returnType, arguments);
+            } else {
+                environment.getRuntime().invokeMethodAsyncSequentially(directiveService, remoteMethod.getName(), null,
+                                                                       DIRECTIVE_EXECUTION_STRAND, executionCallback,
+                                                                       null, returnType, arguments);
+            }
+        }
+        return null;
+    }
+
+    private static Object[] getDirectiveMethodArguments(BObject context, BObject field) {
+        Object[] args = new Object[4];
+        args[0] = context;
+        args[1] = true;
+        args[2] = field;
+        args[3] = true;
+        return args;
     }
 }

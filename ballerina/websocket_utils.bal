@@ -23,6 +23,7 @@ isolated function executeOperation(Engine engine, Context context, readonly & __
                                    parser:OperationNode node, SubscriptionHandler subscriptionHandler) {
     stream<any, error?>|json sourceStream;
     do {
+        // TODO: handle subscription executable directive here
         SubscriptionHandler handler = subscriptionHandler;
         RootFieldVisitor rootFieldVisitor = new (node);
         parser:FieldNode fieldNode = <parser:FieldNode>rootFieldVisitor.getRootFieldNode();

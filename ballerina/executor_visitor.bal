@@ -41,6 +41,7 @@ isolated class ExecutorVisitor {
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {}
 
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
+        // TODO: handle query and mutation executable directives here
         string[] path = [];
         if operationNode.getName() != parser:ANONYMOUS_OPERATION {
             path.push(operationNode.getName());

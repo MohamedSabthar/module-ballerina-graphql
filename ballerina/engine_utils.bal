@@ -49,6 +49,18 @@ isolated function validateInterceptorReturnValue(__Type 'type, any|error value, 
     return error(interceptorError);
 }
 
+isolated function validateDirectiveReturnValue(__Type 'type, any|error value, string interceptorName)
+    returns anydata|error {
+    if value is error|ErrorDetail {
+        return value;
+    } else if value is anydata && isValidReturnType('type, value) {
+        return value;
+    }
+    string interceptorError = string `Invalid return type in Directive "${interceptorName}". ` +
+                            string `Expected type ${getTypeNameFromType('type)}`;
+    return error(interceptorError);
+}
+
 isolated function isValidReturnType(__Type 'type, anydata value) returns boolean {
     if 'type.kind is NON_NULL {
         if value is () {
