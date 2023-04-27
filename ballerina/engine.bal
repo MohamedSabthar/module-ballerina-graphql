@@ -234,7 +234,7 @@ isolated class Engine {
     }
 
     isolated function resolve(Context context, Field 'field) returns anydata {
-        parser:FieldNode fieldNode = 'field.getInternalNode();
+        parser:SelectionParentNode internalNode = 'field.getInternalNode();
         parser:RootOperationType operationType = 'field.getOperationType();
         (readonly & Interceptor)? interceptor = context.getNextInterceptor('field);
         any|error fieldValue;
@@ -256,9 +256,14 @@ isolated class Engine {
         } on fail error err {
             fieldValue = err;
         }
-        ResponseGenerator responseGenerator = new (self, context, 'field.getFieldType(), 'field.getPath().clone(),
+
+        if internalNode is parser:FieldNode {
+             ResponseGenerator responseGenerator = new (self, context, 'field.getFieldType(), 'field.getPath().clone(),
                                                    operationType == parser:OPERATION_MUTATION);
-        return responseGenerator.getResult(fieldValue, fieldNode);
+            return responseGenerator.getResult(fieldValue, internalNode);
+        } else {
+            return ();
+        }
     }
 
     isolated function executeInterceptor(Context context, Field 'field, readonly & Interceptor interceptor) returns anydata|error {

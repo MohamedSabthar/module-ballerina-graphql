@@ -19,7 +19,7 @@ import graphql.parser;
 # Represents the information about a particular field of a GraphQL document.
 public class Field {
     private final parser:RootOperationType operationType;
-    private final parser:FieldNode internalNode;
+    private final parser:SelectionParentNode internalNode;
     private final service object {}? serviceObject;
     private final any|error fieldValue;
     private final __Type fieldType;
@@ -28,7 +28,7 @@ public class Field {
     private readonly & Interceptor[] fieldInterceptors;
     private int nextCustomExecutableDirectiveIndex = 0;
 
-    isolated function init(parser:FieldNode internalNode, __Type fieldType, service object {}? serviceObject = (),
+    isolated function init(parser:SelectionParentNode internalNode, __Type fieldType, service object {}? serviceObject = (),
                            (string|int)[] path = [], parser:RootOperationType operationType = parser:OPERATION_QUERY,
                            string[] resourcePath = [], any|error fieldValue = ()) {
         self.internalNode = internalNode;
@@ -52,7 +52,10 @@ public class Field {
     # Returns the effective alias of the field.
     # + return - The alias of the field. If an alias is not present, the field name will be returned
     public isolated function getAlias() returns string {
-        return self.internalNode.getAlias();
+        if self.internalNode is parser:FieldNode {
+            return self.internalNode.getName();
+        }
+        return self.getName();
     }
 
     # Returns the current path of the field. If the field returns an array, the path will include the index of the
@@ -74,7 +77,7 @@ public class Field {
         return self.fieldType;
     }
 
-    isolated function getInternalNode() returns parser:FieldNode {
+    isolated function getInternalNode() returns parser:SelectionParentNode {
         return self.internalNode;
     }
 
@@ -98,7 +101,7 @@ public class Field {
         return self.fieldValue;
     }
 
-    isolated function getFieldNames(parser:SelectionNode selectionNode) returns string[] {
+    isolated function getFieldNames(parser:SelectionParentNode selectionNode) returns string[] {
         string[] result = [];
         foreach parser:SelectionNode selection in selectionNode.getSelections() {
             if selection is parser:FieldNode {
