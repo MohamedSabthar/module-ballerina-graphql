@@ -128,4 +128,9 @@ public class Field {
         }
         return ();
     }
+
+    isolated function hasNextExecutableCustomDirective() returns boolean {
+        parser:DirectiveNode[] directives = self.internalNode.getDirectives().filter(isCustomExecutableDirecitve);
+        return self.nextCustomExecutableDirectiveIndex < directives.length();
+    }
 }

@@ -16,6 +16,7 @@
 
 import graphql.parser;
 import ballerina/jballerina.java;
+import ballerina/io;
 import ballerina/log;
 
 isolated class ExecutorVisitor {
@@ -27,21 +28,49 @@ isolated class ExecutorVisitor {
     private ErrorDetail[] errors;
     private Context context;
     private any|error result; // The value of this field is set using setResult method
+    private Field? operation;
 
-    isolated function init(Engine engine, readonly & __Schema schema, Context context, any|error result = ()) {
+    isolated function init(Engine engine, readonly & __Schema schema, Context context, any|error result = (),Field? operation = ()) {
         self.engine = engine;
         self.schema = schema;
         self.context = context;
         self.data = {};
         self.errors = [];
         self.result = ();
+        self.operation = ();
         self.setResult(result);
+        self.setOperationField(operation);
     }
 
     public isolated function visitDocument(parser:DocumentNode documentNode, anydata data = ()) {}
 
+    private isolated function setOperation(parser:OperationNode operationNode) {
+        lock {
+            if  self.operation is Field {
+                return;
+            }
+        }
+        lock {
+            parser:RootOperationType operationType = operationNode.getKind();
+            string operationTypeName = getOperationTypeNameFromOperationType(operationType);
+            __Type parentType = <__Type>getTypeFromTypeArray(self.schema.types, operationTypeName);
+            self.operation = new (operationNode, parentType, self.engine.getService(), [], operationType);
+        }
+    }
+
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
         // TODO: handle query and mutation executable directives here
+        self.setOperation(operationNode);
+        lock {
+            Field operation = <Field>self.operation;
+            if operation.hasNextExecutableCustomDirective() {
+                io:println("executeNextDirective");
+                // TODO: validate return type of resolve
+                self.data = <Data>self.engine.resolve(self.context, <Field>self.operation);
+                self.errors = self.context.getErrors();
+                return;
+            }
+        }
         string[] path = [];
         if operationNode.getName() != parser:ANONYMOUS_OPERATION {
             path.push(operationNode.getName());
@@ -188,6 +217,10 @@ isolated class ExecutorVisitor {
     }
 
     private isolated function setResult(any|error result) =  @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
+
+    private isolated function setOperationField(Field? operation) =  @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 

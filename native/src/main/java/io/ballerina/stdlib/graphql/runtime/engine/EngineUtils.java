@@ -50,7 +50,6 @@ import static io.ballerina.stdlib.graphql.runtime.engine.Engine.getDecodedSchema
  */
 @SuppressWarnings("unchecked")
 public class EngineUtils {
-
     private EngineUtils() {
     }
 
@@ -106,6 +105,7 @@ public class EngineUtils {
     public static final String FILE_INFO_FIELD = "graphql.context.fileInfo";
     public static final BString HAS_FILE_INFO_FIELD = StringUtils.fromString("hasFileInfo");
     public static final BString RESULT_FIELD = StringUtils.fromString("result");
+    private static final BString OPERATION_FIELD = StringUtils.fromString("operation");
 
     // Entity annotation fields
     private static final BString ENTITY_ANNOTATION_KEY_FIELD = StringUtils.fromString("key");
@@ -252,6 +252,10 @@ public class EngineUtils {
 
     public static void setResult(BObject executorVisitor, Object result) {
         executorVisitor.set(RESULT_FIELD, result);
+    }
+
+    public static void setOperationField(BObject executorVisitor, Object result) {
+        executorVisitor.set(OPERATION_FIELD, result);
     }
 
     public static Object getResult(BObject executorVisitor) {
