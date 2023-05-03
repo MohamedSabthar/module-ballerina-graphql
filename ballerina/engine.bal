@@ -273,14 +273,11 @@ isolated class Engine {
                     locations: [internalNode.getLocation()],
                     path: []
                 };
-                context.addError(errorDetail);
                 return errorDetail;
             } else {
                 ExecutorVisitor executor = new (self, self.schema, context, 'field);
                 internalNode.accept(executor);
-                OutputObject outputObject = executor.getOutput();
-                ResponseFormatter responseFormatter = new (self.schema);
-                return responseFormatter.getCoercedOutputObject(outputObject, internalNode);
+                return executor.getOutput();
             }
         }
         return ();

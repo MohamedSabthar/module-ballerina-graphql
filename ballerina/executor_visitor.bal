@@ -68,8 +68,18 @@ isolated class ExecutorVisitor {
             if operation.hasNextExecutableCustomDirective() {
                 io:println("executeNextDirective");
                 // TODO: validate return type of resolve
-                self.data = <Data>self.engine.resolve(self.context, <Field>self.operation);
-                self.errors = self.context.getErrors();
+                anydata result = self.engine.resolve(self.context, <Field>self.operation);
+                if result is OutputObject {
+                    self.data = result?.data ?: {};
+                    self.errors = result?.errors ?: [];
+                } else if result is ErrorDetail {
+                    self.errors.push(result);
+                } else {
+                    if result is record {} {
+                        self.data = result;
+                    }
+                    // add error here
+                }
                 return;
             }
         }
