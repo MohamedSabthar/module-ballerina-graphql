@@ -111,9 +111,20 @@ isolated class ExecutorVisitor {
             readonly & anydata data = ()) {
         parser:RootOperationType operationType = self.getOperationTypeFromData(data);
         [parser:SelectionNode, future<()>][] selectionFutures = [];
+        [parser:SelectionNode[], dataloader:Dataloader] selectionsForSecondPass = [];
         foreach parser:SelectionNode selection in selectionParentNode.getSelections() {
             // TODO: execute selection which needs first pass, collect the name for second pass
-            // execute them after first pass
+            // execute them after first pass, self.engine.getService();
+            string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
+            // TODO: implement this function
+            // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
+            if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
+                var batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
+                dataloader:DefaultDataLoader dataloader = createDataLoader(batchLoadFunction);
+                future<()> 'future = executeLoadResourceMethod(self.engine.getService(),loadResourceMethodName, dataloader);
+                selectionsForSecondPass.push([selection, createDataLoader]);
+                continue;
+            }
             string[] path = self.getSelectionPathFromData(data);
             if selection is parser:FieldNode {
                 path.push(selection.getName());
@@ -144,6 +155,9 @@ isolated class ExecutorVisitor {
                 }
             }
         }
+
+        // TODO: visit 2nd pass selections and collect futures
+        // TODO: visit 2nd pass futures
     }
 
     public isolated function visitDirective(parser:DirectiveNode directiveNode, anydata data = ()) {}
@@ -197,3 +211,15 @@ isolated class ExecutorVisitor {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 }
+
+isolated function getLoadResourceMethodName(string fieldName) returns string {
+    string loadResourceMethodName = "load" +string:toUpperAscii(fieldName.substring(0, 1));
+    if fieldName.length() > 1 {
+        loadResourceMethodName += fieldName.substring(1);
+    }
+    return loadResourceMethodName;
+}
+
+isolated function hasLoadResourceMethod(service object {}, string loadResourceMethodName) returns boolean = @java:Method {
+    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+} external;

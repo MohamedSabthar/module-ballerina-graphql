@@ -38,6 +38,7 @@ import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
 import io.ballerina.stdlib.graphql.commons.utils.SdlSchemaStringGenerator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -256,5 +257,12 @@ public class EngineUtils {
 
     public static Object getResult(BObject executorVisitor) {
         return executorVisitor.get(RESULT_FIELD);
+    }
+
+    // TODO: check this implementation
+    public static boolean hasLoadResourceMethod(BObject serviceObject, BString resourceMethodName) {
+        return Arrays.stream(serviceObject.getType().getMethods())
+                .anyMatch(methodType -> methodType.getName().equals(resourceMethodName.getValue())
+                        && methodType.getAnnotations().containsKey("Loader"));
     }
 }
