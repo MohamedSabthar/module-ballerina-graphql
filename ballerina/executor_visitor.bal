@@ -61,7 +61,9 @@ isolated class ExecutorVisitor {
     public isolated function visitOperation(parser:OperationNode operationNode, anydata data = ()) {
         // TODO: handle query and mutation executable directives here
         self.setOperation(operationNode);
+        io:println("outsideLock");
         lock {
+            io:println("insideLock");
             Field operation = <Field>self.operation;
             if operation.hasNextExecutableCustomDirective() {
                 io:println("executeNextDirective");
@@ -71,6 +73,7 @@ isolated class ExecutorVisitor {
                 return;
             }
         }
+        io:println("executeRootOperation");
         string[] path = [];
         if operationNode.getName() != parser:ANONYMOUS_OPERATION {
             path.push(operationNode.getName());
