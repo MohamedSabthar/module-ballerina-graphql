@@ -317,6 +317,8 @@ class ResponseGenerator {
                                                         (string|int)[] path) {
         [parser:SelectionNode, future<()>][] selectionFutures = [];
         foreach parser:SelectionNode selection in parentNode.getSelections() {
+            // TODO: do first pass load function, collect the names of the fields which requires a second pass
+            // execute the second pass after receiving dataloader future
             var executeSelectionFunction = self.executeSelectionFunction;
             future<()> 'future = start executeSelectionFunction(selectionFunctionName, parentValue, selection, result,
                                                                 path);

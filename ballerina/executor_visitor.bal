@@ -112,6 +112,8 @@ isolated class ExecutorVisitor {
         parser:RootOperationType operationType = self.getOperationTypeFromData(data);
         [parser:SelectionNode, future<()>][] selectionFutures = [];
         foreach parser:SelectionNode selection in selectionParentNode.getSelections() {
+            // TODO: execute selection which needs first pass, collect the name for second pass
+            // execute them after first pass
             string[] path = self.getSelectionPathFromData(data);
             if selection is parser:FieldNode {
                 path.push(selection.getName());
@@ -120,6 +122,7 @@ isolated class ExecutorVisitor {
             future<()> 'future = start selection.accept(self, dataMap.cloneReadOnly());
             selectionFutures.push([selection, 'future]);
         }
+
         foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
             error? err = wait 'future;
             if err is () {
