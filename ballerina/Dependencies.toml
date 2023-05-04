@@ -87,6 +87,7 @@ dependencies = [
 ]
 modules = [
 	{org = "ballerina", packageName = "graphql", moduleName = "graphql"},
+	{org = "ballerina", packageName = "graphql", moduleName = "graphql.dataloader"},
 	{org = "ballerina", packageName = "graphql", moduleName = "graphql.parser"},
 	{org = "ballerina", packageName = "graphql", moduleName = "graphql.subgraph"}
 ]
