@@ -177,6 +177,8 @@ class ResponseGenerator {
 
     isolated function getResultFromArrayParallelly((any|error)[] parentValue, parser:FieldNode parentNode, (string|int)[] path)
     returns anydata {
+        // TODO: we need to collect and execute dataloader for service object arrays
+        // how to do this ?
         int i = 0;
         future<anydata>[] futures = [];
         var getResult = self.getResult;

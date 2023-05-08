@@ -15,6 +15,7 @@
 // under the License.
 
 import graphql.parser;
+import graphql.dataloader;
 import ballerina/jballerina.java;
 import ballerina/log;
 
@@ -111,19 +112,28 @@ isolated class ExecutorVisitor {
             readonly & anydata data = ()) {
         parser:RootOperationType operationType = self.getOperationTypeFromData(data);
         [parser:SelectionNode, future<()>][] selectionFutures = [];
-        [parser:SelectionNode[], dataloader:Dataloader] selectionsForSecondPass = [];
+        parser:SelectionNode[] selectionsForSecondPass = [];
+        map<dataloader:DataLoader> dataLoaders = {};
         foreach parser:SelectionNode selection in selectionParentNode.getSelections() {
-            // TODO: execute selection which needs first pass, collect the name for second pass
-            // execute them after first pass, self.engine.getService();
-            string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
-            // TODO: implement this function
-            // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
-            if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
-                var batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
-                dataloader:DefaultDataLoader dataloader = createDataLoader(batchLoadFunction);
-                future<()> 'future = executeLoadResourceMethod(self.engine.getService(),loadResourceMethodName, dataloader);
-                selectionsForSecondPass.push([selection, createDataLoader]);
-                continue;
+            if selection is parser:FieldNode {
+                // TODO: execute selection which needs first pass, collect the name for second pass
+                // execute them after first pass, self.engine.getService();
+                string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
+                // TODO: implement this function
+                // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
+                if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
+                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
+                    dataloader:DataLoader dataloader;
+                    lock {
+                        dataloader = self.context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+                    }
+                    dataLoaders[loadResourceMethodName] = dataloader;
+                    // TODO: modify this error|any return type. and push the errors to graphql errors
+                    future<()> 'future = start self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
+                    selectionsForSecondPass.push(selection);
+                    selectionFutures.push([selection, 'future]);
+                    continue;
+                }
             }
             string[] path = self.getSelectionPathFromData(data);
             if selection is parser:FieldNode {
@@ -155,9 +165,51 @@ isolated class ExecutorVisitor {
                 }
             }
         }
-
+        selectionFutures.removeAll();
+        dataLoaders.forEach(loader => checkpanic loader.dispatch());
+        // dataLoaders.removeAll(); 
         // TODO: visit 2nd pass selections and collect futures
         // TODO: visit 2nd pass futures
+
+        foreach parser:SelectionNode selection in selectionsForSecondPass {
+            string[] path = self.getSelectionPathFromData(data);
+            if selection is parser:FieldNode {
+                path.push(selection.getName());
+            }
+            map<anydata> dataMap = {[OPERATION_TYPE] : operationType, [PATH] : path};
+            future<()> 'future = start selection.accept(self, dataMap.cloneReadOnly());
+            selectionFutures.push([selection, 'future]);
+        }
+
+        foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
+            error? err = wait 'future;
+            if err is () {
+                continue;
+            }
+            log:printError("Error occured while attempting to resolve selection future", err,
+                            stackTrace = err.stackTrace());
+            lock {
+                if selection is parser:FieldNode {
+                    string[] path = self.getSelectionPathFromData(data);
+                    path.push(selection.getName());
+                    ErrorDetail errorDetail = {
+                        message: err.message(),
+                        locations: [selection.getLocation()],
+                        path: path.clone()
+                    };
+                    self.data[selection.getAlias()] = ();
+                    self.errors.push(errorDetail);
+                }
+            }
+        }
+    }
+
+    private isolated function executeLoadResource(handle? loadResourceMethod, parser:FieldNode fieldNode, parser:RootOperationType operationType, string loadResourceMethodName, dataloader:DataLoader dataloader) returns () {
+        handle? loadResourceMethodHandle = getResourceMethod(self.engine.getService(), [loadResourceMethodName]);
+        if loadResourceMethodHandle == () {
+            return ();
+        }
+        return executeLoadResourceMethod(self.engine.getService(), loadResourceMethodHandle, dataloader);
     }
 
     public isolated function visitDirective(parser:DirectiveNode directiveNode, anydata data = ()) {}
@@ -220,6 +272,15 @@ isolated function getLoadResourceMethodName(string fieldName) returns string {
     return loadResourceMethodName;
 }
 
-isolated function hasLoadResourceMethod(service object {}, string loadResourceMethodName) returns boolean = @java:Method {
+isolated function hasLoadResourceMethod(service object {} serviceObject, string loadResourceMethodName) returns boolean = @java:Method {
+    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+} external;
+
+isolated function getBatchLoadFunction(service object {} serviceObject, string loadResourceMethodName) 
+returns (isolated function (readonly & anydata[] keys) returns anydata[]|error) = @java:Method {
+    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+} external;
+
+isolated function executeLoadResourceMethod(service object {} serviceObject, handle loadResourceMethod, dataloader:DataLoader dataloader) returns () = @java:Method {
     'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
 } external;

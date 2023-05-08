@@ -88,6 +88,7 @@ import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUti
 import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getTypePosition;
 import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getWrapperType;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_GET;
+import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.hasLoaderAnnotation;
 
 /**
  * Generates the GraphQL schema from a given, valid, Ballerina service.
@@ -149,6 +150,9 @@ public class SchemaGenerator {
             if (isResourceMethod(methodSymbol)) {
                 ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) methodSymbol;
                 String accessor = getAccessor(resourceMethodSymbol);
+                if (hasLoaderAnnotation(resourceMethodSymbol)) {
+                    continue;
+                }
                 if (RESOURCE_FUNCTION_GET.equals(accessor)) {
                     queryType.addField(getField((resourceMethodSymbol)));
                 } else {
@@ -401,7 +405,7 @@ public class SchemaGenerator {
         Type objectType = addType(name, TypeKind.OBJECT, description, position, ObjectKind.CLASS);
 
         for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
-            if (isResourceMethod(methodSymbol)) {
+            if (isResourceMethod(methodSymbol) && !hasLoaderAnnotation((ResourceMethodSymbol) methodSymbol)) {
                 objectType.addField(getField((ResourceMethodSymbol) methodSymbol));
             }
         }

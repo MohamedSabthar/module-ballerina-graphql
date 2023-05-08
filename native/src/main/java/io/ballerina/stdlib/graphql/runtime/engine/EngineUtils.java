@@ -18,6 +18,9 @@
 
 package io.ballerina.stdlib.graphql.runtime.engine;
 
+import io.ballerina.runtime.api.Environment;
+import io.ballerina.runtime.api.Future;
+import io.ballerina.runtime.api.PredefinedTypes;
 import io.ballerina.runtime.api.TypeTags;
 import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
@@ -25,10 +28,13 @@ import io.ballerina.runtime.api.flags.SymbolFlags;
 import io.ballerina.runtime.api.types.ArrayType;
 import io.ballerina.runtime.api.types.RecordType;
 import io.ballerina.runtime.api.types.ResourceMethodType;
+import io.ballerina.runtime.api.types.ServiceType;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.types.UnionType;
 import io.ballerina.runtime.api.utils.StringUtils;
+import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BArray;
+import io.ballerina.runtime.api.values.BFunctionPointer;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
@@ -45,6 +51,7 @@ import java.util.Map;
 
 import static io.ballerina.runtime.api.TypeTags.SERVICE_TAG;
 import static io.ballerina.stdlib.graphql.runtime.engine.Engine.getDecodedSchema;
+import static io.ballerina.stdlib.graphql.runtime.utils.Utils.RESOURCE_EXECUTION_STRAND;
 
 /**
  * This class provides utility functions for Ballerina GraphQL engine.
@@ -261,8 +268,56 @@ public class EngineUtils {
 
     // TODO: check this implementation
     public static boolean hasLoadResourceMethod(BObject serviceObject, BString resourceMethodName) {
-        return Arrays.stream(serviceObject.getType().getMethods())
-                .anyMatch(methodType -> methodType.getName().equals(resourceMethodName.getValue())
-                        && methodType.getAnnotations().containsKey("Loader"));
+        Type serviceType = serviceObject.getOriginalType();
+        if (serviceType.getTag() != SERVICE_TAG) {
+            return false;
+        }
+        ServiceType rootServiceType = (ServiceType) serviceType;
+        return Arrays.stream(rootServiceType.getResourceMethods()).anyMatch(
+                methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())
+                        && getLoadAnnotation(methodType) != null);
+    }
+
+    private static BMap getLoadAnnotation(ResourceMethodType resourceMethodType) {
+        return (BMap) resourceMethodType.getAnnotation(StringUtils.fromString("ballerina/graphql.dataloader:1:Loader"));
+    }
+
+    public static BFunctionPointer getBatchLoadFunction(BObject serviceObject, BString resourceMethodName) {
+        ResourceMethodType resourceMethodType = Arrays.stream(
+                        ((ServiceType) serviceObject.getOriginalType()).getResourceMethods())
+                .filter(methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())).findFirst()
+                .get();
+        BMap<BString, Object> loadAnnotation = getLoadAnnotation(resourceMethodType);
+        return (BFunctionPointer) loadAnnotation.get(StringUtils.fromString("batchFunction"));
+    }
+
+    public static void executeLoadResourceMethod(Environment environment, BObject serviceObject,
+                                                 ResourceMethodType loadResourceMethod, BObject dataloader) {
+        Future future = environment.markAsync();
+        ExecutionCallback executionCallback = new ExecutionCallback(future);
+        ServiceType serviceType = (ServiceType) TypeUtils.getType(serviceObject);
+        Type returnType = TypeCreator.createUnionType(PredefinedTypes.TYPE_ANY, PredefinedTypes.TYPE_NULL);
+        if (loadResourceMethod != null) {
+            Object[] arguments = {dataloader, true};
+            if (serviceType.isIsolated() && serviceType.isIsolated(loadResourceMethod.getName())) {
+                environment.getRuntime()
+                        .invokeMethodAsyncConcurrently(serviceObject, loadResourceMethod.getName(), null,
+                                                       RESOURCE_EXECUTION_STRAND, executionCallback, null, returnType,
+                                                       arguments);
+            } else {
+                environment.getRuntime()
+                        .invokeMethodAsyncSequentially(serviceObject, loadResourceMethod.getName(), null,
+                                                       RESOURCE_EXECUTION_STRAND, executionCallback, null, returnType,
+                                                       arguments);
+            }
+        }
+    }
+
+    public static BString getHashCode(BFunctionPointer functionPointer) {
+        return StringUtils.fromString(Integer.toString(functionPointer.hashCode()));
+    }
+
+    public static void setDataLoaderCache(BObject context, BMap<BString, Object> cache) {
+        context.set(StringUtils.fromString("dataLoaderCache"), cache);
     }
 }

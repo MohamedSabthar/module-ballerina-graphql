@@ -17,6 +17,8 @@
 import ballerina/http;
 import ballerina/jballerina.java;
 import ballerina/lang.value;
+import graphql.dataloader;
+import ballerina/io;
 
 # The GraphQL context object used to pass the meta information between resolvers.
 public isolated class Context {
@@ -25,20 +27,26 @@ public isolated class Context {
     private Engine? engine;
     private int nextInterceptor;
     private boolean hasFileInfo = false; // This field value changed by setFileInfo method
+    private map<dataloader:DataLoader> dataLoaderCache = {};
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
-                                  int nextInterceptor = 0) {
+                                  int nextInterceptor = 0, map<dataloader:DataLoader> dataLoaderCache = {}) {
         self.attributes = {};
         self.engine = engine;
         self.errors = [];
         self.nextInterceptor = nextInterceptor;
-        
+       
         foreach var item in attributes.entries() {
             string key = item[0];
             value:Cloneable|isolated object {} value = item[1];
             self.attributes[key] = value;
         }
+        self.setDataLoaderCache(dataLoaderCache);
     }
+
+    isolated function setDataLoaderCache(map<dataloader:DataLoader> dataLoaderCache) = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
 
     # Sets a given value for a given key in the GraphQL context.
     #
@@ -187,11 +195,24 @@ public isolated class Context {
 
     isolated function cloneWithoutErrors() returns Context {
         lock {
-            Context clonedContext = new(self.attributes, self.engine, self.nextInterceptor);
+            Context clonedContext = new(self.attributes, self.engine, self.nextInterceptor, self.dataLoaderCache);
             if self.hasFileInfo {
                 clonedContext.setFileInfo(self.getFileInfo());
             }
             return clonedContext;
+        }
+    }
+
+    isolated function getDataLoader((isolated function (readonly & anydata[] keys) returns anydata[]|error) batchFunction, string loadResourceMethodName) 
+    returns dataloader:DataLoader {
+        lock {
+            if self.dataLoaderCache.hasKey(loadResourceMethodName) {
+                return self.dataLoaderCache.get(loadResourceMethodName);
+            }
+            dataloader:DefaultDataLoader dataloader = new(batchFunction);
+            self.dataLoaderCache[loadResourceMethodName] = dataloader;
+            io:println("DataLoader created",  self.dataLoaderCache);
+            return dataloader;
         }
     }
 }
@@ -199,3 +220,7 @@ public isolated class Context {
 isolated function initDefaultContext(http:RequestContext requestContext, http:Request request) returns Context|error {
     return new;
 }
+
+// isolated function getHashCode(function batchFunction) returns string = @java:Method {
+//     'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+// } external;

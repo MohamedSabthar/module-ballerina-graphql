@@ -284,7 +284,7 @@ isolated class Engine {
     isolated function resolveResourceMethod(Context context, Field 'field) returns any|error {
         service object {}? serviceObject = 'field.getServiceObject();
         if serviceObject is service object {} {
-            handle? resourceMethod = self.getResourceMethod(serviceObject, 'field.getResourcePath());
+            handle? resourceMethod = getResourceMethod(serviceObject, 'field.getResourcePath());
             if resourceMethod == () {
                 return self.resolveHierarchicalResource(context, 'field);
             }
@@ -347,11 +347,6 @@ isolated class Engine {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
-    isolated function getResourceMethod(service object {} serviceObject, string[] path)
-    returns handle? = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
-    } external;
-
     isolated function executeQueryResource(Context context, service object {} serviceObject, handle resourceMethod,
                                            Field 'field)
     returns any|error = @java:Method {
@@ -377,3 +372,8 @@ isolated class Engine {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
 }
+
+    isolated function getResourceMethod(service object {} serviceObject, string[] path)
+    returns handle? = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    } external;
