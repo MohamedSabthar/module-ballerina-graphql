@@ -26,7 +26,7 @@ public isolated class DefaultDataLoader {
     public isolated function load(anydata key) {
         readonly & anydata clonedKey = key.cloneReadOnly();
         lock {
-            if self.resultTable.hasKey(clonedKey) {
+            if self.keys.hasKey(clonedKey) {
                 return;
             }
             self.keys.add({key: clonedKey});
