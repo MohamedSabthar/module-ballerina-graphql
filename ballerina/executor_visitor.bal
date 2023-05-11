@@ -17,7 +17,7 @@
 import graphql.parser;
 import graphql.dataloader;
 import ballerina/jballerina.java;
-import ballerina/log;
+import ballerina/io;
 
 isolated class ExecutorVisitor {
     *parser:Visitor;
@@ -50,7 +50,39 @@ isolated class ExecutorVisitor {
         //     map<anydata> dataMap = {[OPERATION_TYPE] : operationNode.getKind(), [PATH] : path};
         //     return self.visitSelectionsParallelly(operationNode, dataMap.cloneReadOnly());
         // }
+        parser:SelectionNode[] selectionsForSecondPass = [];
+        map<dataloader:DataLoader> dataLoaders = {};
+        parser:RootOperationType operationType = operationNode.getKind();
         foreach parser:SelectionNode selection in operationNode.getSelections() {
+            if selection is parser:FieldNode {
+                // TODO: execute selection which needs first pass, collect the name for second pass
+                // execute them after first pass, self.engine.getService();
+                string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
+                io:println("loadResourceMethodName: " + loadResourceMethodName);
+                // TODO: implement this function
+                // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
+                if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
+                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
+                    Context context;
+                    lock {
+                        context = self.context;
+                    }
+                    dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+                    dataLoaders[loadResourceMethodName] = dataloader;
+                    // TODO: modify this error|any return type. and push the errors to graphql errors
+                    self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
+                    selectionsForSecondPass.push(selection);
+                    continue;
+                }
+            }
+            if selection is parser:FieldNode {
+                path.push(selection.getName());
+            }
+            map<anydata> dataMap = {[OPERATION_TYPE] : operationNode.getKind(), [PATH] : path};
+            selection.accept(self, dataMap);
+        }
+        dataLoaders.forEach(loader => checkpanic loader.dispatch());
+        foreach parser:SelectionNode selection in selectionsForSecondPass {
             if selection is parser:FieldNode {
                 path.push(selection.getName());
             }
@@ -98,7 +130,39 @@ isolated class ExecutorVisitor {
         //     return self.visitSelectionsParallelly(fragmentNode, data);
         // }
         string[] path = self.getSelectionPathFromData(data);
+        parser:SelectionNode[] selectionsForSecondPass = [];
+        map<dataloader:DataLoader> dataLoaders = {};
         foreach parser:SelectionNode selection in fragmentNode.getSelections() {
+            string[] clonedPath = path.clone();
+            if selection is parser:FieldNode {
+                // TODO: execute selection which needs first pass, collect the name for second pass
+                // execute them after first pass, self.engine.getService();
+                string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
+                io:println("loadResourceMethodName: " + loadResourceMethodName);
+                // TODO: implement this function
+                // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
+                if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
+                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
+                    Context context;
+                    lock {
+                        context = self.context;
+                    }
+                    dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+                    dataLoaders[loadResourceMethodName] = dataloader;
+                    // TODO: modify this error|any return type. and push the errors to graphql errors
+                     self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
+                    selectionsForSecondPass.push(selection);
+                    continue;
+                }
+            }
+            if selection is parser:FieldNode {
+                clonedPath.push(selection.getName());
+            }
+            map<anydata> dataMap = {[OPERATION_TYPE] : operationType, [PATH] : clonedPath};
+            selection.accept(self, dataMap);
+        }
+        dataLoaders.forEach(loader => checkpanic loader.dispatch());
+        foreach parser:SelectionNode selection in selectionsForSecondPass {
             string[] clonedPath = path.clone();
             if selection is parser:FieldNode {
                 clonedPath.push(selection.getName());
@@ -108,101 +172,101 @@ isolated class ExecutorVisitor {
         }
     }
 
-    private isolated function visitSelectionsParallelly(parser:SelectionParentNode selectionParentNode,
-            readonly & anydata data = ()) {
-        parser:RootOperationType operationType = self.getOperationTypeFromData(data);
-        [parser:SelectionNode, future<()>][] selectionFutures = [];
-        parser:SelectionNode[] selectionsForSecondPass = [];
-        map<dataloader:DataLoader> dataLoaders = {};
-        foreach parser:SelectionNode selection in selectionParentNode.getSelections() {
-            if selection is parser:FieldNode {
-                // TODO: execute selection which needs first pass, collect the name for second pass
-                // execute them after first pass, self.engine.getService();
-                string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
-                // TODO: implement this function
-                // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
-                if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
-                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
-                    dataloader:DataLoader dataloader;
-                    lock {
-                        dataloader = self.context.getDataLoader(batchLoadFunction, loadResourceMethodName);
-                    }
-                    dataLoaders[loadResourceMethodName] = dataloader;
-                    // TODO: modify this error|any return type. and push the errors to graphql errors
-                    future<()> 'future = start self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
-                    selectionsForSecondPass.push(selection);
-                    selectionFutures.push([selection, 'future]);
-                    continue;
-                }
-            }
-            string[] path = self.getSelectionPathFromData(data);
-            if selection is parser:FieldNode {
-                path.push(selection.getName());
-            }
-            map<anydata> dataMap = {[OPERATION_TYPE] : operationType, [PATH] : path};
-            future<()> 'future = start selection.accept(self, dataMap.cloneReadOnly());
-            selectionFutures.push([selection, 'future]);
-        }
+    // private isolated function visitSelectionsParallelly(parser:SelectionParentNode selectionParentNode,
+    //         readonly & anydata data = ()) {
+    //     parser:RootOperationType operationType = self.getOperationTypeFromData(data);
+    //     [parser:SelectionNode, future<()>][] selectionFutures = [];
+    //     parser:SelectionNode[] selectionsForSecondPass = [];
+    //     map<dataloader:DataLoader> dataLoaders = {};
+    //     foreach parser:SelectionNode selection in selectionParentNode.getSelections() {
+    //         if selection is parser:FieldNode {
+    //             // TODO: execute selection which needs first pass, collect the name for second pass
+    //             // execute them after first pass, self.engine.getService();
+    //             string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
+    //             // TODO: implement this function
+    //             // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
+    //             if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
+    //                 (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
+    //                 dataloader:DataLoader dataloader;
+    //                 lock {
+    //                     dataloader = self.context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+    //                 }
+    //                 dataLoaders[loadResourceMethodName] = dataloader;
+    //                 // TODO: modify this error|any return type. and push the errors to graphql errors
+    //                 future<()> 'future = start self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
+    //                 selectionsForSecondPass.push(selection);
+    //                 selectionFutures.push([selection, 'future]);
+    //                 continue;
+    //             }
+    //         }
+    //         string[] path = self.getSelectionPathFromData(data);
+    //         if selection is parser:FieldNode {
+    //             path.push(selection.getName());
+    //         }
+    //         map<anydata> dataMap = {[OPERATION_TYPE] : operationType, [PATH] : path};
+    //         future<()> 'future = start selection.accept(self, dataMap.cloneReadOnly());
+    //         selectionFutures.push([selection, 'future]);
+    //     }
 
-        foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
-            error? err = wait 'future;
-            if err is () {
-                continue;
-            }
-            log:printError("Error occured while attempting to resolve selection future", err,
-                            stackTrace = err.stackTrace());
-            lock {
-                if selection is parser:FieldNode {
-                    string[] path = self.getSelectionPathFromData(data);
-                    path.push(selection.getName());
-                    ErrorDetail errorDetail = {
-                        message: err.message(),
-                        locations: [selection.getLocation()],
-                        path: path.clone()
-                    };
-                    self.data[selection.getAlias()] = ();
-                    self.errors.push(errorDetail);
-                }
-            }
-        }
-        selectionFutures.removeAll();
-        dataLoaders.forEach(loader => checkpanic loader.dispatch());
-        // dataLoaders.removeAll(); 
-        // TODO: visit 2nd pass selections and collect futures
-        // TODO: visit 2nd pass futures
+    //     foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
+    //         error? err = wait 'future;
+    //         if err is () {
+    //             continue;
+    //         }
+    //         log:printError("Error occured while attempting to resolve selection future", err,
+    //                         stackTrace = err.stackTrace());
+    //         lock {
+    //             if selection is parser:FieldNode {
+    //                 string[] path = self.getSelectionPathFromData(data);
+    //                 path.push(selection.getName());
+    //                 ErrorDetail errorDetail = {
+    //                     message: err.message(),
+    //                     locations: [selection.getLocation()],
+    //                     path: path.clone()
+    //                 };
+    //                 self.data[selection.getAlias()] = ();
+    //                 self.errors.push(errorDetail);
+    //             }
+    //         }
+    //     }
+    //     selectionFutures.removeAll();
+    //     dataLoaders.forEach(loader => checkpanic loader.dispatch());
+    //     // dataLoaders.removeAll(); 
+    //     // TODO: visit 2nd pass selections and collect futures
+    //     // TODO: visit 2nd pass futures
 
-        foreach parser:SelectionNode selection in selectionsForSecondPass {
-            string[] path = self.getSelectionPathFromData(data);
-            if selection is parser:FieldNode {
-                path.push(selection.getName());
-            }
-            map<anydata> dataMap = {[OPERATION_TYPE] : operationType, [PATH] : path};
-            future<()> 'future = start selection.accept(self, dataMap.cloneReadOnly());
-            selectionFutures.push([selection, 'future]);
-        }
+    //     foreach parser:SelectionNode selection in selectionsForSecondPass {
+    //         string[] path = self.getSelectionPathFromData(data);
+    //         if selection is parser:FieldNode {
+    //             path.push(selection.getName());
+    //         }
+    //         map<anydata> dataMap = {[OPERATION_TYPE] : operationType, [PATH] : path};
+    //         future<()> 'future = start selection.accept(self, dataMap.cloneReadOnly());
+    //         selectionFutures.push([selection, 'future]);
+    //     }
 
-        foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
-            error? err = wait 'future;
-            if err is () {
-                continue;
-            }
-            log:printError("Error occured while attempting to resolve selection future", err,
-                            stackTrace = err.stackTrace());
-            lock {
-                if selection is parser:FieldNode {
-                    string[] path = self.getSelectionPathFromData(data);
-                    path.push(selection.getName());
-                    ErrorDetail errorDetail = {
-                        message: err.message(),
-                        locations: [selection.getLocation()],
-                        path: path.clone()
-                    };
-                    self.data[selection.getAlias()] = ();
-                    self.errors.push(errorDetail);
-                }
-            }
-        }
-    }
+    //     foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
+    //         error? err = wait 'future;
+    //         if err is () {
+    //             continue;
+    //         }
+    //         log:printError("Error occured while attempting to resolve selection future", err,
+    //                         stackTrace = err.stackTrace());
+    //         lock {
+    //             if selection is parser:FieldNode {
+    //                 string[] path = self.getSelectionPathFromData(data);
+    //                 path.push(selection.getName());
+    //                 ErrorDetail errorDetail = {
+    //                     message: err.message(),
+    //                     locations: [selection.getLocation()],
+    //                     path: path.clone()
+    //                 };
+    //                 self.data[selection.getAlias()] = ();
+    //                 self.errors.push(errorDetail);
+    //             }
+    //         }
+    //     }
+    // }
 
     private isolated function executeLoadResource(handle? loadResourceMethod, parser:FieldNode fieldNode, parser:RootOperationType operationType, string loadResourceMethodName, dataloader:DataLoader dataloader) returns () {
         handle? loadResourceMethodHandle = getResourceMethod(self.engine.getService(), [loadResourceMethodName]);

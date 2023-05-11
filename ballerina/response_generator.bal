@@ -175,41 +175,41 @@ class ResponseGenerator {
         return result;
     }
 
-    isolated function getResultFromArrayParallelly((any|error)[] parentValue, parser:FieldNode parentNode, (string|int)[] path)
-    returns anydata {
-        // TODO: we need to collect and execute dataloader for service object arrays
-        // how to do this ?
-        int i = 0;
-        future<anydata>[] futures = [];
-        var getResult = self.getResult;
-        foreach any|error element in parentValue {
-            path.push(i);
-            future<anydata> 'future = start getResult(element, parentNode, path.clone());
-            futures.push('future);
-            i += 1;
-            _ = path.pop();
-        }
+    // isolated function getResultFromArrayParallelly((any|error)[] parentValue, parser:FieldNode parentNode, (string|int)[] path)
+    // returns anydata {
+    //     // TODO: we need to collect and execute dataloader for service object arrays
+    //     // how to do this ?
+    //     int i = 0;
+    //     future<anydata>[] futures = [];
+    //     var getResult = self.getResult;
+    //     foreach any|error element in parentValue {
+    //         path.push(i);
+    //         future<anydata> 'future = start getResult(element, parentNode, path.clone());
+    //         futures.push('future);
+    //         i += 1;
+    //         _ = path.pop();
+    //     }
 
-        i = 0;
-        anydata[] result = [];
-        foreach future<anydata> elementFuture in futures {
-            path.push(i);
-            anydata|error elementValue = wait elementFuture;
-            if elementValue is error {
-                log:printError("Error occurred while attempting to resolve element future", elementValue,
-                                stackTrace = elementValue.stackTrace());
-                _ = self.addError(elementValue, parentNode, path);
-                result.push(());
-            } else if elementValue is ErrorDetail {
-                result.push(());
-            } else {
-                result.push(elementValue);
-            }
-            i += 1;
-            _ = path.pop();
-        }
-        return result;
-    }
+    //     i = 0;
+    //     anydata[] result = [];
+    //     foreach future<anydata> elementFuture in futures {
+    //         path.push(i);
+    //         anydata|error elementValue = wait elementFuture;
+    //         if elementValue is error {
+    //             log:printError("Error occurred while attempting to resolve element future", elementValue,
+    //                             stackTrace = elementValue.stackTrace());
+    //             _ = self.addError(elementValue, parentNode, path);
+    //             result.push(());
+    //         } else if elementValue is ErrorDetail {
+    //             result.push(());
+    //         } else {
+    //             result.push(elementValue);
+    //         }
+    //         i += 1;
+    //         _ = path.pop();
+    //     }
+    //     return result;
+    // }
 
     isolated function getResultFromTable(table<map<any>> parentValue, parser:FieldNode parentNode, (string|int)[] path)
     returns anydata {
@@ -228,31 +228,31 @@ class ResponseGenerator {
         return result;
     }
 
-    isolated function getResultFromTableParallelly(table<map<any>> parentValue, parser:FieldNode parentNode,
-                                                  (string|int)[] path) returns anydata {
-        future<anydata>[] futures = [];
-        var getResult = self.getResult;
-        foreach any element in parentValue {
-            future<anydata> 'future = start getResult(element, parentNode, path);
-            futures.push('future);
-        }
+    // isolated function getResultFromTableParallelly(table<map<any>> parentValue, parser:FieldNode parentNode,
+    //                                               (string|int)[] path) returns anydata {
+    //     future<anydata>[] futures = [];
+    //     var getResult = self.getResult;
+    //     foreach any element in parentValue {
+    //         future<anydata> 'future = start getResult(element, parentNode, path);
+    //         futures.push('future);
+    //     }
 
-        anydata[] result = [];
-        foreach future<anydata> elementFuture in futures {
-            anydata|error elementValue = wait elementFuture;
-            if elementValue is error {
-                log:printError("Error occurred while attempting to resolve element future", elementValue,
-                                stackTrace = elementValue.stackTrace());
-                _ = self.addError(elementValue, parentNode, path);
-                result.push(());
-            } else if elementValue is ErrorDetail {
-                result.push(());
-            } else {
-                result.push(elementValue);
-            }
-        }
-        return result;
-    }
+    //     anydata[] result = [];
+    //     foreach future<anydata> elementFuture in futures {
+    //         anydata|error elementValue = wait elementFuture;
+    //         if elementValue is error {
+    //             log:printError("Error occurred while attempting to resolve element future", elementValue,
+    //                             stackTrace = elementValue.stackTrace());
+    //             _ = self.addError(elementValue, parentNode, path);
+    //             result.push(());
+    //         } else if elementValue is ErrorDetail {
+    //             result.push(());
+    //         } else {
+    //             result.push(elementValue);
+    //         }
+    //     }
+    //     return result;
+    // }
 
     isolated function getResultFromService(service object {} serviceObject, parser:FieldNode parentNode,
                                            (string|int)[] path) returns anydata {
@@ -313,32 +313,32 @@ class ResponseGenerator {
         return;
     }
 
-    private isolated function resolveSelectionsParallelly(string selectionFunctionName,
-                                                        map<any>|service object {} parentValue,
-                                                        parser:SelectionNode parentNode, Data result,
-                                                        (string|int)[] path) {
-        [parser:SelectionNode, future<()>][] selectionFutures = [];
-        foreach parser:SelectionNode selection in parentNode.getSelections() {
-            // TODO: do first pass load function, collect the names of the fields which requires a second pass
-            // execute the second pass after receiving dataloader future
-            var executeSelectionFunction = self.executeSelectionFunction;
-            future<()> 'future = start executeSelectionFunction(selectionFunctionName, parentValue, selection, result,
-                                                                path);
-            selectionFutures.push([selection, 'future]);
-        }
-        foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
-            error? err = wait 'future;
-            if err is () {
-                continue;
-            }
-            log:printError("Error occurred while attempting to resolve selection future", err,
-                            stackTrace = err.stackTrace());
-            if selection is parser:FieldNode {
-                _ = self.addError(err, selection, path.clone());
-                result[selection.getAlias()] = ();
-            }
-        }
-    }
+    // private isolated function resolveSelectionsParallelly(string selectionFunctionName,
+    //                                                     map<any>|service object {} parentValue,
+    //                                                     parser:SelectionNode parentNode, Data result,
+    //                                                     (string|int)[] path) {
+    //     [parser:SelectionNode, future<()>][] selectionFutures = [];
+    //     foreach parser:SelectionNode selection in parentNode.getSelections() {
+    //         // TODO: do first pass load function, collect the names of the fields which requires a second pass
+    //         // execute the second pass after receiving dataloader future
+    //         var executeSelectionFunction = self.executeSelectionFunction;
+    //         future<()> 'future = start executeSelectionFunction(selectionFunctionName, parentValue, selection, result,
+    //                                                             path);
+    //         selectionFutures.push([selection, 'future]);
+    //     }
+    //     foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
+    //         error? err = wait 'future;
+    //         if err is () {
+    //             continue;
+    //         }
+    //         log:printError("Error occurred while attempting to resolve selection future", err,
+    //                         stackTrace = err.stackTrace());
+    //         if selection is parser:FieldNode {
+    //             _ = self.addError(err, selection, path.clone());
+    //             result[selection.getAlias()] = ();
+    //         }
+    //     }
+    // }
 
     private isolated function executeSelectionFunction(string functionName, map<any>|service object {} parentValue,
                                                        parser:SelectionNode selection, Data result, (string|int)[] path)
