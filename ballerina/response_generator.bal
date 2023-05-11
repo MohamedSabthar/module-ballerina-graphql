@@ -156,9 +156,9 @@ class ResponseGenerator {
 
     isolated function getResultFromArray((any|error)[] parentValue, parser:FieldNode parentNode, (string|int)[] path)
     returns anydata {
-        if !self.isMutationOperation {
-            return self.getResultFromArrayParallelly(parentValue, parentNode, path);
-        }
+        // if !self.isMutationOperation {
+        //     return self.getResultFromArrayParallelly(parentValue, parentNode, path);
+        // }
         int i = 0;
         anydata[] result = [];
         foreach any|error element in parentValue {
@@ -213,9 +213,9 @@ class ResponseGenerator {
 
     isolated function getResultFromTable(table<map<any>> parentValue, parser:FieldNode parentNode, (string|int)[] path)
     returns anydata {
-        if !self.isMutationOperation {
-            return self.getResultFromTableParallelly(parentValue, parentNode, path);
-        }
+        // if !self.isMutationOperation {
+        //     return self.getResultFromTableParallelly(parentValue, parentNode, path);
+        // }
         anydata[] result = [];
         foreach map<any> element in parentValue {
             anydata elementValue = self.getResult(element, parentNode, path);
@@ -303,9 +303,9 @@ class ResponseGenerator {
                                                         map<any>|service object {} parentValue,
                                                         parser:SelectionNode parentNode, Data result,
                                                         (string|int)[] path) {
-        if !self.isMutationOperation {
-            return self.resolveSelectionsParallelly(selectionFunctionName, parentValue, parentNode, result, path);
-        }
+        // if !self.isMutationOperation {
+        //     return self.resolveSelectionsParallelly(selectionFunctionName, parentValue, parentNode, result, path);
+        // }
         foreach parser:SelectionNode selection in parentNode.getSelections() {
             var executeSelectionFunction = self.executeSelectionFunction;
             executeSelectionFunction(selectionFunctionName, parentValue, selection, result, path);
