@@ -85,10 +85,10 @@ class ResponseGenerator {
             clonedPath.push(fieldNode.getName());
             __Type fieldType = getFieldTypeFromParentType(self.fieldType, self.engine.getSchema().types, fieldNode);
             Field 'field = new (fieldNode, fieldType, parentValue, clonedPath);
-            Context context = self.context.cloneWithoutErrors();
-            context.resetInterceptorCount();
-            anydata result = self.engine.resolve(context, 'field);
-            self.context.addErrors(context.getErrors());
+            // Context context = self.context.cloneWithoutErrors();
+            self.context.resetInterceptorCount();
+            anydata result = self.engine.resolve(self.context, 'field);
+            // self.context.addErrors(context.getErrors());
             return result;
         }
     }
@@ -147,10 +147,10 @@ class ResponseGenerator {
         (string|int)[] clonedPath = path.clone();
         clonedPath.push(fieldNode.getName());
         Field 'field = new (fieldNode, fieldType, path = clonedPath, fieldValue = fieldValue);
-        Context context = self.context.cloneWithoutErrors();
-        context.resetInterceptorCount();
-        anydata result = self.engine.resolve(context, 'field);
-        self.context.addErrors(context.getErrors());
+        // Context context = self.context.cloneWithoutErrors();
+        self.context.resetInterceptorCount();
+        anydata result = self.engine.resolve(self.context, 'field);
+        // self.context.addErrors(context.getErrors());
         return result;
     }
 

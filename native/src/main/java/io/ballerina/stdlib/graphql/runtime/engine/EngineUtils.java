@@ -313,11 +313,27 @@ public class EngineUtils {
         }
     }
 
-    public static BString getHashCode(BFunctionPointer functionPointer) {
-        return StringUtils.fromString(Integer.toString(functionPointer.hashCode()));
+    public static BString getHashCode(BObject object) {
+        return StringUtils.fromString(Integer.toString(object.hashCode()));
     }
 
     public static void setDataLoaderCache(BObject context, BMap<BString, Object> cache) {
         context.set(StringUtils.fromString("dataLoaderCache"), cache);
+    }
+
+    public static void setFieldValue(BObject placeHolder, BObject field) {
+        placeHolder.set(StringUtils.fromString("'field"), field);
+    }
+
+    public static void setValue(BObject placeHolder, Object value) {
+        placeHolder.set(StringUtils.fromString("'value"), value);
+    }
+
+    public static BObject getFieldValue(BObject placeHolder) {
+        return (BObject) placeHolder.get(StringUtils.fromString("'field"));
+    }
+
+    public static Object getValue(BObject placeHolder) {
+        return placeHolder.get(StringUtils.fromString("value"));
     }
 }

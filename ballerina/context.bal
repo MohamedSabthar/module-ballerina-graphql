@@ -20,6 +20,37 @@ import ballerina/lang.value;
 import graphql.dataloader;
 import ballerina/io;
 
+public type PH record {|
+    string hashCode;
+    string loadMethodName;
+|};
+
+isolated class PlaceHolder {
+    private final Field? 'field = ();
+    private any|error value = ();
+
+    isolated function init(Field 'field) {
+       self.setFieldValue('field);
+    }
+
+    isolated function setFieldValue(Field 'field) = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
+
+
+    isolated function setValue(any|error value) = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
+
+    isolated function getValue() returns any|error = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
+
+    isolated function getFieldValue() returns Field  = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
+};
+
 # The GraphQL context object used to pass the meta information between resolvers.
 public isolated class Context {
     private final map<value:Cloneable|isolated object {}> attributes;
@@ -28,6 +59,32 @@ public isolated class Context {
     private int nextInterceptor;
     private boolean hasFileInfo = false; // This field value changed by setFileInfo method
     private map<dataloader:DataLoader> dataLoaderCache = {};
+    private map<PlaceHolder[]> placeHolderMap = {};
+    private map<PlaceHolder> placeHolders = {};
+
+    isolated function addPlaceHolderToMap(string hashCode, PlaceHolder ph) {
+        lock {
+            self.placeHolders[hashCode] = ph;
+        }
+    }
+
+    isolated function getPlaceHolderFromMap(string hashCode) returns PlaceHolder {
+        lock {
+            return self.placeHolders.get(hashCode);
+        }
+    }
+
+    isolated function addPlaceHolder(string 'key, PlaceHolder placeHolder) {
+        lock {
+            if self.placeHolderMap.hasKey('key) {
+                PlaceHolder[] placeHolders = self.placeHolderMap.get('key);
+                placeHolders.push(placeHolder);
+            } else {
+                PlaceHolder[] placeHolders = [placeHolder];
+                self.placeHolderMap['key] = placeHolders;
+            }
+        }
+    }
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
                                   int nextInterceptor = 0, map<dataloader:DataLoader> dataLoaderCache = {}) {
@@ -41,7 +98,6 @@ public isolated class Context {
             value:Cloneable|isolated object {} value = item[1];
             self.attributes[key] = value;
         }
-        self.setDataLoaderCache(dataLoaderCache);
     }
 
     isolated function setDataLoaderCache(map<dataloader:DataLoader> dataLoaderCache) = @java:Method {
@@ -129,8 +185,13 @@ public isolated class Context {
         Engine? engine = self.getEngine();
         if engine is Engine {
             return engine.resolve(self, 'field);
+            // TODO: need to fix engine returns PH record when intercepting
         }
         return;
+    }
+
+    public isolated function resolvePlaceHolders() {
+        // TODO: implement logic
     }
 
     isolated function setEngine(Engine engine) {
@@ -193,15 +254,15 @@ public isolated class Context {
         }
     }
 
-    isolated function cloneWithoutErrors() returns Context {
-        lock {
-            Context clonedContext = new(self.attributes, self.engine, self.nextInterceptor, self.dataLoaderCache);
-            if self.hasFileInfo {
-                clonedContext.setFileInfo(self.getFileInfo());
-            }
-            return clonedContext;
-        }
-    }
+    // isolated function cloneWithoutErrors() returns Context {
+    //     lock {
+    //         Context clonedContext = new(self.attributes, self.engine, self.nextInterceptor, self.dataLoaderCache);
+    //         if self.hasFileInfo {
+    //             clonedContext.setFileInfo(self.getFileInfo());
+    //         }
+    //         return clonedContext;
+    //     }
+    // }
 
     isolated function getDataLoader((isolated function (readonly & anydata[] keys) returns anydata[]|error) batchFunction, string loadResourceMethodName) 
     returns dataloader:DataLoader {
@@ -221,6 +282,6 @@ isolated function initDefaultContext(http:RequestContext requestContext, http:Re
     return new;
 }
 
-// isolated function getHashCode(function batchFunction) returns string = @java:Method {
-//     'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-// } external;
+isolated function getHashCode(object{} obj) returns string = @java:Method {
+    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+} external;

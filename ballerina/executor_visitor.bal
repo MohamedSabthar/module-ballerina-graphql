@@ -293,12 +293,12 @@ isolated class ExecutorVisitor {
         }
         Field 'field = getFieldObject(fieldNode, operationType, schema, engine, result);
         context.resetInterceptorCount();
-        Context clonedContext = context.cloneWithoutErrors();
-        readonly & anydata resolvedResult = engine.resolve(clonedContext, 'field);
-        context.addErrors(clonedContext.getErrors());
+        // Context clonedContext = context.cloneWithoutErrors();
+        anydata resolvedResult = engine.resolve(context, 'field);
+        // context.addErrors(clonedContext.getErrors());
         lock {
             self.errors = self.context.getErrors();
-            self.data[fieldNode.getAlias()] = resolvedResult is ErrorDetail ? () : resolvedResult;
+            self.data[fieldNode.getAlias()] = resolvedResult is ErrorDetail ? () : getFlatternedResult(context, resolvedResult.clone());
         }
     }
 
@@ -348,3 +348,10 @@ returns (isolated function (readonly & anydata[] keys) returns anydata[]|error) 
 isolated function executeLoadResourceMethod(service object {} serviceObject, handle loadResourceMethod, dataloader:DataLoader dataloader) returns () = @java:Method {
     'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
 } external;
+
+isolated function getFlatternedResult(Context context, anydata partialValue) returns anydata {
+    if partialValue is PH {
+        return;
+    }
+    return partialValue;
+}

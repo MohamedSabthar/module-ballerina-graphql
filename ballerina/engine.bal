@@ -17,6 +17,7 @@
 import ballerina/jballerina.java;
 
 import graphql.parser;
+import graphql.dataloader;
 
 isolated class Engine {
     private final readonly & __Schema schema;
@@ -238,6 +239,19 @@ isolated class Engine {
         any|error fieldValue;
         if operationType == parser:OPERATION_QUERY {
             if interceptor is () {
+                string loadResourceMethodName = getLoadResourceMethodName(fieldNode.getName());
+                // io:println("loadResourceMethodName: " + loadResourceMethodName);
+                if hasLoadResourceMethod(self.getService(), loadResourceMethodName) {
+                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.getService(), loadResourceMethodName);
+                    dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+                     self.executeLoadResource(getResourceMethod(self.getService(), [loadResourceMethodName]), fieldNode, operationType, loadResourceMethodName, dataloader);
+                    PlaceHolder placeHolder = new ('field);
+                    context.addPlaceHolder(loadResourceMethodName, placeHolder);
+                    string hashCode = getHashCode(placeHolder);
+                    PH ph = {hashCode , loadMethodName: loadResourceMethodName};
+                    context.addPlaceHolderToMap(hashCode, placeHolder);
+                    return ph;
+                }
                 fieldValue = self.resolveResourceMethod(context, 'field);
             } else {
                 any|error result = self.executeInterceptor(interceptor, 'field, context);
@@ -334,8 +348,9 @@ isolated class Engine {
         __Type fieldType = getFieldTypeFromParentType('field.getFieldType(), self.schema.types, fieldNode);
         Field selectionField = new (fieldNode, fieldType, 'field.getServiceObject(), path = path, resourcePath = resourcePath);
         context.resetInterceptorCount();
-        anydata fieldValue = self.resolve(context, selectionField);
-        result[fieldNode.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
+        any fieldValue = self.resolve(context, selectionField);
+        // TODO: fix the below logic
+        result[fieldNode.getAlias()] = fieldValue is ErrorDetail || fieldValue !is anydata ? () : fieldValue;
         _ = resourcePath.pop();
     }
 
@@ -371,6 +386,14 @@ isolated class Engine {
     isolated function getInterceptorName(readonly & Interceptor interceptor) returns string = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
+
+    private isolated function executeLoadResource(handle? loadResourceMethod, parser:FieldNode fieldNode, parser:RootOperationType operationType, string loadResourceMethodName, dataloader:DataLoader dataloader) returns () {
+        handle? loadResourceMethodHandle = getResourceMethod(self.getService(), [loadResourceMethodName]);
+        if loadResourceMethodHandle == () {
+            return ();
+        }
+        return executeLoadResourceMethod(self.getService(), loadResourceMethodHandle, dataloader);
+    }
 }
 
     isolated function getResourceMethod(service object {} serviceObject, string[] path)
