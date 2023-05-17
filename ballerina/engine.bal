@@ -18,7 +18,7 @@ import ballerina/jballerina.java;
 
 import graphql.parser;
 import graphql.dataloader;
-import ballerina/io;
+// import ballerina/io;
 
 isolated class Engine {
     private final readonly & __Schema schema;
@@ -245,7 +245,7 @@ isolated class Engine {
                     service object {}? so = 'field.getServiceObject();
 
                 if isExecuteLoadMethod && so is service object {} && hasLoadResourceMethod(so, loadResourceMethodName) {
-                    io:println("%%%%%loadResourceMethodName: " + loadResourceMethodName);
+                    // io:println("%%%%%loadResourceMethodName: " + loadResourceMethodName);
                     (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(so, loadResourceMethodName);
                     dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
                     self.executeLoadResource(so, getResourceMethod(so, [loadResourceMethodName]), fieldNode, operationType, loadResourceMethodName, dataloader);

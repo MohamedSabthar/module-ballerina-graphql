@@ -1,4 +1,4 @@
-import ballerina/io;
+// import ballerina/io;
 
 public type DataLoader isolated object {
     public isolated function load(anydata key);
@@ -49,7 +49,7 @@ public isolated class DefaultDataLoader {
         lock {
             readonly & anydata[] batchKeys = self.keys.toArray().'map((key) => key.key).cloneReadOnly();
             self.keys.removeAll();
-            io:println("collected keys for the batch:", batchKeys);
+            // io:println("collected keys for the batch:", batchKeys);
             anydata[] batchResult = check self.loaderFunction(batchKeys);
             foreach int i in 0 ..< batchKeys.length() {
                 self.resultTable.add({key: batchKeys[i], value: batchResult[i]});

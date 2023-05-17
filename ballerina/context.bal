@@ -18,7 +18,7 @@ import ballerina/http;
 import ballerina/jballerina.java;
 import ballerina/lang.value;
 import graphql.dataloader;
-import ballerina/io;
+// import ballerina/io;
 
 public type PH record {|
     string hashCode;
@@ -204,7 +204,7 @@ public isolated class Context {
     }
 
     public isolated function resolvePlaceHolders() {
-        io:println("resolving place holders");
+        // io:println("resolving place holders");
         lock{
             map<PlaceHolder[]> placeHolderMap = self.placeHolderMap;
             self.placeHolderMap = {};
@@ -299,7 +299,7 @@ public isolated class Context {
             }
             dataloader:DefaultDataLoader dataloader = new(batchFunction);
             self.dataLoaderCache[loadResourceMethodName] = dataloader;
-            io:println("DataLoader created",  self.dataLoaderCache);
+            // io:println("DataLoader created",  self.dataLoaderCache);
             return dataloader;
         }
     }

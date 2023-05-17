@@ -17,7 +17,7 @@
 import graphql.parser;
 import graphql.dataloader;
 import ballerina/jballerina.java;
-import ballerina/io;
+// import ballerina/io;
 
 isolated class ExecutorVisitor {
     *parser:Visitor;
@@ -350,19 +350,19 @@ isolated function executeLoadResourceMethod(service object {} serviceObject, han
 } external;
 
 isolated function getFlatternedResult(Context context, anydata partialValue) returns anydata {
-    io:println("partialValue", partialValue);
+    // io:println("partialValue", partialValue);
     // if context.getUnresolvedPlaceHolderCount() < 1 {
     //     return partialValue;
     // }
     while context.getUnresolvedPlaceHolderCount() > 0 {
-        io:println("Looping....", context.getUnresolvedPlaceHolderCount());
+        // io:println("Looping....", context.getUnresolvedPlaceHolderCount());
         context.resolvePlaceHolders();
     }
     if partialValue is PH {
         anydata value = context.getPlaceHolderValue(partialValue.hashCode);
-        io:println("value", value);
+        // io:println("value", value);
         anydata flattenedValue = getFlatternedResult(context, value);
-        io:println("flattenedValue", flattenedValue);
+        // io:println("flattenedValue", flattenedValue);
         anydata result = flattenedValue;
         context.decrementPlaceHolderCount();
         return result;
