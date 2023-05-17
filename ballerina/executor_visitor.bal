@@ -358,13 +358,13 @@ isolated function getFlatternedResult(Context context, anydata partialValue) ret
         // io:println("Looping....", context.getUnresolvedPlaceHolderCount());
         context.resolvePlaceHolders();
     }
-    if partialValue is PH {
+    if partialValue is PloaceHolderNode {
         anydata value = context.getPlaceHolderValue(partialValue.hashCode);
         // io:println("value", value);
         anydata flattenedValue = getFlatternedResult(context, value);
         // io:println("flattenedValue", flattenedValue);
         anydata result = flattenedValue;
-        context.decrementPlaceHolderCount();
+        // context.decrementPlaceHolderCount();
         return result;
     }
     if partialValue is record {} {

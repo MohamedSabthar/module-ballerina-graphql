@@ -20,36 +20,6 @@ import ballerina/lang.value;
 import graphql.dataloader;
 // import ballerina/io;
 
-public type PH record {|
-    string hashCode;
-|};
-
-isolated class PlaceHolder {
-    private Field? 'field = ();
-    private anydata value = ();
-
-    isolated function init(Field 'field) {
-       self.setFieldValue('field);
-    }
-
-    isolated function setFieldValue(Field 'field) = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-    } external;
-
-
-    isolated function setValue(anydata value) = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-    } external;
-
-    isolated function getValue() returns anydata = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-    } external;
-
-    isolated function getFieldValue() returns Field  = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-    } external;
-};
-
 # The GraphQL context object used to pass the meta information between resolvers.
 public isolated class Context {
     private final map<value:Cloneable|isolated object {}> attributes;
@@ -61,40 +31,6 @@ public isolated class Context {
     private map<PlaceHolder[]> dataLoaderToPlaceHolderMap = {};
     private map<PlaceHolder> placeHolders = {};
     private int placeHolderCount = 0;
-
-    isolated function getPlaceHolderValue(string hashCode) returns anydata {
-        lock {
-            return self.placeHolders.remove(hashCode).getValue();
-        }
-    }
-
-    isolated function decrementPlaceHolderCount() {
-        lock {
-            self.placeHolderCount-=1;
-        }
-    }
-
-    isolated function getUnresolvedPlaceHolderCount() returns int {
-        lock {
-            return self.placeHolderCount;
-        }
-    }
-
-    isolated function addPlaceHolder(string 'key, PlaceHolder placeHolder) {
-        lock {
-            string hashCode = getHashCode(placeHolder);
-            self.placeHolders[hashCode] = placeHolder;
-            self.placeHolderCount+=1;
-
-            if self.dataLoaderToPlaceHolderMap.hasKey('key) {
-                PlaceHolder[] placeHolders = self.dataLoaderToPlaceHolderMap.get('key);
-                placeHolders.push(placeHolder);
-            } else {
-                PlaceHolder[] placeHolders = [placeHolder];
-                self.dataLoaderToPlaceHolderMap['key] = placeHolders;
-            }
-        }
-    }
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
                                   int nextInterceptor = 0, map<dataloader:DataLoader> dataLoaderCache = {}) {
@@ -195,7 +131,7 @@ public isolated class Context {
         Engine? engine = self.getEngine();
         if engine is Engine {
             return engine.resolve(self, 'field, isExecuteLoadMethod);
-            // TODO: need to fix engine returns PH record when intercepting
+            // TODO: need to fix engine returns PloaceHolderNode record when intercepting
         }
         return;
     }
@@ -298,6 +234,40 @@ public isolated class Context {
             self.dataLoaderCache[loadResourceMethodName] = dataloader;
             // io:println("DataLoader created",  self.dataLoaderCache);
             return dataloader;
+        }
+    }
+
+    isolated function getPlaceHolderValue(string hashCode) returns anydata {
+        lock {
+            return self.placeHolders.remove(hashCode).getValue();
+        }
+    }
+
+    // isolated function decrementPlaceHolderCount() {
+    //     lock {
+    //         self.placeHolderCount-=1;
+    //     }
+    // }
+
+    isolated function getUnresolvedPlaceHolderCount() returns int {
+        lock {
+            return self.placeHolderCount;
+        }
+    }
+
+    isolated function addPlaceHolder(string 'key, PlaceHolder placeHolder) {
+        lock {
+            string hashCode = getHashCode(placeHolder);
+            self.placeHolders[hashCode] = placeHolder;
+            self.placeHolderCount+=1;
+
+            if self.dataLoaderToPlaceHolderMap.hasKey('key) {
+                PlaceHolder[] placeHolders = self.dataLoaderToPlaceHolderMap.get('key);
+                placeHolders.push(placeHolder);
+            } else {
+                PlaceHolder[] placeHolders = [placeHolder];
+                self.dataLoaderToPlaceHolderMap['key] = placeHolders;
+            }
         }
     }
 }
