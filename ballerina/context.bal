@@ -26,8 +26,8 @@ public type PH record {|
 |};
 
 isolated class PlaceHolder {
-    private final Field? 'field = ();
-    private any|error value = ();
+    private Field? 'field = ();
+    private anydata value = ();
 
     isolated function init(Field 'field) {
        self.setFieldValue('field);
@@ -38,11 +38,11 @@ isolated class PlaceHolder {
     } external;
 
 
-    isolated function setValue(any|error value) = @java:Method {
+    isolated function setValue(anydata value) = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
-    isolated function getValue() returns any|error = @java:Method {
+    isolated function getValue() returns anydata = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
@@ -61,16 +61,29 @@ public isolated class Context {
     private map<dataloader:DataLoader> dataLoaderCache = {};
     private map<PlaceHolder[]> placeHolderMap = {};
     private map<PlaceHolder> placeHolders = {};
-
+    private int placeHolderCount = 0;
     isolated function addPlaceHolderToMap(string hashCode, PlaceHolder ph) {
         lock {
             self.placeHolders[hashCode] = ph;
+            self.placeHolderCount+=1;
         }
     }
 
-    isolated function getPlaceHolderFromMap(string hashCode) returns PlaceHolder {
+    isolated function getPlaceHolderValue(string hashCode) returns anydata {
         lock {
-            return self.placeHolders.get(hashCode);
+            return self.placeHolders.remove(hashCode).getValue();
+        }
+    }
+
+    isolated function decrementPlaceHolderCount() {
+        lock {
+            self.placeHolderCount-=1;
+        }
+    }
+
+    isolated function getUnresolvedPlaceHolderCount() returns int {
+        lock {
+            return self.placeHolderCount;
         }
     }
 
@@ -181,17 +194,31 @@ public isolated class Context {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
-    public isolated function resolve(Field 'field) returns anydata {
+    public isolated function resolve(Field 'field, boolean isExecuteLoadMethod = true) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field);
+            return engine.resolve(self, 'field, isExecuteLoadMethod);
             // TODO: need to fix engine returns PH record when intercepting
         }
         return;
     }
 
     public isolated function resolvePlaceHolders() {
-        // TODO: implement logic
+        io:println("resolving place holders");
+        lock{
+            map<PlaceHolder[]> placeHolderMap = self.placeHolderMap;
+            self.placeHolderMap = {};
+            foreach [string, PlaceHolder[]] [key, placeHolders] in placeHolderMap.entries() {
+                // TODO: fix checkpanic
+                checkpanic self.dataLoaderCache.get(key).dispatch();
+                // PlaceHolder[] placeHolders = self.placeHolderMap.get('key);
+                    foreach var ph in placeHolders {
+                        anydata resolvedVal = self.resolve(ph.getFieldValue(), isExecuteLoadMethod = false);
+                        ph.setValue(resolvedVal);
+                        self.placeHolderCount-=1;
+                    }
+                }
+        }
     }
 
     isolated function setEngine(Engine engine) {

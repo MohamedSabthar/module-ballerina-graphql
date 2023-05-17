@@ -322,15 +322,15 @@ public class EngineUtils {
     }
 
     public static void setFieldValue(BObject placeHolder, BObject field) {
-        placeHolder.set(StringUtils.fromString("'field"), field);
+        placeHolder.set(StringUtils.fromString("field"), field);
     }
 
     public static void setValue(BObject placeHolder, Object value) {
-        placeHolder.set(StringUtils.fromString("'value"), value);
+        placeHolder.set(StringUtils.fromString("value"), value);
     }
 
     public static BObject getFieldValue(BObject placeHolder) {
-        return (BObject) placeHolder.get(StringUtils.fromString("'field"));
+        return (BObject) placeHolder.get(StringUtils.fromString("field"));
     }
 
     public static Object getValue(BObject placeHolder) {

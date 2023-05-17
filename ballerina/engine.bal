@@ -18,6 +18,7 @@ import ballerina/jballerina.java;
 
 import graphql.parser;
 import graphql.dataloader;
+import ballerina/io;
 
 isolated class Engine {
     private final readonly & __Schema schema;
@@ -231,7 +232,7 @@ isolated class Engine {
         }
     }
 
-    isolated function resolve(Context context, Field 'field) returns anydata {
+    isolated function resolve(Context context, Field 'field, boolean isExecuteLoadMethod = true) returns anydata {
         parser:FieldNode fieldNode = 'field.getInternalNode();
         parser:RootOperationType operationType = 'field.getOperationType();
         (readonly & Interceptor)? interceptor = context.getNextInterceptor('field);
@@ -240,11 +241,14 @@ isolated class Engine {
         if operationType == parser:OPERATION_QUERY {
             if interceptor is () {
                 string loadResourceMethodName = getLoadResourceMethodName(fieldNode.getName());
-                // io:println("loadResourceMethodName: " + loadResourceMethodName);
-                if hasLoadResourceMethod(self.getService(), loadResourceMethodName) {
-                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.getService(), loadResourceMethodName);
+                    // io:println("loadResourceMethodName: " + loadResourceMethodName);
+                    service object {}? so = 'field.getServiceObject();
+
+                if isExecuteLoadMethod && so is service object {} && hasLoadResourceMethod(so, loadResourceMethodName) {
+                    io:println("%%%%%loadResourceMethodName: " + loadResourceMethodName);
+                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(so, loadResourceMethodName);
                     dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
-                     self.executeLoadResource(getResourceMethod(self.getService(), [loadResourceMethodName]), fieldNode, operationType, loadResourceMethodName, dataloader);
+                    self.executeLoadResource(so, getResourceMethod(so, [loadResourceMethodName]), fieldNode, operationType, loadResourceMethodName, dataloader);
                     PlaceHolder placeHolder = new ('field);
                     context.addPlaceHolder(loadResourceMethodName, placeHolder);
                     string hashCode = getHashCode(placeHolder);
@@ -387,12 +391,12 @@ isolated class Engine {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
 
-    private isolated function executeLoadResource(handle? loadResourceMethod, parser:FieldNode fieldNode, parser:RootOperationType operationType, string loadResourceMethodName, dataloader:DataLoader dataloader) returns () {
-        handle? loadResourceMethodHandle = getResourceMethod(self.getService(), [loadResourceMethodName]);
+    private isolated function executeLoadResource(service object {} so, handle? loadResourceMethod, parser:FieldNode fieldNode, parser:RootOperationType operationType, string loadResourceMethodName, dataloader:DataLoader dataloader) returns () {
+        handle? loadResourceMethodHandle = getResourceMethod(so, [loadResourceMethodName]);
         if loadResourceMethodHandle == () {
             return ();
         }
-        return executeLoadResourceMethod(self.getService(), loadResourceMethodHandle, dataloader);
+        return executeLoadResourceMethod(so, loadResourceMethodHandle, dataloader);
     }
 }
 

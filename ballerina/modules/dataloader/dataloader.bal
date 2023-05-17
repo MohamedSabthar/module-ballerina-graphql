@@ -1,3 +1,5 @@
+import ballerina/io;
+
 public type DataLoader isolated object {
     public isolated function load(anydata key);
     public isolated function get(anydata key) returns anydata|error; // need to change this function to dependently typed
@@ -47,7 +49,7 @@ public isolated class DefaultDataLoader {
         lock {
             readonly & anydata[] batchKeys = self.keys.toArray().'map((key) => key.key).cloneReadOnly();
             self.keys.removeAll();
-
+            io:println("collected keys for the batch:", batchKeys);
             anydata[] batchResult = check self.loaderFunction(batchKeys);
             foreach int i in 0 ..< batchKeys.length() {
                 self.resultTable.add({key: batchKeys[i], value: batchResult[i]});

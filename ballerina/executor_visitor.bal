@@ -54,27 +54,27 @@ isolated class ExecutorVisitor {
         map<dataloader:DataLoader> dataLoaders = {};
         parser:RootOperationType operationType = operationNode.getKind();
         foreach parser:SelectionNode selection in operationNode.getSelections() {
-            if selection is parser:FieldNode {
-                // TODO: execute selection which needs first pass, collect the name for second pass
-                // execute them after first pass, self.engine.getService();
-                string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
-                io:println("loadResourceMethodName: " + loadResourceMethodName);
-                // TODO: implement this function
-                // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
-                if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
-                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
-                    Context context;
-                    lock {
-                        context = self.context;
-                    }
-                    dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
-                    dataLoaders[loadResourceMethodName] = dataloader;
-                    // TODO: modify this error|any return type. and push the errors to graphql errors
-                    self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
-                    selectionsForSecondPass.push(selection);
-                    continue;
-                }
-            }
+            // if selection is parser:FieldNode {
+            //     // TODO: execute selection which needs first pass, collect the name for second pass
+            //     // execute them after first pass, self.engine.getService();
+            //     string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
+            //     io:println("loadResourceMethodName: " + loadResourceMethodName);
+            //     // TODO: implement this function
+            //     // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
+            //     if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
+            //         (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
+            //         Context context;
+            //         lock {
+            //             context = self.context;
+            //         }
+            //         dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+            //         dataLoaders[loadResourceMethodName] = dataloader;
+            //         // TODO: modify this error|any return type. and push the errors to graphql errors
+            //         self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
+            //         selectionsForSecondPass.push(selection);
+            //         continue;
+            //     }
+            // }
             if selection is parser:FieldNode {
                 path.push(selection.getName());
             }
@@ -134,27 +134,27 @@ isolated class ExecutorVisitor {
         map<dataloader:DataLoader> dataLoaders = {};
         foreach parser:SelectionNode selection in fragmentNode.getSelections() {
             string[] clonedPath = path.clone();
-            if selection is parser:FieldNode {
-                // TODO: execute selection which needs first pass, collect the name for second pass
-                // execute them after first pass, self.engine.getService();
-                string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
-                io:println("loadResourceMethodName: " + loadResourceMethodName);
-                // TODO: implement this function
-                // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
-                if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
-                    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
-                    Context context;
-                    lock {
-                        context = self.context;
-                    }
-                    dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
-                    dataLoaders[loadResourceMethodName] = dataloader;
-                    // TODO: modify this error|any return type. and push the errors to graphql errors
-                     self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
-                    selectionsForSecondPass.push(selection);
-                    continue;
-                }
-            }
+            // if selection is parser:FieldNode {
+            //     // TODO: execute selection which needs first pass, collect the name for second pass
+            //     // execute them after first pass, self.engine.getService();
+            //     string loadResourceMethodName = getLoadResourceMethodName(selection.getName());
+            //     // TODO: implement this function
+            //     // this function check for the loadXXX function with @Loader annotation and return the batch function from that annotation
+            //     if hasLoadResourceMethod(self.engine.getService(), loadResourceMethodName) {
+            //         io:println("loadResourceMethodName: " + loadResourceMethodName);
+            //         (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchLoadFunction = getBatchLoadFunction(self.engine.getService(), loadResourceMethodName);
+            //         Context context;
+            //         lock {
+            //             context = self.context;
+            //         }
+            //         dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+            //         dataLoaders[loadResourceMethodName] = dataloader;
+            //         // TODO: modify this error|any return type. and push the errors to graphql errors
+            //          self.executeLoadResource(getResourceMethod(self.engine.getService(), [loadResourceMethodName]), selection, operationType, loadResourceMethodName, dataloader);
+            //         selectionsForSecondPass.push(selection);
+            //         continue;
+            //     }
+            // }
             if selection is parser:FieldNode {
                 clonedPath.push(selection.getName());
             }
@@ -350,8 +350,45 @@ isolated function executeLoadResourceMethod(service object {} serviceObject, han
 } external;
 
 isolated function getFlatternedResult(Context context, anydata partialValue) returns anydata {
+    io:println("partialValue", partialValue);
+    // if context.getUnresolvedPlaceHolderCount() < 1 {
+    //     return partialValue;
+    // }
+    while context.getUnresolvedPlaceHolderCount() > 0 {
+        io:println("Looping....", context.getUnresolvedPlaceHolderCount());
+        context.resolvePlaceHolders();
+    }
     if partialValue is PH {
-        return;
+        anydata value = context.getPlaceHolderValue(partialValue.hashCode);
+        io:println("value", value);
+        anydata flattenedValue = getFlatternedResult(context, value);
+        io:println("flattenedValue", flattenedValue);
+        anydata result = flattenedValue;
+        context.decrementPlaceHolderCount();
+        return result;
+    }
+    if partialValue is record {} {
+        return getFlatternedResultFromRecord(context, partialValue);
+    }
+    if partialValue is anydata[] {
+        return getFlatternedResultFromArray(context, partialValue);
     }
     return partialValue;
+}
+
+isolated function getFlatternedResultFromRecord(Context context, record{} partialValue) returns anydata {
+    Data data = {};
+    foreach [string,anydata] [key, value] in partialValue.entries() {
+        data[key] = getFlatternedResult(context, value);
+    }
+    return data;
+}
+
+isolated function getFlatternedResultFromArray(Context context, anydata[] partialValue) returns anydata {
+    anydata[] data = [];
+    foreach anydata element in partialValue {
+        anydata newVal = getFlatternedResult(context, element);
+        data.push(newVal);
+    }
+    return data;
 }
