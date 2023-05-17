@@ -52,6 +52,9 @@ public isolated class DefaultDataLoader {
             // io:println("collected keys for the batch:", batchKeys);
             anydata[] batchResult = check self.loaderFunction(batchKeys);
             foreach int i in 0 ..< batchKeys.length() {
+                if self.resultTable.hasKey(batchKeys[i]) {
+                    continue;
+                }
                 self.resultTable.add({key: batchKeys[i], value: batchResult[i]});
             }
         }

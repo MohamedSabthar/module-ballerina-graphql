@@ -140,6 +140,8 @@ public isolated class Context {
         // io:println("resolving place holders");
         lock{
             map<PlaceHolder[]> dataLoaderToPlaceHolderMap = self.dataLoaderToPlaceHolderMap;
+            // io:println("resolving place holders", dataLoaderToPlaceHolderMap);
+
             self.dataLoaderToPlaceHolderMap = {};
             foreach [string, PlaceHolder[]] [key, placeHolders] in dataLoaderToPlaceHolderMap.entries() {
                 // TODO: fix checkpanic
@@ -151,6 +153,7 @@ public isolated class Context {
                         self.placeHolderCount-=1;
                     }
                 }
+            // io:println("placeHolderCount: ", self.placeHolderCount);
         }
     }
 
