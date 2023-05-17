@@ -22,7 +22,6 @@ import graphql.dataloader;
 
 public type PH record {|
     string hashCode;
-    string loadMethodName;
 |};
 
 isolated class PlaceHolder {
@@ -59,15 +58,9 @@ public isolated class Context {
     private int nextInterceptor;
     private boolean hasFileInfo = false; // This field value changed by setFileInfo method
     private map<dataloader:DataLoader> dataLoaderCache = {};
-    private map<PlaceHolder[]> placeHolderMap = {};
+    private map<PlaceHolder[]> dataLoaderToPlaceHolderMap = {};
     private map<PlaceHolder> placeHolders = {};
     private int placeHolderCount = 0;
-    isolated function addPlaceHolderToMap(string hashCode, PlaceHolder ph) {
-        lock {
-            self.placeHolders[hashCode] = ph;
-            self.placeHolderCount+=1;
-        }
-    }
 
     isolated function getPlaceHolderValue(string hashCode) returns anydata {
         lock {
@@ -89,12 +82,16 @@ public isolated class Context {
 
     isolated function addPlaceHolder(string 'key, PlaceHolder placeHolder) {
         lock {
-            if self.placeHolderMap.hasKey('key) {
-                PlaceHolder[] placeHolders = self.placeHolderMap.get('key);
+            string hashCode = getHashCode(placeHolder);
+            self.placeHolders[hashCode] = placeHolder;
+            self.placeHolderCount+=1;
+
+            if self.dataLoaderToPlaceHolderMap.hasKey('key) {
+                PlaceHolder[] placeHolders = self.dataLoaderToPlaceHolderMap.get('key);
                 placeHolders.push(placeHolder);
             } else {
                 PlaceHolder[] placeHolders = [placeHolder];
-                self.placeHolderMap['key] = placeHolders;
+                self.dataLoaderToPlaceHolderMap['key] = placeHolders;
             }
         }
     }
@@ -206,12 +203,12 @@ public isolated class Context {
     public isolated function resolvePlaceHolders() {
         // io:println("resolving place holders");
         lock{
-            map<PlaceHolder[]> placeHolderMap = self.placeHolderMap;
-            self.placeHolderMap = {};
-            foreach [string, PlaceHolder[]] [key, placeHolders] in placeHolderMap.entries() {
+            map<PlaceHolder[]> dataLoaderToPlaceHolderMap = self.dataLoaderToPlaceHolderMap;
+            self.dataLoaderToPlaceHolderMap = {};
+            foreach [string, PlaceHolder[]] [key, placeHolders] in dataLoaderToPlaceHolderMap.entries() {
                 // TODO: fix checkpanic
                 checkpanic self.dataLoaderCache.get(key).dispatch();
-                // PlaceHolder[] placeHolders = self.placeHolderMap.get('key);
+                // PlaceHolder[] placeHolders = self.dataLoaderToPlaceHolderMap.get('key);
                     foreach var ph in placeHolders {
                         anydata resolvedVal = self.resolve(ph.getFieldValue(), isExecuteLoadMethod = false);
                         ph.setValue(resolvedVal);

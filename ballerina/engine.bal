@@ -252,8 +252,7 @@ isolated class Engine {
                     PlaceHolder placeHolder = new ('field);
                     context.addPlaceHolder(loadResourceMethodName, placeHolder);
                     string hashCode = getHashCode(placeHolder);
-                    PH ph = {hashCode , loadMethodName: loadResourceMethodName};
-                    context.addPlaceHolderToMap(hashCode, placeHolder);
+                    PH ph = {hashCode};
                     return ph;
                 }
                 fieldValue = self.resolveResourceMethod(context, 'field);
