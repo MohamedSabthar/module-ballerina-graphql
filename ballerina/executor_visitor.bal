@@ -177,9 +177,7 @@ isolated function getFlatternedResult(Context context, anydata partialValue) ret
     }
     if partialValue is PlaceHolderNode {
         anydata value = context.getPlaceHolderValue(partialValue.hashCode);
-        anydata flattenedValue = getFlatternedResult(context, value);
-        anydata result = flattenedValue;
-        return result;
+        return getFlatternedResult(context, value);
     }
     if partialValue is record {} {
         return getFlatternedResultFromRecord(context, partialValue);

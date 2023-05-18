@@ -126,10 +126,10 @@ public isolated class Context {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
-    public isolated function resolve(Field 'field, boolean isExecuteLoadMethod = true) returns anydata {
+    public isolated function resolve(Field 'field) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field, isExecuteLoadMethod);
+            return engine.resolve(self, 'field, true);
             // TODO: need to fix engine returns PlaceHolderNode record when intercepting
         }
         return;
@@ -142,9 +142,13 @@ public isolated class Context {
             foreach [string, PlaceHolder[]] [key, placeHolders] in dataLoaderToPlaceHolderMap.entries() {
                 // TODO: Fix checkpanic here, need to return a Error detaisl for these keys
                 checkpanic self.dataLoaderCache.get(key).dispatch();
-                foreach var ph in placeHolders {
-                    anydata resolvedVal = self.resolve(ph.getFieldValue(), isExecuteLoadMethod = false);
-                    ph.setValue(resolvedVal);
+                foreach var placeHolder in placeHolders {
+                    Engine? engine = self.getEngine();
+                    anydata resolvedVal = ();
+                    if engine is Engine {
+                        resolvedVal = engine.resolve(self, 'placeHolder.getFieldValue(), false);
+                    }
+                    placeHolder.setValue(resolvedVal);
                     self.placeHolderCount-=1;
                 }
             }
