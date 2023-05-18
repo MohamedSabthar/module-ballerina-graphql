@@ -17,6 +17,7 @@
 import ballerina/http;
 import ballerina/jballerina.java;
 import ballerina/lang.value;
+import graphql.dataloader;
 
 # The GraphQL context object used to pass the meta information between resolvers.
 public isolated class Context {
@@ -25,6 +26,10 @@ public isolated class Context {
     private Engine? engine;
     private int nextInterceptor;
     private boolean hasFileInfo = false; // This field value changed by setFileInfo method
+    private map<dataloader:DataLoader> dataLoaderCache = {};
+    private map<PlaceHolder[]> dataLoaderToPlaceHolderMap = {};
+    private map<PlaceHolder> placeHolders = {};
+    private int placeHolderCount = 0;
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
                                   int nextInterceptor = 0) {
@@ -39,6 +44,10 @@ public isolated class Context {
             self.attributes[key] = value;
         }
     }
+
+    isolated function setDataLoaderCache(map<dataloader:DataLoader> dataLoaderCache) = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    } external;
 
     # Sets a given value for a given key in the GraphQL context.
     #
@@ -117,12 +126,29 @@ public isolated class Context {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
-    public isolated function resolve(Field 'field) returns anydata {
+    public isolated function resolve(Field 'field, boolean isExecuteLoadMethod = true) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field);
+            return engine.resolve(self, 'field, isExecuteLoadMethod);
+            // TODO: need to fix engine returns PlaceHolderNode record when intercepting
         }
         return;
+    }
+
+    public isolated function resolvePlaceHolders() {
+        lock{
+            map<PlaceHolder[]> dataLoaderToPlaceHolderMap = self.dataLoaderToPlaceHolderMap;
+            self.dataLoaderToPlaceHolderMap = {};
+            foreach [string, PlaceHolder[]] [key, placeHolders] in dataLoaderToPlaceHolderMap.entries() {
+                // TODO: Fix checkpanic here, need to return a Error detaisl for these keys
+                checkpanic self.dataLoaderCache.get(key).dispatch();
+                foreach var ph in placeHolders {
+                    anydata resolvedVal = self.resolve(ph.getFieldValue(), isExecuteLoadMethod = false);
+                    ph.setValue(resolvedVal);
+                    self.placeHolderCount-=1;
+                }
+            }
+        }
     }
 
     isolated function setEngine(Engine engine) {
@@ -185,13 +211,43 @@ public isolated class Context {
         }
     }
 
-    isolated function cloneWithoutErrors() returns Context {
+    isolated function getDataLoader((isolated function (readonly & anydata[] keys)
+    returns anydata[]|error) batchFunction, string loadResourceMethodName)  returns dataloader:DataLoader {
         lock {
-            Context clonedContext = new(self.attributes, self.engine, self.nextInterceptor);
-            if self.hasFileInfo {
-                clonedContext.setFileInfo(self.getFileInfo());
+            if self.dataLoaderCache.hasKey(loadResourceMethodName) {
+                return self.dataLoaderCache.get(loadResourceMethodName);
             }
-            return clonedContext;
+            dataloader:DefaultDataLoader dataloader = new(batchFunction);
+            self.dataLoaderCache[loadResourceMethodName] = dataloader;
+            return dataloader;
+        }
+    }
+
+    isolated function getPlaceHolderValue(string hashCode) returns anydata {
+        lock {
+            return self.placeHolders.remove(hashCode).getValue();
+        }
+    }
+
+    isolated function getUnresolvedPlaceHolderCount() returns int {
+        lock {
+            return self.placeHolderCount;
+        }
+    }
+
+    isolated function addPlaceHolder(string 'key, PlaceHolder placeHolder) {
+        lock {
+            string hashCode = getHashCode(placeHolder);
+            self.placeHolders[hashCode] = placeHolder;
+            self.placeHolderCount+=1;
+
+            if self.dataLoaderToPlaceHolderMap.hasKey('key) {
+                PlaceHolder[] placeHolders = self.dataLoaderToPlaceHolderMap.get('key);
+                placeHolders.push(placeHolder);
+            } else {
+                PlaceHolder[] placeHolders = [placeHolder];
+                self.dataLoaderToPlaceHolderMap['key] = placeHolders;
+            }
         }
     }
 }
@@ -199,3 +255,7 @@ public isolated class Context {
 isolated function initDefaultContext(http:RequestContext requestContext, http:Request request) returns Context|error {
     return new;
 }
+
+isolated function getHashCode(object{} obj) returns string = @java:Method {
+    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+} external;

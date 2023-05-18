@@ -85,10 +85,8 @@ class ResponseGenerator {
             clonedPath.push(fieldNode.getName());
             __Type fieldType = getFieldTypeFromParentType(self.fieldType, self.engine.getSchema().types, fieldNode);
             Field 'field = new (fieldNode, fieldType, parentValue, clonedPath);
-            Context context = self.context.cloneWithoutErrors();
-            context.resetInterceptorCount();
-            anydata result = self.engine.resolve(context, 'field);
-            self.context.addErrors(context.getErrors());
+            self.context.resetInterceptorCount();
+            anydata result = self.engine.resolve(self.context, 'field);
             return result;
         }
     }
@@ -147,18 +145,13 @@ class ResponseGenerator {
         (string|int)[] clonedPath = path.clone();
         clonedPath.push(fieldNode.getName());
         Field 'field = new (fieldNode, fieldType, path = clonedPath, fieldValue = fieldValue);
-        Context context = self.context.cloneWithoutErrors();
-        context.resetInterceptorCount();
-        anydata result = self.engine.resolve(context, 'field);
-        self.context.addErrors(context.getErrors());
+        self.context.resetInterceptorCount();
+        anydata result = self.engine.resolve(self.context, 'field);
         return result;
     }
 
     isolated function getResultFromArray((any|error)[] parentValue, parser:FieldNode parentNode, (string|int)[] path)
     returns anydata {
-        if !self.isMutationOperation {
-            return self.getResultFromArrayParallelly(parentValue, parentNode, path);
-        }
         int i = 0;
         anydata[] result = [];
         foreach any|error element in parentValue {
@@ -175,75 +168,12 @@ class ResponseGenerator {
         return result;
     }
 
-    isolated function getResultFromArrayParallelly((any|error)[] parentValue, parser:FieldNode parentNode, (string|int)[] path)
-    returns anydata {
-        int i = 0;
-        future<anydata>[] futures = [];
-        var getResult = self.getResult;
-        foreach any|error element in parentValue {
-            path.push(i);
-            future<anydata> 'future = start getResult(element, parentNode, path.clone());
-            futures.push('future);
-            i += 1;
-            _ = path.pop();
-        }
-
-        i = 0;
-        anydata[] result = [];
-        foreach future<anydata> elementFuture in futures {
-            path.push(i);
-            anydata|error elementValue = wait elementFuture;
-            if elementValue is error {
-                log:printError("Error occurred while attempting to resolve element future", elementValue,
-                                stackTrace = elementValue.stackTrace());
-                _ = self.addError(elementValue, parentNode, path);
-                result.push(());
-            } else if elementValue is ErrorDetail {
-                result.push(());
-            } else {
-                result.push(elementValue);
-            }
-            i += 1;
-            _ = path.pop();
-        }
-        return result;
-    }
-
     isolated function getResultFromTable(table<map<any>> parentValue, parser:FieldNode parentNode, (string|int)[] path)
     returns anydata {
-        if !self.isMutationOperation {
-            return self.getResultFromTableParallelly(parentValue, parentNode, path);
-        }
         anydata[] result = [];
         foreach map<any> element in parentValue {
             anydata elementValue = self.getResult(element, parentNode, path);
             if elementValue is ErrorDetail {
-                result.push(());
-            } else {
-                result.push(elementValue);
-            }
-        }
-        return result;
-    }
-
-    isolated function getResultFromTableParallelly(table<map<any>> parentValue, parser:FieldNode parentNode,
-                                                  (string|int)[] path) returns anydata {
-        future<anydata>[] futures = [];
-        var getResult = self.getResult;
-        foreach any element in parentValue {
-            future<anydata> 'future = start getResult(element, parentNode, path);
-            futures.push('future);
-        }
-
-        anydata[] result = [];
-        foreach future<anydata> elementFuture in futures {
-            anydata|error elementValue = wait elementFuture;
-            if elementValue is error {
-                log:printError("Error occurred while attempting to resolve element future", elementValue,
-                                stackTrace = elementValue.stackTrace());
-                _ = self.addError(elementValue, parentNode, path);
-                result.push(());
-            } else if elementValue is ErrorDetail {
                 result.push(());
             } else {
                 result.push(elementValue);
@@ -301,41 +231,11 @@ class ResponseGenerator {
                                                         map<any>|service object {} parentValue,
                                                         parser:SelectionNode parentNode, Data result,
                                                         (string|int)[] path) {
-        if !self.isMutationOperation {
-            return self.resolveSelectionsParallelly(selectionFunctionName, parentValue, parentNode, result, path);
-        }
         foreach parser:SelectionNode selection in parentNode.getSelections() {
             var executeSelectionFunction = self.executeSelectionFunction;
             executeSelectionFunction(selectionFunctionName, parentValue, selection, result, path);
         }
         return;
-    }
-
-    private isolated function resolveSelectionsParallelly(string selectionFunctionName,
-                                                        map<any>|service object {} parentValue,
-                                                        parser:SelectionNode parentNode, Data result,
-                                                        (string|int)[] path) {
-        [parser:SelectionNode, future<()>][] selectionFutures = [];
-        foreach parser:SelectionNode selection in parentNode.getSelections() {
-            // TODO: do first pass load function, collect the names of the fields which requires a second pass
-            // execute the second pass after receiving dataloader future
-            var executeSelectionFunction = self.executeSelectionFunction;
-            future<()> 'future = start executeSelectionFunction(selectionFunctionName, parentValue, selection, result,
-                                                                path);
-            selectionFutures.push([selection, 'future]);
-        }
-        foreach [parser:SelectionNode, future<()>] [selection, 'future] in selectionFutures {
-            error? err = wait 'future;
-            if err is () {
-                continue;
-            }
-            log:printError("Error occurred while attempting to resolve selection future", err,
-                            stackTrace = err.stackTrace());
-            if selection is parser:FieldNode {
-                _ = self.addError(err, selection, path.clone());
-                result[selection.getAlias()] = ();
-            }
-        }
     }
 
     private isolated function executeSelectionFunction(string functionName, map<any>|service object {} parentValue,
