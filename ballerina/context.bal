@@ -30,6 +30,7 @@ public isolated class Context {
     private map<PlaceHolder[]> dataLoaderToPlaceHolderMap = {};
     private map<PlaceHolder> placeHolders = {};
     private int placeHolderCount = 0;
+    private anydata[] partialResults = [];
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
                                   int nextInterceptor = 0) {
@@ -130,8 +131,16 @@ public isolated class Context {
     public isolated function resolve(Field 'field) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field);
-            // TODO: need to fix engine returns PlaceHolderNode record when intercepting
+            anydata result = engine.resolve(self, 'field);
+            if self.placeHolderCount == 0 {
+                return result;
+            }
+            // // TODO: implement logic to replace placeholders
+            // if we resolve the place holders here then 1. we can't batch the request properly
+            // 2. if executing batch function for each key is ok then we can call flatternResult here
+            // but unfortunatley getting deadlock due to some reason
+            return 
+            
         }
         return;
     }
