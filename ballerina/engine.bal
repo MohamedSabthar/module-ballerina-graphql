@@ -231,14 +231,14 @@ isolated class Engine {
         }
     }
 
-    isolated function resolve(Context context, Field 'field, boolean isExecuteLoadMethod = true) returns anydata {
+    isolated function resolve(Context context, Field 'field, boolean isExecuteLoadMethod = true, boolean executeInterceptor = true) returns anydata {
         parser:FieldNode fieldNode = 'field.getInternalNode();
         parser:RootOperationType operationType = 'field.getOperationType();
         (readonly & Interceptor)? interceptor = context.getNextInterceptor('field);
         __Type fieldType = 'field.getFieldType();
         any|error fieldValue;
         if operationType == parser:OPERATION_QUERY {
-            if interceptor is () {
+            if interceptor is () || !executeInterceptor {
                 string loadResourceMethodName = getLoadResourceMethodName(fieldNode.getName());
                 service object {}? serviceObject = 'field.getServiceObject();
                 if isExecuteLoadMethod && serviceObject is service object {} 

@@ -126,10 +126,11 @@ public isolated class Context {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
+    // change this as a native method call and collect the results replace the placeholders and retur
     public isolated function resolve(Field 'field) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field, true);
+            return engine.resolve(self, 'field);
             // TODO: need to fix engine returns PlaceHolderNode record when intercepting
         }
         return;
@@ -146,7 +147,7 @@ public isolated class Context {
                     Engine? engine = self.getEngine();
                     anydata resolvedVal = ();
                     if engine is Engine {
-                        resolvedVal = engine.resolve(self, 'placeHolder.getFieldValue(), false);
+                        resolvedVal = engine.resolve(self, 'placeHolder.getFieldValue(), false, false);
                     }
                     placeHolder.setValue(resolvedVal);
                     self.placeHolderCount-=1;
