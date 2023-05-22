@@ -179,10 +179,13 @@ isolated function getFlatternedResult(Context context, anydata partialValue) ret
         anydata value = context.getPlaceHolderValue(partialValue.hashCode);
         return getFlatternedResult(context, value);
     }
-    if partialValue is record {} {
+    if partialValue is ErrorDetail {
+        return partialValue;
+    }
+    if partialValue is Data {
         return getFlatternedResultFromRecord(context, partialValue);
     }
-    if partialValue is anydata[] {
+    if partialValue is Data[] {
         return getFlatternedResultFromArray(context, partialValue);
     }
     return partialValue;

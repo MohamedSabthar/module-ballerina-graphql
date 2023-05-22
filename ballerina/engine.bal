@@ -350,9 +350,8 @@ isolated class Engine {
         __Type fieldType = getFieldTypeFromParentType('field.getFieldType(), self.schema.types, fieldNode);
         Field selectionField = new (fieldNode, fieldType, 'field.getServiceObject(), path = path, resourcePath = resourcePath);
         context.resetInterceptorCount();
-        any fieldValue = self.resolve(context, selectionField);
-        // TODO: Fix the below logic
-        result[fieldNode.getAlias()] = fieldValue is ErrorDetail || fieldValue !is anydata ? () : fieldValue;
+        anydata fieldValue = self.resolve(context, selectionField);
+        result[fieldNode.getAlias()] = fieldValue is ErrorDetail ? () : fieldValue;
         _ = resourcePath.pop();
     }
 
