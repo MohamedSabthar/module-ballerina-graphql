@@ -17,6 +17,7 @@
 import ballerina/jballerina.java;
 
 import graphql.parser;
+import graphql.dataloader;
 
 isolated class Engine {
     private final readonly & __Schema schema;
@@ -230,14 +231,29 @@ isolated class Engine {
         }
     }
 
-    isolated function resolve(Context context, Field 'field) returns anydata {
+    isolated function resolve(Context context, Field 'field, boolean isExecuteLoadMethod = true, boolean executeInterceptor = true) returns anydata {
         parser:FieldNode fieldNode = 'field.getInternalNode();
         parser:RootOperationType operationType = 'field.getOperationType();
         (readonly & Interceptor)? interceptor = context.getNextInterceptor('field);
         __Type fieldType = 'field.getFieldType();
         any|error fieldValue;
         if operationType == parser:OPERATION_QUERY {
-            if interceptor is () {
+            if interceptor is () || !executeInterceptor {
+                string loadResourceMethodName = getLoadResourceMethodName(fieldNode.getName());
+                service object {}? serviceObject = 'field.getServiceObject();
+                if isExecuteLoadMethod && serviceObject is service object {} 
+                    && hasLoadResourceMethod(serviceObject, loadResourceMethodName) {
+                    var batchLoadFunction = getBatchLoadFunction(serviceObject, loadResourceMethodName);
+                    dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+                    var resourceMethod = getResourceMethod(serviceObject, [loadResourceMethodName]);
+                    self.executeLoadResource(serviceObject, resourceMethod, fieldNode, operationType,
+                                             loadResourceMethodName, dataloader);
+                    PlaceHolder placeHolder = new ('field);
+                    context.addPlaceHolder(loadResourceMethodName, placeHolder);
+                    string hashCode = getHashCode(placeHolder);
+                    PlaceHolderNode ph = {hashCode};
+                    return ph;
+                }
                 fieldValue = self.resolveResourceMethod(context, 'field);
             } else {
                 any|error result = self.executeInterceptor(interceptor, 'field, context);
@@ -284,7 +300,7 @@ isolated class Engine {
     isolated function resolveResourceMethod(Context context, Field 'field) returns any|error {
         service object {}? serviceObject = 'field.getServiceObject();
         if serviceObject is service object {} {
-            handle? resourceMethod = self.getResourceMethod(serviceObject, 'field.getResourcePath());
+            handle? resourceMethod = getResourceMethod(serviceObject, 'field.getResourcePath());
             if resourceMethod == () {
                 return self.resolveHierarchicalResource(context, 'field);
             }
@@ -339,17 +355,20 @@ isolated class Engine {
         _ = resourcePath.pop();
     }
 
+    private isolated function executeLoadResource(service object {} so, handle? loadResourceMethod, parser:FieldNode fieldNode, parser:RootOperationType operationType, string loadResourceMethodName, dataloader:DataLoader dataloader) returns () {
+        handle? loadResourceMethodHandle = getResourceMethod(so, [loadResourceMethodName]);
+        if loadResourceMethodHandle == () {
+            return ();
+        }
+        return executeLoadResourceMethod(so, loadResourceMethodHandle, dataloader);
+    }
+
     isolated function addService(Service s) = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
     isolated function getService() returns Service = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-    } external;
-
-    isolated function getResourceMethod(service object {} serviceObject, string[] path)
-    returns handle? = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
 
     isolated function executeQueryResource(Context context, service object {} serviceObject, handle resourceMethod,
@@ -377,3 +396,8 @@ isolated class Engine {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
 }
+
+    isolated function getResourceMethod(service object {} serviceObject, string[] path)
+    returns handle? = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    } external;

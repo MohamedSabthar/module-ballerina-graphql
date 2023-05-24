@@ -75,6 +75,7 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isValidGraphqlParameter
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_GET;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_SUBSCRIBE;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.getLocation;
+import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.hasLoaderAnnotation;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.isInvalidFieldName;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.isReservedFederatedResolverName;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.isReservedFederatedTypeName;
@@ -234,6 +235,16 @@ public class ServiceValidator {
 
     private void validateGetResource(ResourceMethodSymbol methodSymbol, Location location) {
         String path = getFieldPath(methodSymbol);
+        if (hasLoaderAnnotation(methodSymbol)) {
+            if (!path.startsWith("load")) {
+                addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR, location, "load",
+                              getFieldPath(methodSymbol));
+                // TODO: add diagnostic
+                // the suffix should match with one of the get resource method in this service (suffix should be
+                // camel cased)
+            }
+            return;
+        }
         this.currentFieldPath.add(path);
         validateResourcePath(methodSymbol, location);
         validateMethod(methodSymbol, location);

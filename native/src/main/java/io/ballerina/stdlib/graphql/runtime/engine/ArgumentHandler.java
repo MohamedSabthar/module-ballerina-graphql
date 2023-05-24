@@ -40,6 +40,7 @@ import io.ballerina.runtime.api.values.BString;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Objects;
 
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.ARGUMENTS_FIELD;
@@ -53,6 +54,7 @@ import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isEnum;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isIgnoreType;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.INTERNAL_NODE;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isContext;
+import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isDataLoader;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isField;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isFileUpload;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isSubgraphModule;
@@ -289,6 +291,18 @@ public class ArgumentHandler {
             }
             if (isField(parameters[i].type)) {
                 result[j] = this.field;
+                result[j + 1] = true;
+                continue;
+            }
+            if (isDataLoader(parameters[i].type)) {
+                BObject internalNode = this.field.getObjectValue(INTERNAL_NODE);
+                BString fieldName = internalNode.getStringValue(StringUtils.fromString("name"));
+                String loadResourceName = "load" + fieldName.getValue().substring(0, 1).toUpperCase(Locale.ROOT)
+                        + fieldName.getValue().substring(1);
+                BMap<BString, Object> dataLoaderCache = this.context.getMapValue(
+                        StringUtils.fromString("dataLoaderCache"));
+                BObject dataloader = dataLoaderCache.getObjectValue(StringUtils.fromString(loadResourceName));
+                result[j] = dataloader;
                 result[j + 1] = true;
                 continue;
             }

@@ -43,10 +43,12 @@ public class Utils {
     public static final String ERROR_TYPE = "Error";
     public static final String CONTEXT_OBJECT = "Context";
     public static final String FIELD_OBJECT = "Field";
+    private static final String DATA_LOADER_OBJECT = "DataLoader";
     public static final String UPLOAD = "Upload";
     public static final BString INTERNAL_NODE = StringUtils.fromString("internalNode");
 
     public static final String SUBGRAPH_SUB_MODULE_NAME = "graphql.subgraph";
+    public static final String DATA_LOADER_SUB_MODULE_NAME = "graphql.dataloader";
     public static final String PACKAGE_ORG = "ballerina";
 
     public static final StrandMetadata RESOURCE_EXECUTION_STRAND = new StrandMetadata(getModule().getOrg(),
@@ -79,6 +81,10 @@ public class Utils {
         return isGraphqlModule(type) && type.getName().equals(FIELD_OBJECT);
     }
 
+    public static boolean isDataLoader(Type type) {
+        return isDataLoaderModule(type) && type.getName().equals(DATA_LOADER_OBJECT);
+    }
+
     public static boolean isFileUpload(Type type) {
         if (type.getTag() == TypeTags.ARRAY_TAG) {
             return isFileUpload(((ArrayType) type).getElementType());
@@ -92,6 +98,10 @@ public class Utils {
 
     public static boolean isSubgraphModule(Type type) {
         return hasExpectedModuleName(type, SUBGRAPH_SUB_MODULE_NAME, PACKAGE_ORG);
+    }
+
+    public static boolean isDataLoaderModule(Type type) {
+        return hasExpectedModuleName(type, DATA_LOADER_SUB_MODULE_NAME, PACKAGE_ORG);
     }
 
     private static boolean hasExpectedModuleName(Type type, String expectedModuleName, String expectedOrgName) {
