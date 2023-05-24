@@ -182,7 +182,7 @@ isolated function getFlatternedResult(Context context, anydata partialValue) ret
     if partialValue is record {} {
         return getFlatternedResultFromRecord(context, partialValue);
     }
-    if partialValue is record {}[] {
+    if partialValue is anydata[] {
         return getFlatternedResultFromArray(context, partialValue);
     }
     return partialValue;

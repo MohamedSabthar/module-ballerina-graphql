@@ -130,7 +130,7 @@ public isolated class Context {
     public isolated function resolve(Field 'field) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field);
+            return engine.resolve(self, 'field, false);
             // TODO: need to fix engine returns PlaceHolderNode record when intercepting
         }
         return;
@@ -147,7 +147,7 @@ public isolated class Context {
                     Engine? engine = self.getEngine();
                     anydata resolvedVal = ();
                     if engine is Engine {
-                        resolvedVal = engine.resolve(self, 'placeHolder.getFieldValue(), false, false);
+                        resolvedVal = engine.resolve(self, 'placeHolder.getFieldValue(), false);
                     }
                     placeHolder.setValue(resolvedVal);
                     self.placeHolderCount-=1;

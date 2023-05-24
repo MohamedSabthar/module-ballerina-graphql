@@ -231,29 +231,33 @@ isolated class Engine {
         }
     }
 
-    isolated function resolve(Context context, Field 'field, boolean isExecuteLoadMethod = true, boolean executeInterceptor = true) returns anydata {
+    isolated function resolve(Context context, Field 'field, boolean isExecuteLoadMethod = true) returns anydata {
         parser:FieldNode fieldNode = 'field.getInternalNode();
         parser:RootOperationType operationType = 'field.getOperationType();
-        (readonly & Interceptor)? interceptor = context.getNextInterceptor('field);
         __Type fieldType = 'field.getFieldType();
         any|error fieldValue;
+        
+        if isExecuteLoadMethod {
+            string loadResourceMethodName = getLoadResourceMethodName(fieldNode.getName());
+            service object {}? serviceObject = 'field.getServiceObject();
+            if serviceObject is service object {} 
+                && hasLoadResourceMethod(serviceObject, loadResourceMethodName) {
+                var batchLoadFunction = getBatchLoadFunction(serviceObject, loadResourceMethodName);
+                dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
+                var resourceMethod = getResourceMethod(serviceObject, [loadResourceMethodName]);
+                self.executeLoadResource(serviceObject, resourceMethod, fieldNode, operationType,
+                                        loadResourceMethodName, dataloader);
+                PlaceHolder placeHolder = new ('field);
+                context.addPlaceHolder(loadResourceMethodName, placeHolder);
+                string hashCode = getHashCode(placeHolder);
+                PlaceHolderNode ph = {hashCode};
+                return ph;
+            }
+        }
+
+        (readonly & Interceptor)? interceptor = context.getNextInterceptor('field);
         if operationType == parser:OPERATION_QUERY {
-            if interceptor is () || !executeInterceptor {
-                string loadResourceMethodName = getLoadResourceMethodName(fieldNode.getName());
-                service object {}? serviceObject = 'field.getServiceObject();
-                if isExecuteLoadMethod && serviceObject is service object {} 
-                    && hasLoadResourceMethod(serviceObject, loadResourceMethodName) {
-                    var batchLoadFunction = getBatchLoadFunction(serviceObject, loadResourceMethodName);
-                    dataloader:DataLoader dataloader = context.getDataLoader(batchLoadFunction, loadResourceMethodName);
-                    var resourceMethod = getResourceMethod(serviceObject, [loadResourceMethodName]);
-                    self.executeLoadResource(serviceObject, resourceMethod, fieldNode, operationType,
-                                             loadResourceMethodName, dataloader);
-                    PlaceHolder placeHolder = new ('field);
-                    context.addPlaceHolder(loadResourceMethodName, placeHolder);
-                    string hashCode = getHashCode(placeHolder);
-                    PlaceHolderNode ph = {hashCode};
-                    return ph;
-                }
+            if interceptor is () {
                 fieldValue = self.resolveResourceMethod(context, 'field);
             } else {
                 any|error result = self.executeInterceptor(interceptor, 'field, context);
