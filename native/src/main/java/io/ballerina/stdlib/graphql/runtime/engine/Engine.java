@@ -150,6 +150,26 @@ public class Engine {
         return null;
     }
 
+    public static void executeLoadResource(Environment environment, BObject context, BObject service,
+                                           ResourceMethodType resourceMethod, BObject fieldObject) {
+        Future future = environment.markAsync();
+        ExecutionCallback executionCallback = new ExecutionCallback(future);
+        ServiceType serviceType = (ServiceType) TypeUtils.getType(service);
+        if (resourceMethod != null) {
+            ArgumentHandler argumentHandler = new ArgumentHandler(resourceMethod, context, fieldObject);
+            Object[] arguments = argumentHandler.getArguments();
+            if (serviceType.isIsolated() && serviceType.isIsolated(resourceMethod.getName())) {
+                environment.getRuntime().invokeMethodAsyncConcurrently(service, resourceMethod.getName(), null,
+                                                                       RESOURCE_EXECUTION_STRAND, executionCallback,
+                                                                       null, null, arguments);
+            } else {
+                environment.getRuntime().invokeMethodAsyncSequentially(service, resourceMethod.getName(), null,
+                                                                       RESOURCE_EXECUTION_STRAND, executionCallback,
+                                                                       null, null, arguments);
+            }
+        }
+    }
+
     public static Object executeMutationMethod(Environment environment, BObject context, BObject service,
                                                BObject fieldObject) {
         Future future = environment.markAsync();

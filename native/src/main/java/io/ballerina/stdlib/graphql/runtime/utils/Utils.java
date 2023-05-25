@@ -46,6 +46,7 @@ public class Utils {
     private static final String DATA_LOADER_OBJECT = "DataLoader";
     public static final String UPLOAD = "Upload";
     public static final BString INTERNAL_NODE = StringUtils.fromString("internalNode");
+    public static final BString FIELD_NAME = StringUtils.fromString("name");
 
     public static final String SUBGRAPH_SUB_MODULE_NAME = "graphql.subgraph";
     public static final String DATA_LOADER_SUB_MODULE_NAME = "graphql.dataloader";

@@ -242,7 +242,9 @@ public class ServiceValidator {
                 // TODO: add diagnostic
                 // the suffix should match with one of the get resource method in this service (suffix should be
                 // camel cased)
+                return;
             }
+            // TODO: validate the parameters so that it matches mapped actual resource
             return;
         }
         this.currentFieldPath.add(path);
@@ -563,6 +565,9 @@ public class ServiceValidator {
                 if (isValidGraphqlParameter(parameter.typeDescriptor())) {
                     continue;
                 }
+                // TODO: if the parameter is data loader then check for corresponding loadMethod else add error
+                // TODO: if the method is a loadXXX then it must have data loader as parameter, and other parameters
+                //  of this method should come from the it mapping resource method
                 validateInputParameterType(parameter.typeDescriptor(), inputLocation, isResourceMethod(methodSymbol));
             }
         }

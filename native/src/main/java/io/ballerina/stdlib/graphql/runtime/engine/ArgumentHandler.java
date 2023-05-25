@@ -52,6 +52,7 @@ import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VARIABLE_NA
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VARIABLE_VALUE_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isEnum;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isIgnoreType;
+import static io.ballerina.stdlib.graphql.runtime.utils.Utils.FIELD_NAME;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.INTERNAL_NODE;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isContext;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isDataLoader;
@@ -295,14 +296,7 @@ public class ArgumentHandler {
                 continue;
             }
             if (isDataLoader(parameters[i].type)) {
-                BObject internalNode = this.field.getObjectValue(INTERNAL_NODE);
-                BString fieldName = internalNode.getStringValue(StringUtils.fromString("name"));
-                String loadResourceName = "load" + fieldName.getValue().substring(0, 1).toUpperCase(Locale.ROOT)
-                        + fieldName.getValue().substring(1);
-                BMap<BString, Object> dataLoaderCache = this.context.getMapValue(
-                        StringUtils.fromString("dataLoaderCache"));
-                BObject dataloader = dataLoaderCache.getObjectValue(StringUtils.fromString(loadResourceName));
-                result[j] = dataloader;
+                result[j] = getDataLoader();
                 result[j + 1] = true;
                 continue;
             }
@@ -315,6 +309,17 @@ public class ArgumentHandler {
             }
         }
         return result;
+    }
+
+    private BObject getDataLoader() {
+        BObject internalNode = this.field.getObjectValue(INTERNAL_NODE);
+        BString fieldName = internalNode.getStringValue(FIELD_NAME);
+        String loadResourceName = "load" + fieldName.getValue().substring(0, 1).toUpperCase(Locale.ROOT)
+                + fieldName.getValue().substring(1);
+        BMap<BString, Object> dataLoaderCache = this.context.getMapValue(
+                StringUtils.fromString("dataLoaderCache"));
+        BObject dataLoader = dataLoaderCache.getObjectValue(StringUtils.fromString(loadResourceName));
+        return dataLoader;
     }
 
     private static Type getEffectiveType(IntersectionType intersectionType) {

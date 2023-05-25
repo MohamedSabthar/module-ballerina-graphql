@@ -143,7 +143,7 @@ public isolated class Context {
             foreach [string, PlaceHolder[]] [key, placeHolders] in dataLoaderToPlaceHolderMap.entries() {
                 // TODO: Fix checkpanic here, need to return a Error detaisl for these keys
                 checkpanic self.dataLoaderCache.get(key).dispatch();
-                foreach var placeHolder in placeHolders {
+                foreach PlaceHolder placeHolder in placeHolders {
                     Engine? engine = self.getEngine();
                     anydata resolvedVal = ();
                     if engine is Engine {
@@ -216,15 +216,15 @@ public isolated class Context {
         }
     }
 
-    isolated function getDataLoader((isolated function (readonly & anydata[] keys)
-    returns anydata[]|error) batchFunction, string loadResourceMethodName)  returns dataloader:DataLoader {
+    isolated function addDataLoader((isolated function (readonly & anydata[] keys)
+    returns anydata[]|error) batchFunction, string loadResourceMethodName) {
         lock {
             if self.dataLoaderCache.hasKey(loadResourceMethodName) {
-                return self.dataLoaderCache.get(loadResourceMethodName);
+                return;
             }
             dataloader:DefaultDataLoader dataloader = new(batchFunction);
             self.dataLoaderCache[loadResourceMethodName] = dataloader;
-            return dataloader;
+            return;
         }
     }
 

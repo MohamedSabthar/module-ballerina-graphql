@@ -15,7 +15,6 @@
 // under the License.
 
 import graphql.parser;
-import graphql.dataloader;
 import ballerina/jballerina.java;
 
 isolated class ExecutorVisitor {
@@ -157,19 +156,6 @@ isolated function getLoadResourceMethodName(string fieldName) returns string {
     }
     return loadResourceMethodName;
 }
-
-isolated function hasLoadResourceMethod(service object {} serviceObject, string loadResourceMethodName) returns boolean = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-} external;
-
-isolated function getBatchLoadFunction(service object {} serviceObject, string loadResourceMethodName) 
-returns (isolated function (readonly & anydata[] keys) returns anydata[]|error) = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-} external;
-
-isolated function executeLoadResourceMethod(service object {} serviceObject, handle loadResourceMethod, dataloader:DataLoader dataloader) returns () = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
-} external;
 
 isolated function getFlatternedResult(Context context, anydata partialValue) returns anydata {
     while context.getUnresolvedPlaceHolderCount() > 0 {
