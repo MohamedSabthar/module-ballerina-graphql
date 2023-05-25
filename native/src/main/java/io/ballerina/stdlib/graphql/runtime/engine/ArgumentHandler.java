@@ -45,14 +45,12 @@ import java.util.Objects;
 
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.ARGUMENTS_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.FILE_INFO_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.NAME_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VALUE_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VARIABLE_DEFINITION;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VARIABLE_NAME_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VARIABLE_VALUE_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isEnum;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isIgnoreType;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.FIELD_NAME;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.INTERNAL_NODE;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isContext;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isDataLoader;
@@ -72,6 +70,11 @@ public class ArgumentHandler {
     private final BObject field;
 
     private static final String REPRESENTATION_TYPENAME = "Representation";
+    private static final String LOAD_METHOD_NAME_PREFIX = "load";
+
+    public static final BString NAME_FIELD = StringUtils.fromString("name");
+    public static final BString KIND_FIELD = StringUtils.fromString("kind");
+    private static final BString DATA_LOADER_CACHE_FIELD = StringUtils.fromString("dataLoaderCache");
 
     // graphql.parser types
     private static final int T_STRING = 2;
@@ -99,7 +102,7 @@ public class ArgumentHandler {
         BArray argumentArray = fieldNode.getArrayValue(ARGUMENTS_FIELD);
         for (int i = 0; i < argumentArray.size(); i++) {
             BObject argumentNode = (BObject) argumentArray.get(i);
-            BString argumentName = argumentNode.getStringValue(NAME_FIELD);
+            BString argumentName = argumentNode.getStringValue(EngineUtils.NAME_FIELD);
             Parameter parameter = Objects.requireNonNull(getParameterForArgumentNode(argumentName));
             Object argumentValue = this.getArgumentValue(argumentNode, parameter.type);
             this.argumentsMap.put(argumentName, argumentValue);
@@ -151,7 +154,7 @@ public class ArgumentHandler {
         BArray inputObjectFields = argumentNode.getArrayValue(VALUE_FIELD);
         for (int i = 0; i < inputObjectFields.size(); i++) {
             BObject inputObjectField = (BObject) inputObjectFields.get(i);
-            BString inputObjectFieldName = inputObjectField.getStringValue(NAME_FIELD);
+            BString inputObjectFieldName = inputObjectField.getStringValue(EngineUtils.NAME_FIELD);
             Field field = recordType.getFields().get(inputObjectFieldName.getValue());
             Object fieldValue = getArgumentValue(inputObjectField, field.getFieldType());
             recordValue.put(inputObjectFieldName, fieldValue);
@@ -160,7 +163,7 @@ public class ArgumentHandler {
     }
 
     private Object getJsonArgument(BObject argumentNode) {
-        int kind = (int) argumentNode.getIntValue(StringUtils.fromString("kind"));
+        int kind = (int) argumentNode.getIntValue(KIND_FIELD);
         Object valueField = argumentNode.get(VALUE_FIELD);
         switch (kind) {
             case T_STRING:
@@ -192,7 +195,7 @@ public class ArgumentHandler {
         BArray inputObjectFields = argumentNode.getArrayValue(VALUE_FIELD);
         for (int i = 0; i < inputObjectFields.size(); i++) {
             BObject inputObjectField = (BObject) inputObjectFields.get(i);
-            BString inputObjectFieldName = inputObjectField.getStringValue(NAME_FIELD);
+            BString inputObjectFieldName = inputObjectField.getStringValue(EngineUtils.NAME_FIELD);
             Object fieldValue = getJsonArgument(inputObjectField);
             mapValue.put(inputObjectFieldName, fieldValue);
         }
@@ -313,13 +316,15 @@ public class ArgumentHandler {
 
     private BObject getDataLoader() {
         BObject internalNode = this.field.getObjectValue(INTERNAL_NODE);
-        BString fieldName = internalNode.getStringValue(FIELD_NAME);
-        String loadResourceName = "load" + fieldName.getValue().substring(0, 1).toUpperCase(Locale.ROOT)
+        BString fieldName = internalNode.getStringValue(NAME_FIELD);
+        String loadResourceName = getLoadResourceMethodName(fieldName);
+        BMap<BString, Object> dataLoaderCache = this.context.getMapValue(DATA_LOADER_CACHE_FIELD);
+        return dataLoaderCache.getObjectValue(StringUtils.fromString(loadResourceName));
+    }
+
+    private String getLoadResourceMethodName(BString fieldName) {
+        return LOAD_METHOD_NAME_PREFIX + fieldName.getValue().substring(0, 1).toUpperCase(Locale.ROOT)
                 + fieldName.getValue().substring(1);
-        BMap<BString, Object> dataLoaderCache = this.context.getMapValue(
-                StringUtils.fromString("dataLoaderCache"));
-        BObject dataLoader = dataLoaderCache.getObjectValue(StringUtils.fromString(loadResourceName));
-        return dataLoader;
     }
 
     private static Type getEffectiveType(IntersectionType intersectionType) {
