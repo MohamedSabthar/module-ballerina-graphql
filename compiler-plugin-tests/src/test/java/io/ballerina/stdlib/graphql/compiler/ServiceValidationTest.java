@@ -1068,7 +1068,8 @@ public class ServiceValidationTest {
         message = getErrorMessage(CompilationDiagnostic.INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE, "link__Purpose");
         assertErrorMessage(diagnostic, message, 63, 51);
     }
-    
+
+    @Test(groups = "invalid")
     public void testUnsupportedPrimitiveTypeAlias() {
         String packagePath = "61_unsupported_primitive_type_alias";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
@@ -1083,6 +1084,53 @@ public class ServiceValidationTest {
         diagnostic = diagnosticIterator.next();
         // a duplicate error message is expected for input type with primitive type alias
         assertErrorMessage(diagnostic, message, 19, 6);
+    }
+
+    @Test(groups = "invalid")
+    public void testLoaderMethodWithInvalidMethodName() {
+        String packagePath = "62_loader_method_with_invalid_method_name";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 2);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, "books",
+                                         "load");
+        assertErrorMessage(diagnostic, message, 38, 32);
+
+        diagnostic = diagnosticIterator.next();
+
+        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, "author",
+                                  "load");
+        assertErrorMessage(diagnostic, message, 28, 32);
+    }
+
+    @Test(groups = "invalid")
+    public void testLoaderMethodWithoutGraphqlFieldMapping() {
+        String packagePath = "63_loader_method_without_graphql_field_mapping";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 2);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_GRAPHQL_FIELD_FOUND_FOR_DATA_LOADER, "books",
+                                         "loadBooks");
+        assertErrorMessage(diagnostic, message, 38, 32);
+
+        diagnostic = diagnosticIterator.next();
+        assertErrorMessage(diagnostic, message, 28, 32);
+    }
+
+    @Test(groups = "invalid")
+    public void testLoaderMethodWithoutDataLoaderParameter() {
+        String packagePath = "64_loader_method_without_dataloader_parameter";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.INVALID_DATA_LOADER_METHOD_SIGNATURE, "loadBooks");
+        assertErrorMessage(diagnostic, message, 31, 32);
     }
 
     private DiagnosticResult getDiagnosticResult(String packagePath) {

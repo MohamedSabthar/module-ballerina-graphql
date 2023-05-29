@@ -18,7 +18,7 @@
 
 package io.ballerina.stdlib.graphql.compiler.service.validator;
 
-import io.ballerina.compiler.api.symbols.ResourceMethodSymbol;
+import io.ballerina.compiler.api.symbols.MethodSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
@@ -88,10 +88,9 @@ public final class ValidatorUtils {
         return reservedTypes.contains(typeName);
     }
 
-    public static boolean hasLoaderAnnotation(ResourceMethodSymbol resourceMethodSymbol) {
+    public static boolean hasLoaderAnnotation(MethodSymbol resourceMethodSymbol) {
         return resourceMethodSymbol.annotations().stream().anyMatch(
-                annotationSymbol -> isDataLoaderModuleSymbol(annotationSymbol)
-                        && annotationSymbol.getName().isPresent() && annotationSymbol.getName().get()
-                        .equals(DATA_LOADER_ANNOTATION));
+                annotationSymbol -> isDataLoaderModuleSymbol(annotationSymbol) && annotationSymbol.getName().isPresent()
+                        && annotationSymbol.getName().get().equals(DATA_LOADER_ANNOTATION));
     }
 }

@@ -81,7 +81,13 @@ public enum DiagnosticMessage {
                       + "GraphQL Federation"),
     ERROR_137("failed to add _entities resolver to the subgraph service"),
     ERROR_138("failed to add _service service to the subgraph service"),
-    ERROR_139("failed to generate schema for type ''{0}''. Type alias for primitive type ''{1}'' is not supported");
+    ERROR_139("failed to generate schema for type ''{0}''. Type alias for primitive type ''{1}'' is not supported"),
+    ERROR_140("invalid resource function name ''{0}'' found for data loader resource method. A data loader resource "
+                      + "function name must be in the format of ''{1}'' followed by the GraphQL field name "
+                      + "where the data loader is used"),
+    ERROR_141("no GraphQL field named ''{0}'' found for data loader resource method ''{1}''"),
+    ERROR_142("invalid method signature found in resource method ''{0}''. The method requires a parameter of type "
+                      + "'dataloader:DataLoader'");
 
     private final String message;
 
