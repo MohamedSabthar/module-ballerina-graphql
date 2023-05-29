@@ -61,6 +61,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isDataLoaderModuleSymbol;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
@@ -90,6 +91,7 @@ import static java.util.Locale.ENGLISH;
 public class ServiceValidator {
     private static final String FIELD_PATH_SEPARATOR = ".";
     private static final String LOAD_RESOURCE_PREFIX = "load";
+    private static final String DATA_LOADER_PARAM_NAME = "DataLoader";
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
     private final List<TypeSymbol> existingReturnTypes = new ArrayList<>();
@@ -240,7 +242,7 @@ public class ServiceValidator {
             return;
         }
 
-        // field name starting with a simple letter
+        // field name starting with a capital letter
         String expectedFieldName = loadResourceMethodName.substring(LOAD_RESOURCE_PREFIX.length());
         MethodSymbol field = findMethodSymbol(serviceMethods, expectedFieldName);
         if (field == null) {
@@ -253,36 +255,47 @@ public class ServiceValidator {
                           expectedFieldName, loadResourceMethodName);
             return;
         }
+        validateLoadMethodParams(methodSymbol, loadResourceMethodName, methodLocation, expectedFieldName, field);
+        validateLoadMethodReturnType(methodSymbol, methodLocation);
+    }
 
-        // TODO: validate the parameters so that it matches mapped actual resource
-        if (methodSymbol.typeDescriptor().params().isEmpty()) {
-            addDiagnostic(CompilationDiagnostic.INVALID_DATA_LOADER_METHOD_SIGNATURE, methodLocation,
-                          loadResourceMethodName);
-            return;
-        }
-
+    private void validateLoadMethodParams(ResourceMethodSymbol methodSymbol, String loadResourceMethodName,
+                                          Location methodLocation, String expectedFieldName, MethodSymbol field) {
         boolean hasDataLoaderParam = false;
-        Set<ParameterSymbol> fieldMethodParams = field.typeDescriptor().params().isPresent() ?
-                new HashSet<>(field.typeDescriptor().params().get()) : new HashSet<>();
-        List<ParameterSymbol> parameterSymbols = methodSymbol.typeDescriptor().params().get();
+        Set<String> fieldMethodParamSignatures = field.typeDescriptor().params().isPresent() ?
+                field.typeDescriptor().params().get().stream().map(ParameterSymbol::signature)
+                        .collect(Collectors.toSet()) : new HashSet<>();
+        List<ParameterSymbol> parameterSymbols = methodSymbol.typeDescriptor().params().isPresent() ?
+                methodSymbol.typeDescriptor().params().get() : new ArrayList<>();
         for (ParameterSymbol symbol : parameterSymbols) {
             if (isDataLoaderModuleSymbol(symbol.typeDescriptor())) {
                 if (symbol.typeDescriptor().getName().isPresent() && symbol.typeDescriptor().getName().get()
-                        .equals("DataLoader")) {
+                        .equals(DATA_LOADER_PARAM_NAME)) {
                     hasDataLoaderParam = true;
                 }
                 continue;
             }
-            if (!fieldMethodParams.contains(symbol)) {
-                addDiagnostic(CompilationDiagnostic.INVALID_DATA_LOADER_METHOD_SIGNATURE, methodLocation,
-                              loadResourceMethodName);
+            if (!fieldMethodParamSignatures.contains(symbol.signature())) {
+                addDiagnostic(CompilationDiagnostic.INVALID_PARAMETER_IN_LOAD_METHOD, methodLocation,
+                              symbol.signature(), loadResourceMethodName, expectedFieldName);
             }
         }
 
         if (!hasDataLoaderParam) {
-            addDiagnostic(CompilationDiagnostic.INVALID_DATA_LOADER_METHOD_SIGNATURE, methodLocation,
-                          loadResourceMethodName);
+            addDiagnostic(CompilationDiagnostic.MISSING_DATA_LOADER_PARAMETER, methodLocation, loadResourceMethodName);
         }
+    }
+
+    private void validateLoadMethodReturnType(ResourceMethodSymbol methodSymbol, Location location) {
+        if (methodSymbol.typeDescriptor().returnTypeDescriptor().isEmpty()) {
+            return;
+        }
+        TypeSymbol returnType = methodSymbol.typeDescriptor().returnTypeDescriptor().get();
+        if (returnType.typeKind() == TypeDescKind.NIL) {
+            return;
+        }
+        addDiagnostic(CompilationDiagnostic.INVALID_RETURN_TYPE_IN_LOADER_METHOD, getLocation(returnType, location),
+                      returnType.signature(), getFieldPath(methodSymbol));
     }
 
     private MethodSymbol findMethodSymbol(List<MethodSymbol> serviceMethods, String expectedFieldName) {
@@ -671,8 +684,6 @@ public class ServiceValidator {
                     continue;
                 }
                 // TODO: if the parameter is data loader then check for corresponding loadMethod else add error
-                // TODO: if the method is a loadXXX then it must have data loader as parameter, and other parameters
-                //  of this method should come from the it mapping resource method
                 validateInputParameterType(parameter.typeDescriptor(), inputLocation, isResourceMethod(methodSymbol));
             }
         }

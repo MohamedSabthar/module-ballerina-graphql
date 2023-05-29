@@ -79,7 +79,10 @@ public enum CompilationDiagnostic {
                                                    DiagnosticSeverity.ERROR),
     NO_MATCHING_GRAPHQL_FIELD_FOUND_FOR_DATA_LOADER(DiagnosticMessage.ERROR_141, DiagnosticCode.GRAPHQL_141,
                                                     DiagnosticSeverity.ERROR),
-    INVALID_DATA_LOADER_METHOD_SIGNATURE(DiagnosticMessage.ERROR_142, DiagnosticCode.GRAPHQL_142,
+    MISSING_DATA_LOADER_PARAMETER(DiagnosticMessage.ERROR_142, DiagnosticCode.GRAPHQL_142,
+                                  DiagnosticSeverity.ERROR),
+    INVALID_PARAMETER_IN_LOAD_METHOD(DiagnosticMessage.ERROR_143, DiagnosticCode.GRAPHQL_143, DiagnosticSeverity.ERROR),
+    INVALID_RETURN_TYPE_IN_LOADER_METHOD(DiagnosticMessage.ERROR_144, DiagnosticCode.GRAPHQL_144,
                                          DiagnosticSeverity.ERROR);
 
     private final String diagnostic;

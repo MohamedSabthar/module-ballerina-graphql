@@ -1129,7 +1129,33 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_DATA_LOADER_METHOD_SIGNATURE, "loadBooks");
+        String message = getErrorMessage(CompilationDiagnostic.MISSING_DATA_LOADER_PARAMETER, "loadBooks");
+        assertErrorMessage(diagnostic, message, 31, 32);
+    }
+
+    @Test(groups = "invalid")
+    public void testLoaderMethodWithInvalidParameters() {
+        String packagePath = "65_loader_method_with_invalid_parameters";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.INVALID_PARAMETER_IN_LOAD_METHOD, "int id", "loadBooks",
+                                         "books");
+        assertErrorMessage(diagnostic, message, 31, 32);
+    }
+
+    @Test(groups = "invalid")
+    public void testLoaderMethodWithInvalidReturnType() {
+        String packagePath = "66_loader_method_with_invalid_return_type";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_IN_LOADER_METHOD, "int",
+                                         "loadBooks");
         assertErrorMessage(diagnostic, message, 31, 32);
     }
 

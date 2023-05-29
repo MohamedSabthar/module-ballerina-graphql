@@ -87,7 +87,11 @@ public enum DiagnosticMessage {
                       + "where the data loader is used"),
     ERROR_141("no GraphQL field named ''{0}'' found for data loader resource method ''{1}''"),
     ERROR_142("invalid method signature found in resource method ''{0}''. The method requires a parameter of type "
-                      + "'dataloader:DataLoader'");
+                      + "''dataloader:DataLoader''"),
+    ERROR_143("invalid parameter ''{0}'' found in data loader resource method ''{1}''. No matching parameter found for"
+                      + " the GraphQL field ''{2}''"),
+    ERROR_144("invalid return type ''{0}'' found in data loader resource method ''{1}''. The data loader resource "
+                      + "method must not return any value except ()");
 
     private final String message;
 
