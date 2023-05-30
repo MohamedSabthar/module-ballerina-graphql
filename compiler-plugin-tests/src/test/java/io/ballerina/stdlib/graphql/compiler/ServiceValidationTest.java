@@ -1159,6 +1159,18 @@ public class ServiceValidationTest {
         assertErrorMessage(diagnostic, message, 31, 32);
     }
 
+    @Test(groups = "invalid")
+    public void testInvalidUsageOfDataLoaderWithoutLoaderMethod() {
+        String packagePath = "67_invalid_usage_of_data_loader_without_loader_method";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, "loadBooks", "books");
+        assertErrorMessage(diagnostic, message, 28, 32);
+    }
+
     private DiagnosticResult getDiagnosticResult(String packagePath) {
         Path projectDirPath = RESOURCE_DIRECTORY.resolve(packagePath);
         BuildProject project = BuildProject.load(getEnvironmentBuilder(), projectDirPath);

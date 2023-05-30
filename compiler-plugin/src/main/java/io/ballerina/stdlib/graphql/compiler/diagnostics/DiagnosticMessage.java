@@ -91,7 +91,9 @@ public enum DiagnosticMessage {
     ERROR_143("invalid parameter ''{0}'' found in data loader resource method ''{1}''. No matching parameter found for"
                       + " the GraphQL field ''{2}''"),
     ERROR_144("invalid return type ''{0}'' found in data loader resource method ''{1}''. The data loader resource "
-                      + "method must not return any value except ()");
+                      + "method must not return any value except ()"),
+    ERROR_145("no matching resource function ''{0}'' found for the GraphQL field ''{1}''. A data loader resource "
+                      + "function with the name ''{0}'' must be present in the service to use the data loader");
 
     private final String message;
 
