@@ -17,6 +17,7 @@
 import ballerina/http;
 import ballerina/jballerina.java;
 import ballerina/lang.value;
+import graphql.dataloader;
 
 # The GraphQL context object used to pass the meta information between resolvers.
 public isolated class Context {
@@ -25,6 +26,10 @@ public isolated class Context {
     private Engine? engine;
     private int nextInterceptor;
     private boolean hasFileInfo = false; // This field value changed by setFileInfo method
+    private map<dataloader:DataLoader> idDataLoaderMap = {};
+    private map<PlaceHolder[]> idPlaceHolderMap = {};
+    private map<PlaceHolder> hashCodePlaceHolderMap = {};
+    private int unResolvedPlaceHolderCount = 0;
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
                                   int nextInterceptor = 0) {
@@ -120,7 +125,7 @@ public isolated class Context {
     public isolated function resolve(Field 'field) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field);
+            return engine.resolve(self, 'field, false);
         }
         return;
     }
@@ -185,13 +190,59 @@ public isolated class Context {
         }
     }
 
-    isolated function cloneWithoutErrors() returns Context {
+    isolated function addDataLoader(
+            (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchFunction, string id) {
         lock {
-            Context clonedContext = new(self.attributes, self.engine, self.nextInterceptor);
-            if self.hasFileInfo {
-                clonedContext.setFileInfo(self.getFileInfo());
+            if self.idDataLoaderMap.hasKey(id) {
+                return;
             }
-            return clonedContext;
+            DefaultDataLoader dataloader = new (batchFunction);
+            self.idDataLoaderMap[id] = dataloader;
+            return;
+        }
+    }
+
+    isolated function addPlaceHolder(string id, PlaceHolder placeHolder) {
+        lock {
+            string hashCode = getHashCode(placeHolder);
+            self.hashCodePlaceHolderMap[hashCode] = placeHolder;
+            self.unResolvedPlaceHolderCount += 1;
+
+            if !self.idPlaceHolderMap.hasKey(id) {
+                self.idPlaceHolderMap[id] = [];
+            }
+            self.idPlaceHolderMap.get(id).push(placeHolder);
+        }
+    }
+
+    isolated function resolvePlaceHolders() {
+        lock {
+            map<PlaceHolder[]> idPlaceHolderMap = self.idPlaceHolderMap;
+            self.idPlaceHolderMap = {};
+            foreach [string, PlaceHolder[]] [id, placeHolders] in idPlaceHolderMap.entries() {
+                self.idDataLoaderMap.get(id).dispatch();
+                foreach PlaceHolder placeHolder in placeHolders {
+                    Engine? engine = self.getEngine();
+                    if engine is () {
+                        continue;
+                    }
+                    anydata resolvedVal = engine.resolve(self, 'placeHolder.getField(), false);
+                    placeHolder.setValue(resolvedVal);
+                    self.unResolvedPlaceHolderCount -= 1;
+                }
+            }
+        }
+    }
+
+    isolated function getPlaceHolderValue(string hashCode) returns anydata {
+        lock {
+            return self.hashCodePlaceHolderMap.remove(hashCode).getValue();
+        }
+    }
+
+    isolated function getUnresolvedPlaceHolderCount() returns int {
+        lock {
+            return self.unResolvedPlaceHolderCount;
         }
     }
 }

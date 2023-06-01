@@ -34,6 +34,8 @@ import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BError;
+import io.ballerina.runtime.api.values.BFunctionPointer;
+import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
@@ -43,9 +45,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
+import static io.ballerina.runtime.api.TypeTags.SERVICE_TAG;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.COLON;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.GET_ACCESSOR;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.INTERCEPTOR_EXECUTE;
@@ -67,6 +71,12 @@ import static io.ballerina.stdlib.graphql.runtime.utils.Utils.createError;
  * This handles Ballerina GraphQL Engine.
  */
 public class Engine {
+
+    private static final BString BATCH_FUNCTION_NAME = StringUtils.fromString("batchFunction");
+    private static final String SUB_MODULE_NAME_SEPARATOR = ".";
+    private static final String DATA_LOADER_SUB_MODULE_NAME_SUFFIX = "dataloader";
+    private static final String LOADER_ANNOTATION_NAME = "Loader";
+
     private Engine() {
     }
 
@@ -259,5 +269,59 @@ public class Engine {
             return methodType.getAnnotation(identifier);
         }
         return null;
+    }
+
+    public static boolean hasLoadResourceMethod(BObject serviceObject, BString resourceMethodName) {
+        Type serviceType = serviceObject.getOriginalType();
+        if (serviceType.getTag() != SERVICE_TAG) {
+            return false;
+        }
+        ServiceType rootServiceType = (ServiceType) serviceType;
+        return Arrays.stream(rootServiceType.getResourceMethods()).anyMatch(
+                methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())
+                        && getLoadAnnotation(methodType) != null);
+    }
+
+    private static BMap<BString, Object> getLoadAnnotation(ResourceMethodType resourceMethodType) {
+        String dataLoaderModuleName = getDataLoaderSubModuleNameSuffix();
+        return (BMap<BString, Object>) resourceMethodType.getAnnotation(StringUtils.fromString(dataLoaderModuleName));
+    }
+
+    private static String getDataLoaderSubModuleNameSuffix() {
+        String graphqlModuleName = getModule().toString();
+        String[] tokens = graphqlModuleName.split(COLON);
+        String dataLoaderModuleName = tokens[0] + SUB_MODULE_NAME_SEPARATOR + DATA_LOADER_SUB_MODULE_NAME_SUFFIX
+                + COLON;
+        if (tokens.length == 2) {
+            dataLoaderModuleName += tokens[1];
+        }
+        return dataLoaderModuleName + COLON + LOADER_ANNOTATION_NAME;
+    }
+
+    public static BFunctionPointer getBatchFunction(BObject serviceObject, BString resourceMethodName) {
+        ResourceMethodType resourceMethodType = Arrays.stream(
+                        ((ServiceType) serviceObject.getOriginalType()).getResourceMethods())
+                .filter(methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())).findFirst()
+                .get();
+        BMap<BString, Object> loadAnnotation = getLoadAnnotation(resourceMethodType);
+        return (BFunctionPointer) loadAnnotation.get(BATCH_FUNCTION_NAME);
+    }
+
+    public static void executeLoadResource(Environment environment, BObject context, BObject service,
+                                           ResourceMethodType resourceMethod, BObject fieldObject) {
+        Future future = environment.markAsync();
+        ExecutionCallback executionCallback = new ExecutionCallback(future);
+        ServiceType serviceType = (ServiceType) TypeUtils.getType(service);
+        ArgumentHandler argumentHandler = new ArgumentHandler(resourceMethod, context, fieldObject);
+        Object[] arguments = argumentHandler.getArguments();
+        if (serviceType.isIsolated() && serviceType.isIsolated(resourceMethod.getName())) {
+            environment.getRuntime()
+                    .invokeMethodAsyncConcurrently(service, resourceMethod.getName(), null, RESOURCE_EXECUTION_STRAND,
+                                                   executionCallback, null, null, arguments);
+        } else {
+            environment.getRuntime()
+                    .invokeMethodAsyncSequentially(service, resourceMethod.getName(), null, RESOURCE_EXECUTION_STRAND,
+                                                   executionCallback, null, null, arguments);
+        }
     }
 }

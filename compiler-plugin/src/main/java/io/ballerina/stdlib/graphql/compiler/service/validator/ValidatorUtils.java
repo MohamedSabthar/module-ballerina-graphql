@@ -18,6 +18,7 @@
 
 package io.ballerina.stdlib.graphql.compiler.service.validator;
 
+import io.ballerina.compiler.api.symbols.MethodSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
@@ -34,6 +35,7 @@ import static io.ballerina.stdlib.graphql.commons.types.TypeName.FIELD_SET;
 import static io.ballerina.stdlib.graphql.commons.types.TypeName.LINK_IMPORT;
 import static io.ballerina.stdlib.graphql.commons.types.TypeName.LINK_PURPOSE;
 import static io.ballerina.stdlib.graphql.commons.types.TypeName.SERVICE;
+import static io.ballerina.stdlib.graphql.commons.utils.Utils.isDataLoaderModuleSymbol;
 
 /**
  * Utility functions for the Ballerina GraphQL compiler validations.
@@ -47,6 +49,8 @@ public final class ValidatorUtils {
     public static final String RESOURCE_FUNCTION_SUBSCRIBE = "subscribe";
     public static final String GRAPHQL_INTERCEPTOR = "Interceptor";
     public static final String INTERCEPTOR_EXECUTE = "execute";
+
+    private static final String DATA_LOADER_ANNOTATION = "Loader";
 
     public static void updateContext(SyntaxNodeAnalysisContext context, CompilationDiagnostic errorCode,
                                      Location location) {
@@ -83,5 +87,11 @@ public final class ValidatorUtils {
         List<String> reservedTypes = List.of(ANY.getName(), FIELD_SET.getName(), LINK_IMPORT.getName(),
                                              LINK_PURPOSE.getName(), SERVICE.getName());
         return reservedTypes.contains(typeName);
+    }
+
+    public static boolean hasLoaderAnnotation(MethodSymbol resourceMethodSymbol) {
+        return resourceMethodSymbol.annotations().stream().anyMatch(
+                annotationSymbol -> isDataLoaderModuleSymbol(annotationSymbol) && annotationSymbol.getName().isPresent()
+                        && annotationSymbol.getName().get().equals(DATA_LOADER_ANNOTATION));
     }
 }

@@ -51,9 +51,6 @@ import static io.ballerina.stdlib.graphql.runtime.engine.Engine.getDecodedSchema
 @SuppressWarnings("unchecked")
 public class EngineUtils {
 
-    private EngineUtils() {
-    }
-
     // Schema related record types
     public static final String SCHEMA_RECORD = "__Schema";
     public static final String FIELD_RECORD = "__Field";
@@ -118,6 +115,11 @@ public class EngineUtils {
     // Root operation types
     public static final String OPERATION_QUERY = "query";
     public static final String OPERATION_SUBSCRIPTION = "subscription";
+
+    private static final BString PLACE_HOLDER_FIELD_OBJECT_FIELD = StringUtils.fromString("field");
+
+    private EngineUtils() {
+    }
 
     static boolean isPathsMatching(ResourceMethodType resourceMethod, List<String> paths) {
         String[] resourcePath = resourceMethod.getResourcePath();
@@ -256,5 +258,13 @@ public class EngineUtils {
 
     public static Object getResult(BObject executorVisitor) {
         return executorVisitor.get(RESULT_FIELD);
+    }
+
+    public static void setFieldValue(BObject placeHolder, BObject field) {
+        placeHolder.set(PLACE_HOLDER_FIELD_OBJECT_FIELD, field);
+    }
+
+    public static BObject getFieldValue(BObject placeHolder) {
+        return (BObject) placeHolder.get(PLACE_HOLDER_FIELD_OBJECT_FIELD);
     }
 }

@@ -16,6 +16,7 @@
 
 import ballerina/http;
 import graphql.parser;
+import ballerina/jballerina.java;
 
 // Error messages
 const UNABLE_TO_PERFORM_DATA_BINDING = "Unable to perform data binding";
@@ -480,3 +481,7 @@ isolated function getFieldTypeFromParentType(__Type parentType, __Type[] typeArr
     }
     return parentType;
 }
+
+isolated function getHashCode(object{} obj) returns string = @java:Method {
+    'class: "io.ballerina.stdlib.graphql.runtime.utils.Utils"
+} external;

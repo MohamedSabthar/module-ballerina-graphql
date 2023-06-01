@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.hasGraphqlListener;
+import static io.ballerina.stdlib.graphql.commons.utils.Utils.isDataLoaderModuleSymbol;
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphQLServiceObjectDeclaration;
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
@@ -70,6 +71,7 @@ public final class Utils {
     public static final String FILE_UPLOAD_IDENTIFIER = "Upload";
     public static final String SERVICE_CONFIG_IDENTIFIER = "ServiceConfig";
     public static final String SUBGRAPH_ANNOTATION_NAME = "Subgraph";
+    public static final String DATA_LOADER_IDENTIFIER = "DataLoader";
 
     private Utils() {
     }
@@ -215,11 +217,12 @@ public final class Utils {
         if (typeSymbol.getName().isEmpty()) {
             return false;
         }
-        if (!isGraphqlModuleSymbol(typeSymbol)) {
+        if (!isGraphqlModuleSymbol(typeSymbol) && !(isDataLoaderModuleSymbol(typeSymbol))) {
             return false;
         }
         String typeName = typeSymbol.getName().get();
-        return FIELD_IDENTIFIER.equals(typeName) || CONTEXT_IDENTIFIER.equals(typeName);
+        return FIELD_IDENTIFIER.equals(typeName) || CONTEXT_IDENTIFIER.equals(typeName)
+                || DATA_LOADER_IDENTIFIER.equals(typeName);
     }
 
     public static String getAccessor(ResourceMethodSymbol resourceMethodSymbol) {
