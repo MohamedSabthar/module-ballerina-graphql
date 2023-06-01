@@ -25,12 +25,10 @@ import io.ballerina.runtime.api.flags.SymbolFlags;
 import io.ballerina.runtime.api.types.ArrayType;
 import io.ballerina.runtime.api.types.RecordType;
 import io.ballerina.runtime.api.types.ResourceMethodType;
-import io.ballerina.runtime.api.types.ServiceType;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.types.UnionType;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BArray;
-import io.ballerina.runtime.api.values.BFunctionPointer;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
@@ -40,7 +38,6 @@ import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
 import io.ballerina.stdlib.graphql.commons.utils.SdlSchemaStringGenerator;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,9 +50,6 @@ import static io.ballerina.stdlib.graphql.runtime.engine.Engine.getDecodedSchema
  */
 @SuppressWarnings("unchecked")
 public class EngineUtils {
-
-    private EngineUtils() {
-    }
 
     // Schema related record types
     public static final String SCHEMA_RECORD = "__Schema";
@@ -121,6 +115,13 @@ public class EngineUtils {
     // Root operation types
     public static final String OPERATION_QUERY = "query";
     public static final String OPERATION_SUBSCRIPTION = "subscription";
+
+    private static final BString CONTEXT_DATA_LOADER_CACHE_FIELD = StringUtils.fromString("dataLoaderCache");
+    private static final BString PLACE_HOLDER_FIELD_FIELD = StringUtils.fromString("field");
+    private static final BString PLACE_HOLDER_VALUE_FIELD = StringUtils.fromString("value");
+
+    private EngineUtils() {
+    }
 
     static boolean isPathsMatching(ResourceMethodType resourceMethod, List<String> paths) {
         String[] resourcePath = resourceMethod.getResourcePath();
@@ -261,52 +262,27 @@ public class EngineUtils {
         return executorVisitor.get(RESULT_FIELD);
     }
 
-    // TODO: check this implementation
-    public static boolean hasLoadResourceMethod(BObject serviceObject, BString resourceMethodName) {
-        Type serviceType = serviceObject.getOriginalType();
-        if (serviceType.getTag() != SERVICE_TAG) {
-            return false;
-        }
-        ServiceType rootServiceType = (ServiceType) serviceType;
-        return Arrays.stream(rootServiceType.getResourceMethods()).anyMatch(
-                methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())
-                        && getLoadAnnotation(methodType) != null);
-    }
-
-    private static BMap getLoadAnnotation(ResourceMethodType resourceMethodType) {
-        return (BMap) resourceMethodType.getAnnotation(StringUtils.fromString("ballerina/graphql.dataloader:1:Loader"));
-    }
-
-    public static BFunctionPointer getBatchLoadFunction(BObject serviceObject, BString resourceMethodName) {
-        ResourceMethodType resourceMethodType = Arrays.stream(
-                        ((ServiceType) serviceObject.getOriginalType()).getResourceMethods())
-                .filter(methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())).findFirst()
-                .get();
-        BMap<BString, Object> loadAnnotation = getLoadAnnotation(resourceMethodType);
-        return (BFunctionPointer) loadAnnotation.get(StringUtils.fromString("batchFunction"));
-    }
-
     public static BString getHashCode(BObject object) {
         return StringUtils.fromString(Integer.toString(object.hashCode()));
     }
 
     public static void setDataLoaderCache(BObject context, BMap<BString, Object> cache) {
-        context.set(StringUtils.fromString("dataLoaderCache"), cache);
+        context.set(CONTEXT_DATA_LOADER_CACHE_FIELD, cache);
     }
 
     public static void setFieldValue(BObject placeHolder, BObject field) {
-        placeHolder.set(StringUtils.fromString("field"), field);
+        placeHolder.set(PLACE_HOLDER_FIELD_FIELD, field);
     }
 
     public static void setValue(BObject placeHolder, Object value) {
-        placeHolder.set(StringUtils.fromString("value"), value);
+        placeHolder.set(PLACE_HOLDER_VALUE_FIELD, value);
     }
 
     public static BObject getFieldValue(BObject placeHolder) {
-        return (BObject) placeHolder.get(StringUtils.fromString("field"));
+        return (BObject) placeHolder.get(PLACE_HOLDER_FIELD_FIELD);
     }
 
     public static Object getValue(BObject placeHolder) {
-        return placeHolder.get(StringUtils.fromString("value"));
+        return placeHolder.get(PLACE_HOLDER_VALUE_FIELD);
     }
 }

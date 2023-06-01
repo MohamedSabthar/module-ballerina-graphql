@@ -50,6 +50,9 @@ public isolated class DefaultDataLoader {
             readonly & anydata[] batchKeys = self.keys.toArray().'map((key) => key.key).cloneReadOnly();
             self.keys.removeAll();
             anydata[]|error batchResult = self.loaderFunction(batchKeys);
+            if batchResult is anydata[] && batchKeys.length() != batchResult.length() {
+                return error(string `The batch function should return the same number of results as the number of keys`);
+            }
             foreach int i in 0 ..< batchKeys.length() {
                 if self.resultTable.hasKey(batchKeys[i]) {
                     continue;

@@ -241,8 +241,8 @@ isolated class Engine {
             service object {}? serviceObject = 'field.getServiceObject();
             if serviceObject is service object {} 
                 && hasLoadResourceMethod(serviceObject, loadResourceMethodName) {
-                var batchLoadFunction = getBatchLoadFunction(serviceObject, loadResourceMethodName);
-                context.addDataLoader(batchLoadFunction, loadResourceMethodName);
+                var batchFunction = getBatchFunction(serviceObject, loadResourceMethodName);
+                context.addDataLoader(batchFunction, loadResourceMethodName);
                 handle? resourceMethod = getResourceMethod(serviceObject, [loadResourceMethodName]);
                 if resourceMethod is () {
                     fieldValue = ();
@@ -406,10 +406,10 @@ returns handle? = @java:Method {
 } external;
 
 isolated function hasLoadResourceMethod(service object {} serviceObject, string loadResourceMethodName) returns boolean = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
 } external;
 
-isolated function getBatchLoadFunction(service object {} serviceObject, string loadResourceMethodName) 
+isolated function getBatchFunction(service object {} serviceObject, string loadResourceMethodName) 
 returns (isolated function (readonly & anydata[] keys) returns anydata[]|error) = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
 } external;
