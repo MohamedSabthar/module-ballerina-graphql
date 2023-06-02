@@ -40,6 +40,9 @@ isolated class ValueTreeBuilder {
             anydata value = context.getPlaceHolderValue(partialValue.hashCode);
             return self.buildResultTree(context, value);
         }
+        if partialValue is map<anydata> && isMap(partialValue) {
+            return self.buildResultTreeFromMap(context, partialValue);
+        }
         if partialValue is record {} {
             return self.buildResultTreeFromRecord(context, partialValue);
         }
@@ -49,8 +52,16 @@ isolated class ValueTreeBuilder {
         return partialValue;
     }
 
+    isolated function buildResultTreeFromMap(Context context, map<anydata> partialValue) returns anydata {
+        map<anydata> data = {};
+        foreach [string, anydata] [key, value] in partialValue.entries() {
+            data[key] = self.buildResultTree(context, value);
+        }
+        return data;
+    }
+
     isolated function buildResultTreeFromRecord(Context context, record {} partialValue) returns anydata {
-        Data data = {};
+        record {} data = {};
         foreach [string, anydata] [key, value] in partialValue.entries() {
             data[key] = self.buildResultTree(context, value);
         }
