@@ -71,10 +71,20 @@ public enum CompilationDiagnostic {
     INVALID_USE_OF_RESERVED_TYPE_AS_OUTPUT_TYPE(DiagnosticMessage.ERROR_135, DiagnosticCode.GRAPHQL_135,
                                                 DiagnosticSeverity.ERROR),
     INVALID_USE_OF_RESERVED_TYPE_AS_INPUT_TYPE(DiagnosticMessage.ERROR_136, DiagnosticCode.GRAPHQL_136,
-                                      DiagnosticSeverity.ERROR),
+                                               DiagnosticSeverity.ERROR),
     FAILED_TO_ADD_ENTITY_RESOLVER(DiagnosticMessage.ERROR_137, DiagnosticCode.GRAPHQL_137, DiagnosticSeverity.ERROR),
     FAILED_TO_ADD_SERVICE_RESOLVER(DiagnosticMessage.ERROR_138, DiagnosticCode.GRAPHQL_138, DiagnosticSeverity.ERROR),
-    UNSUPPORTED_PRIMITIVE_TYPE_ALIAS(DiagnosticMessage.ERROR_139, DiagnosticCode.GRAPHQL_139, DiagnosticSeverity.ERROR);
+    UNSUPPORTED_PRIMITIVE_TYPE_ALIAS(DiagnosticMessage.ERROR_139, DiagnosticCode.GRAPHQL_139, DiagnosticSeverity.ERROR),
+    INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER(DiagnosticMessage.ERROR_140, DiagnosticCode.GRAPHQL_140,
+                                                   DiagnosticSeverity.ERROR),
+    NO_MATCHING_GRAPHQL_FIELD_FOUND_FOR_DATA_LOADER(DiagnosticMessage.ERROR_141, DiagnosticCode.GRAPHQL_141,
+                                                    DiagnosticSeverity.ERROR),
+    MISSING_DATA_LOADER_PARAMETER(DiagnosticMessage.ERROR_142, DiagnosticCode.GRAPHQL_142,
+                                  DiagnosticSeverity.ERROR),
+    INVALID_PARAMETER_IN_LOAD_METHOD(DiagnosticMessage.ERROR_143, DiagnosticCode.GRAPHQL_143, DiagnosticSeverity.ERROR),
+    INVALID_RETURN_TYPE_IN_LOADER_METHOD(DiagnosticMessage.ERROR_144, DiagnosticCode.GRAPHQL_144,
+                                         DiagnosticSeverity.ERROR),
+    NO_MATCHING_LOAD_FUNCTION_FOUND(DiagnosticMessage.ERROR_145, DiagnosticCode.GRAPHQL_145, DiagnosticSeverity.ERROR);
 
     private final String diagnostic;
     private final String diagnosticCode;

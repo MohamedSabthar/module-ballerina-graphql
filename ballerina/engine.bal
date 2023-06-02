@@ -230,8 +230,17 @@ isolated class Engine {
         }
     }
 
-    isolated function resolve(Context context, Field 'field) returns anydata {
+    isolated function resolve(Context context, Field 'field, boolean isExecuteLoadMethod = true) returns anydata {
         parser:FieldNode fieldNode = 'field.getInternalNode();
+        
+        if isExecuteLoadMethod {
+            string loadResourceMethodName = getLoadResourceMethodName(fieldNode.getName());
+            service object {}? serviceObject = 'field.getServiceObject();
+            if serviceObject is service object {} && self.hasLoadResourceMethod(serviceObject, loadResourceMethodName) {
+                return self.getResultFromLoadResourceMethodExecution(context, 'field, loadResourceMethodName);
+            }
+        }
+
         parser:RootOperationType operationType = 'field.getOperationType();
         (readonly & Interceptor)? interceptor = context.getNextInterceptor('field);
         __Type fieldType = 'field.getFieldType();
@@ -278,6 +287,24 @@ isolated class Engine {
         }
         ResponseGenerator responseGenerator = new (self, context, fieldType, 'field.getPath().clone());
         return responseGenerator.getResult(fieldValue, fieldNode);
+    }
+
+    private isolated function getResultFromLoadResourceMethodExecution(Context context, Field 'field,
+                                                                       string loadResourceMethodName)
+    returns PlaceHolderNode? {
+        service object {} serviceObject = <service object {}>'field.getServiceObject();
+        var batchFunction = self.getBatchFunction(serviceObject, loadResourceMethodName);
+        context.addDataLoader(batchFunction, loadResourceMethodName);
+        handle? resourceMethod = self.getResourceMethod(serviceObject, [loadResourceMethodName]);
+        if resourceMethod is () {
+            return ();
+        }
+        self.executeLoadResource(context, serviceObject, resourceMethod, 'field);
+        PlaceHolder placeHolder = new ('field);
+        context.addPlaceHolder(loadResourceMethodName, placeHolder);
+        string hashCode = getHashCode(placeHolder);
+        PlaceHolderNode ph = {hashCode};
+        return ph;
     }
 
     isolated function resolveResourceMethod(Context context, Field 'field) returns any|error {
@@ -375,4 +402,27 @@ isolated class Engine {
     isolated function getInterceptorName(readonly & Interceptor interceptor) returns string = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
+
+    isolated function hasLoadResourceMethod(service object {} serviceObject, string loadResourceMethodName)
+    returns boolean = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    } external;
+
+    isolated function getBatchFunction(service object {} serviceObject, string loadResourceMethodName)
+    returns (isolated function (readonly & anydata[] keys) returns anydata[]|error) = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    } external;
+
+    isolated function executeLoadResource(Context context, service object {} serviceObject, handle resourceMethod,
+            Field 'field) = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    } external;
+}
+
+isolated function getLoadResourceMethodName(string fieldName) returns string {
+    string loadResourceMethodName = "load" +string:toUpperAscii(fieldName.substring(0, 1));
+    if fieldName.length() > 1 {
+        loadResourceMethodName += fieldName.substring(1);
+    }
+    return loadResourceMethodName;
 }

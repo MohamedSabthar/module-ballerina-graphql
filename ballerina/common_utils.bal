@@ -16,6 +16,7 @@
 
 import ballerina/http;
 import graphql.parser;
+import ballerina/jballerina.java;
 
 // Error messages
 const UNABLE_TO_PERFORM_DATA_BINDING = "Unable to perform data binding";
@@ -505,3 +506,7 @@ isolated function getKeyArgument(parser:FieldNode fieldNode) returns string? {
         return <string>argumentNode.getValue();
     }
 }
+
+isolated function getHashCode(object{} obj) returns string = @java:Method {
+    'class: "io.ballerina.stdlib.graphql.runtime.utils.Utils"
+} external;
