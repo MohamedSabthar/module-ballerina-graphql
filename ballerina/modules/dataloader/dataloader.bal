@@ -23,7 +23,7 @@ public type DataLoader isolated object {
     # Retrieves the result for a particular key.
     # 
     # + key - The key to retrieve the result
-    # + returns - The result for the key on success, error on failure
+    # + return - The result for the key on success, error on failure
     public isolated function get(anydata key) returns anydata|error; // TODO: need to change this function to dependently typed
 
     # Dispatches a user-defined batch load operation for all keys that have been collected.
