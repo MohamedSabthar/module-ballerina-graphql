@@ -25,6 +25,14 @@ service on new graphql:Listener(9090) {
     remote function updateAuthor(int id, string name, dataloader:DataLoader dataloader) returns Author|error {
         return error("Not implemented");
     }
+
+    @dataloader:Loader {
+        batchFunction: authorLoaderFunction
+    }
+    isolated resource function get loadUpdateAuthor(dataloader:DataLoader bookLoader) {
+        
+    }
+
 }
 
 isolated distinct service class Author {
@@ -32,8 +40,29 @@ isolated distinct service class Author {
     isolated resource function get books(dataloader:DataLoader dataloader) returns Book[] {
         return [];
     }
+
+    @dataloader:Loader {
+        batchFunction: bookLoaderFunction
+    }
+    isolated resource function get loadBooks(dataloader:DataLoader bookLoader) {
+        
+    }
 }
 
 public type Book record {|
     string title;
 |};
+
+type AuthorData record {|
+    string name;
+|};
+
+isolated function bookLoaderFunction(readonly & anydata[] ids) returns Book[][]|error {
+    // logic to batch books for authors
+    return [];
+};
+
+isolated function authorLoaderFunction(readonly & anydata[] ids) returns AuthorData[]|error {
+    // logic to batch authors
+    return [];
+};

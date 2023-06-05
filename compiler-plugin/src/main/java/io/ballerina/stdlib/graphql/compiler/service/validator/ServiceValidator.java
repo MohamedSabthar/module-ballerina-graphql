@@ -92,6 +92,7 @@ import static java.util.Locale.ENGLISH;
 public class ServiceValidator {
     private static final String FIELD_PATH_SEPARATOR = ".";
     private static final String LOAD_RESOURCE_PREFIX = "load";
+    private static final String EMPTY_STRING = "";
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
     private final List<TypeSymbol> existingReturnTypes = new ArrayList<>();
@@ -375,8 +376,14 @@ public class ServiceValidator {
 
     private MethodSymbol findMethodSymbol(List<MethodSymbol> serviceMethods, String expectedFieldName) {
         return serviceMethods.stream()
-                .filter(method -> !hasLoaderAnnotation(method) && getFieldPath((ResourceMethodSymbol) method).equals(
-                        expectedFieldName)).findFirst().orElse(null);
+                .filter(method -> !hasLoaderAnnotation(method) && hasExpectedMethodName(method, expectedFieldName))
+                .findFirst().orElse(null);
+    }
+
+    private boolean hasExpectedMethodName(MethodSymbol methodSymbol, String expectedMethodName) {
+        return isResourceMethod(methodSymbol) && getFieldPath((ResourceMethodSymbol) methodSymbol).equals(
+                expectedMethodName) || (isRemoteMethod(methodSymbol) && methodSymbol.getName().orElse(EMPTY_STRING)
+                .equals(expectedMethodName));
     }
 
     private String lowerCaseFirstChar(String string) {
@@ -638,11 +645,11 @@ public class ServiceValidator {
     private void checkForMatchingLoadMethod(MethodSymbol methodSymbol, List<MethodSymbol> remoteOrResourceMethods,
                                             Location location) {
         String methodName = methodSymbol.kind() == SymbolKind.RESOURCE_METHOD ?
-                getFieldPath((ResourceMethodSymbol) methodSymbol) : methodSymbol.getName().orElse("");
+                getFieldPath((ResourceMethodSymbol) methodSymbol) : methodSymbol.getName().orElse(EMPTY_STRING);
         String loadMethodName = getLoadMethodName(methodName);
         Set<String> methodNames = remoteOrResourceMethods.stream()
                 .map(method -> method.kind() == SymbolKind.RESOURCE_METHOD ?
-                        getFieldPath((ResourceMethodSymbol) method) : method.getName().orElse(""))
+                        getFieldPath((ResourceMethodSymbol) method) : method.getName().orElse(EMPTY_STRING))
                 .collect(Collectors.toSet());
         if (!methodNames.contains(loadMethodName)) {
             addDiagnostic(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, getLocation(methodSymbol, location),

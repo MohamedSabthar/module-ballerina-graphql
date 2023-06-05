@@ -1162,12 +1162,24 @@ public class ServiceValidationTest {
     public void testInvalidUsageOfDataLoaderWithoutLoaderMethod() {
         String packagePath = "67_invalid_usage_of_data_loader_without_loader_method";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
-        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Assert.assertEquals(diagnosticResult.errorCount(), 2);
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, "loadBooks", "books");
-        assertErrorMessage(diagnostic, message, 28, 32);
+        assertErrorMessage(diagnostic, message, 32, 32);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, "loadUpdateAuthor",
+                                  "updateAuthor");
+        assertErrorMessage(diagnostic, message, 25, 21);
+    }
+
+    @Test(groups = "valid")
+    public void testServiceWithValidDataLoaderConfiguration() {
+        String packagePath = "68_service_with_valid_data_loader_configuration";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 0);
     }
 
     private DiagnosticResult getDiagnosticResult(String packagePath) {
