@@ -16,12 +16,14 @@
 
 # Represents a DataLoader object that can be used to load data from a data source.
 public type DataLoader isolated object {
+
     # Collects a key to perform a batch operation at a later time.
-    # 
+    #
     # + key - The key to load later
     public isolated function load(anydata key);
+
     # Retrieves the result for a particular key.
-    # 
+    #
     # + key - The key to retrieve the result
     # + t - The type of the result
     # + return - The result for the key on success, error on failure
