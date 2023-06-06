@@ -23,8 +23,9 @@ public type DataLoader isolated object {
     # Retrieves the result for a particular key.
     # 
     # + key - The key to retrieve the result
+    # + t - The type of the result
     # + return - The result for the key on success, error on failure
-    public isolated function get(anydata key) returns anydata|error; // TODO: need to change this function to dependently typed
+    public isolated function get(anydata key, typedesc<anydata> t = <>) returns t|error;
 
     # Dispatches a user-defined batch load operation for all keys that have been collected.
     public isolated function dispatch(); // TODO: removed returning error type, is this ok?

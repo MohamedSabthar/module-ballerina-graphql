@@ -27,4 +27,11 @@
             <Bug pattern="DM_EXIT" />
         </And>
     </Match>
+    <Match>
+        <And>
+            <Class name="io.ballerina.stdlib.graphql.runtime.utils.DataLoaderExecutionCallback" />
+            <Method name = "notifyFailure" />
+            <Bug pattern="DM_EXIT" />
+        </And>
+    </Match>
 </FindBugsFilter>

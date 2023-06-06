@@ -15,6 +15,7 @@
 // under the License.
 
 import graphql.dataloader;
+import ballerina/jballerina.java;
 
 isolated class DefaultDataLoader {
     *dataloader:DataLoader;
@@ -38,11 +39,20 @@ isolated class DefaultDataLoader {
         }
     }
 
-    public isolated function get(anydata key) returns anydata|error {
+    public isolated function get(anydata key, typedesc<anydata> t = <>) returns t|error = @java:Method {
+        'class: "io.ballerina.stdlib.graphql.runtime.utils.DataLoaderUtils"
+    } external;
+
+    public isolated function processGet(anydata key, typedesc<anydata> t) returns anydata|error {
         readonly & anydata clonedKey = key.cloneReadOnly();
         lock {
             if self.resultTable.hasKey(clonedKey) {
-                return self.resultTable.get(clonedKey).value.clone();
+                anydata|error result = self.resultTable.get(clonedKey).value;
+                if result is error {
+                    return result.clone();
+                }
+                anydata resultWithType = check result.ensureType(t);
+                return resultWithType.clone();
             }
         }
         return error(string `No result found for the given key ${key.toString()}`);

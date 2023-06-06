@@ -41,7 +41,7 @@ isolated distinct service class Author {
     }
 
     isolated resource function get books(dataloader:DataLoader bookloader) returns Book[]|error {
-        BookRow[] bookrows = check (check bookloader.get(self.author.id)).cloneWithType();
+        BookRow[] bookrows = check bookloader.get(self.author.id);
         return from BookRow bookRow in bookrows
             select new Book(bookRow);
     }
