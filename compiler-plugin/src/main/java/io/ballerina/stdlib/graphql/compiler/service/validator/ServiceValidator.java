@@ -239,6 +239,7 @@ public class ServiceValidator {
             this.currentFieldPath.remove(TypeName.SUBSCRIPTION.getName());
         } else if (RESOURCE_FUNCTION_GET.equals(accessor)) {
             if (hasLoaderAnnotation(methodSymbol)) {
+                // TODO: validate Loader id to function pointer mapping
                 validateLoadResourceMethod(methodSymbol, location, resourceOrRemoteMethodSymbols);
                 return;
             }
@@ -272,6 +273,7 @@ public class ServiceValidator {
                           getFieldPath(methodSymbol));
         }
         if (hasLoaderAnnotation(methodSymbol)) {
+            // TODO: validate Loader id to function pointer mapping
             validateLoadResourceMethod(methodSymbol, location, resourceOrRemoteMethods);
             return;
         }

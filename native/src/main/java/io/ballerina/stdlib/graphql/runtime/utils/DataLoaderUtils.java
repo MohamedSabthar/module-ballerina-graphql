@@ -3,12 +3,15 @@ package io.ballerina.stdlib.graphql.runtime.utils;
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.Future;
 import io.ballerina.runtime.api.async.Callback;
+import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.types.ObjectType;
+import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BTypedesc;
 
 import static io.ballerina.runtime.api.PredefinedTypes.TYPE_ANYDATA;
+import static io.ballerina.runtime.api.PredefinedTypes.TYPE_ERROR;
 
 /**
  * Utility functions for the graphql DataLoader.
@@ -24,14 +27,15 @@ public class DataLoaderUtils {
         ObjectType clientType = (ObjectType) TypeUtils.getReferredType(TypeUtils.getType(dataLoader));
         Object[] paramFeed = getProcessGetMethodParams(key, typedesc);
         Callback executionCallback = new DataLoaderExecutionCallback(balFuture);
+        Type returnType = TypeCreator.createUnionType(TYPE_ANYDATA, TYPE_ERROR);
         if (clientType.isIsolated() && clientType.isIsolated(DATA_LOADER_PROCESSES_GET_METHOD_NAME)) {
             env.getRuntime()
                     .invokeMethodAsyncConcurrently(dataLoader, DATA_LOADER_PROCESSES_GET_METHOD_NAME, null, null,
-                                                   executionCallback, null, TYPE_ANYDATA, paramFeed);
+                                                   executionCallback, null, returnType, paramFeed);
             return null;
         }
         env.getRuntime().invokeMethodAsyncSequentially(dataLoader, DATA_LOADER_PROCESSES_GET_METHOD_NAME, null, null,
-                                                       executionCallback, null, TYPE_ANYDATA, paramFeed);
+                                                       executionCallback, null, returnType, paramFeed);
         return null;
     }
 
