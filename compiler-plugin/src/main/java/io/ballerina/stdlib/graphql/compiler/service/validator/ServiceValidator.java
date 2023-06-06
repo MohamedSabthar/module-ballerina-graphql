@@ -320,11 +320,11 @@ public class ServiceValidator {
 
         // field name starting with a capital letter
         String expectedFieldName = loadResourceMethodName.substring(LOAD_RESOURCE_PREFIX.length());
-        MethodSymbol field = findMethodSymbol(serviceMethods, expectedFieldName);
+        MethodSymbol field = findRemoteOrGetResourceMethodSymbol(serviceMethods, expectedFieldName);
         if (field == null) {
             // field name starting with a simple letter
             expectedFieldName = lowerCaseFirstChar(expectedFieldName);
-            field = findMethodSymbol(serviceMethods, expectedFieldName);
+            field = findRemoteOrGetResourceMethodSymbol(serviceMethods, expectedFieldName);
         }
         if (field == null) {
             addDiagnostic(CompilationDiagnostic.NO_MATCHING_GRAPHQL_FIELD_FOUND_FOR_DATA_LOADER, methodLocation,
@@ -374,16 +374,19 @@ public class ServiceValidator {
                       returnType.signature(), getFieldPath(methodSymbol));
     }
 
-    private MethodSymbol findMethodSymbol(List<MethodSymbol> serviceMethods, String expectedFieldName) {
+    private MethodSymbol findRemoteOrGetResourceMethodSymbol(List<MethodSymbol> serviceMethods,
+                                                             String expectedFieldName) {
         return serviceMethods.stream()
-                .filter(method -> !hasLoaderAnnotation(method) && hasExpectedMethodName(method, expectedFieldName))
+                .filter(method -> !hasLoaderAnnotation(method)
+                        && hasExpectedRemoteOrGetResourceMethodName(method, expectedFieldName))
                 .findFirst().orElse(null);
     }
 
-    private boolean hasExpectedMethodName(MethodSymbol methodSymbol, String expectedMethodName) {
-        return isResourceMethod(methodSymbol) && getFieldPath((ResourceMethodSymbol) methodSymbol).equals(
-                expectedMethodName) || (isRemoteMethod(methodSymbol) && methodSymbol.getName().orElse(EMPTY_STRING)
-                .equals(expectedMethodName));
+    private boolean hasExpectedRemoteOrGetResourceMethodName(MethodSymbol methodSymbol, String expectedMethodName) {
+        return isResourceMethod(methodSymbol) && RESOURCE_FUNCTION_GET.equals(
+                getAccessor((ResourceMethodSymbol) methodSymbol)) && getFieldPath(
+                (ResourceMethodSymbol) methodSymbol).equals(expectedMethodName) || (isRemoteMethod(methodSymbol)
+                && methodSymbol.getName().orElse(EMPTY_STRING).equals(expectedMethodName));
     }
 
     private String lowerCaseFirstChar(String string) {
@@ -703,6 +706,11 @@ public class ServiceValidator {
             for (ParameterSymbol parameter : parameterSymbols) {
                 Location inputLocation = getLocation(parameter, location);
                 if (isDataLoaderModuleSymbol(parameter.typeDescriptor()) && !isLoadMethod) {
+                    if (RESOURCE_FUNCTION_SUBSCRIBE.equals(methodSymbol.getName().orElse(EMPTY_STRING))) {
+                        addDiagnostic(CompilationDiagnostic.INVALID_DATA_LOADER_USAGE_IN_SUBSCRIPTION, inputLocation,
+                                      getFieldPath((ResourceMethodSymbol) methodSymbol));
+                        continue;
+                    }
                     checkForMatchingLoadMethod(methodSymbol, remoteOrResourceMethods, location);
                 }
                 if (isValidGraphqlParameter(parameter.typeDescriptor())) {

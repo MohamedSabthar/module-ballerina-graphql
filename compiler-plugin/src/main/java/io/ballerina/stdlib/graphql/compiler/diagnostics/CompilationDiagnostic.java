@@ -84,7 +84,9 @@ public enum CompilationDiagnostic {
     INVALID_PARAMETER_IN_LOAD_METHOD(DiagnosticMessage.ERROR_143, DiagnosticCode.GRAPHQL_143, DiagnosticSeverity.ERROR),
     INVALID_RETURN_TYPE_IN_LOADER_METHOD(DiagnosticMessage.ERROR_144, DiagnosticCode.GRAPHQL_144,
                                          DiagnosticSeverity.ERROR),
-    NO_MATCHING_LOAD_FUNCTION_FOUND(DiagnosticMessage.ERROR_145, DiagnosticCode.GRAPHQL_145, DiagnosticSeverity.ERROR);
+    NO_MATCHING_LOAD_FUNCTION_FOUND(DiagnosticMessage.ERROR_145, DiagnosticCode.GRAPHQL_145, DiagnosticSeverity.ERROR),
+    INVALID_DATA_LOADER_USAGE_IN_SUBSCRIPTION(DiagnosticMessage.ERROR_146, DiagnosticCode.GRAPHQL_146,
+                                              DiagnosticSeverity.ERROR);
 
     private final String diagnostic;
     private final String diagnosticCode;
