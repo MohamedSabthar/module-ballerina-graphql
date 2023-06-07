@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/graphql;
+import ballerina/graphql.dataloader;
 import ballerina/http;
 import ballerina/lang.runtime;
 
@@ -1565,7 +1566,7 @@ service /intercept_map on basicListener {
     }
     isolated resource function get updatedLanguages() returns Languages {
         return {
-            name :{
+            name: {
                 backend: "Ruby",
                 frontend: "Java",
                 data: "Ballerina",
@@ -2089,5 +2090,22 @@ isolated service /service_with_http1 on http1BasedListener {
 service /annotations on wrappedListener {
     resource function get greeting() returns string {
         return "Hello";
+    }
+}
+
+service /dataloader on wrappedListener {
+    resource function get authors(int[] ids, dataloader:DataLoader authorLoader) returns AuthorData[]|error {
+        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
+        return from AuthorRow authorRow in authorRows
+            select new (authorRow);
+    }
+
+    @dataloader:Loader {
+        batchFunction: authorLoaderFunction
+    }
+    resource function get loadAuthors(int[] ids, dataloader:DataLoader authorLoader) {
+        ids.forEach(function(int id) {
+            authorLoader.load(id);
+        });
     }
 }

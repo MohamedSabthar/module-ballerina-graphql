@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/graphql;
+import ballerina/graphql.dataloader;
 import ballerina/lang.runtime;
 
 public type PeopleService StudentService|TeacherService;
@@ -391,5 +392,46 @@ public distinct isolated service class CustomerAddress {
     }
     isolated resource function get city() returns string {
         return self.city;
+    }
+}
+
+public isolated distinct service class AuthorData {
+    private final readonly & AuthorRow author;
+
+    isolated function init(AuthorRow author) {
+        self.author = author.cloneReadOnly();
+    }
+
+    isolated resource function get name() returns string {
+        return self.author.name;
+    }
+
+    isolated resource function get books(dataloader:DataLoader bookloader) returns BookData[]|error {
+        BookRow[] bookrows = check bookloader.get(self.author.id);
+        return from BookRow bookRow in bookrows
+            select new BookData(bookRow);
+    }
+
+    @dataloader:Loader {
+        batchFunction: bookLoaderFunction
+    }
+    isolated resource function get loadBooks(dataloader:DataLoader bookLoader) {
+        bookLoader.load(self.author.id);
+    }
+}
+
+public isolated distinct service class BookData {
+    private final readonly & BookRow book;
+
+    isolated function init(BookRow book) {
+        self.book = book.cloneReadOnly();
+    }
+
+    isolated resource function get id() returns int {
+        return self.book.id;
+    }
+
+    isolated resource function get title() returns string {
+        return self.book.title;
     }
 }

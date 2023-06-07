@@ -280,3 +280,14 @@ public type Task record {|
 |};
 
 type TaskTable table<Task> key(sprint);
+
+type BookRow record {
+    readonly int id;
+    string title;
+    int author;
+};
+
+type AuthorRow record {
+    readonly int id;
+    string name;
+};
