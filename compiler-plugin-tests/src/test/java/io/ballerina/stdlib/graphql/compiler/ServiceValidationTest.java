@@ -1096,7 +1096,7 @@ public class ServiceValidationTest {
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, "books",
                                          "load");
-        assertErrorMessage(diagnostic, message, 37, 32);
+        assertErrorMessage(diagnostic, message, 41, 32);
 
         diagnostic = diagnosticIterator.next();
         message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, "author",
@@ -1112,9 +1112,9 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_GRAPHQL_FIELD_FOUND_FOR_DATA_LOADER, "books",
-                                         "loadBooks");
-        assertErrorMessage(diagnostic, message, 37, 32);
+        String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_RESOURCE_METHOD_FOUND_FOR_LOAD_METHOD,
+                                         "books", "loadBooks");
+        assertErrorMessage(diagnostic, message, 41, 32);
 
         diagnostic = diagnosticIterator.next();
         assertErrorMessage(diagnostic, message, 28, 32);

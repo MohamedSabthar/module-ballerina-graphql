@@ -18,6 +18,7 @@
 
 package io.ballerina.stdlib.graphql.compiler.service.validator;
 
+import io.ballerina.compiler.api.symbols.AnnotationSymbol;
 import io.ballerina.compiler.api.symbols.ArrayTypeSymbol;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.EnumSymbol;
@@ -78,6 +79,7 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isValidGraphqlParameter;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_GET;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_SUBSCRIBE;
+import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.getLoaderAnnotation;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.getLocation;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.hasLoaderAnnotation;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.isInvalidFieldName;
@@ -91,7 +93,7 @@ import static java.util.Locale.ENGLISH;
  */
 public class ServiceValidator {
     private static final String FIELD_PATH_SEPARATOR = ".";
-    private static final String LOAD_RESOURCE_PREFIX = "load";
+    private static final String LOAD_METHOD_PREFIX = "load";
     private static final String EMPTY_STRING = "";
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
@@ -182,12 +184,18 @@ public class ServiceValidator {
     }
 
     private void validateRemoteOrResourceMethods(List<Node> remoteOrResourceMethods) {
+        List<MethodSymbol> resourceOrRemoteMethodSymbols = getRemoteOrResourceMethodSymbols(remoteOrResourceMethods);
         for (Node methodNode : remoteOrResourceMethods) {
             if (this.context.semanticModel().symbol(methodNode).isEmpty()) {
                 continue;
             }
             MethodSymbol methodSymbol = (MethodSymbol) this.context.semanticModel().symbol(methodNode).get();
             Location location = methodNode.location();
+            if (hasLoaderAnnotation(methodSymbol)) {
+                // TODO: validate Loader id to function pointer mapping
+                validateLoadMethod(methodSymbol, location, resourceOrRemoteMethodSymbols);
+                continue;
+            }
             if (isRemoteMethod(methodSymbol)) {
                 this.currentFieldPath.add(TypeName.MUTATION.getName());
                 validateRemoteMethod(methodSymbol, location, getRemoteOrResourceMethodSymbols(remoteOrResourceMethods));
@@ -231,18 +239,13 @@ public class ServiceValidator {
             addDiagnostic(CompilationDiagnostic.INVALID_USE_OF_RESERVED_RESOURCE_PATH, accessorLocation,
                           resourceMethodName);
         }
-        List<MethodSymbol> resourceOrRemoteMethodSymbols = getRemoteOrResourceMethodSymbols(remoteOrResourceMethods);
         String accessor = getAccessor(methodSymbol);
+        List<MethodSymbol> resourceOrRemoteMethodSymbols = getRemoteOrResourceMethodSymbols(remoteOrResourceMethods);
         if (RESOURCE_FUNCTION_SUBSCRIBE.equals(accessor)) {
             this.currentFieldPath.add(TypeName.SUBSCRIPTION.getName());
             validateSubscribeResource(methodSymbol, location, resourceOrRemoteMethodSymbols);
             this.currentFieldPath.remove(TypeName.SUBSCRIPTION.getName());
         } else if (RESOURCE_FUNCTION_GET.equals(accessor)) {
-            if (hasLoaderAnnotation(methodSymbol)) {
-                // TODO: validate Loader id to function pointer mapping
-                validateLoadResourceMethod(methodSymbol, location, resourceOrRemoteMethodSymbols);
-                return;
-            }
             this.currentFieldPath.add(TypeName.QUERY.getName());
             this.hasQueryType = true;
             validateGetResource(methodSymbol, location, resourceOrRemoteMethodSymbols);
@@ -271,11 +274,6 @@ public class ServiceValidator {
             Location accessorLocation = getLocation(methodSymbol, location);
             addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_ACCESSOR, accessorLocation, accessor,
                           getFieldPath(methodSymbol));
-        }
-        if (hasLoaderAnnotation(methodSymbol)) {
-            // TODO: validate Loader id to function pointer mapping
-            validateLoadResourceMethod(methodSymbol, location, resourceOrRemoteMethods);
-            return;
         }
         validateGetResource(methodSymbol, getLocation(methodSymbol, location), resourceOrRemoteMethods);
     }
@@ -310,34 +308,47 @@ public class ServiceValidator {
         validateInputParameters(methodSymbol, location, resourceOrRemoteMethods);
     }
 
-    private void validateLoadResourceMethod(ResourceMethodSymbol methodSymbol, Location location,
-                                            List<MethodSymbol> serviceMethods) {
-        String loadResourceMethodName = getFieldPath(methodSymbol);
+    private void validateLoadMethod(MethodSymbol methodSymbol, Location location, List<MethodSymbol> serviceMethods) {
+        String loadMethodName = isResourceMethod(methodSymbol) ? getFieldPath((ResourceMethodSymbol) methodSymbol) :
+                methodSymbol.getName().orElse(EMPTY_STRING);
+        if (isResourceMethod(methodSymbol) && RESOURCE_FUNCTION_SUBSCRIBE.equals(
+                getAccessor((ResourceMethodSymbol) methodSymbol))) {
+            AnnotationSymbol loaderAnnotation = getLoaderAnnotation(methodSymbol);
+            addDiagnostic(CompilationDiagnostic.INVALID_USAGE_OF_LOADER_ANNOTATION_IN_SUBSCRIBE_RESOURCE,
+                          getLocation(loaderAnnotation, location), loadMethodName);
+            return;
+        }
+
         Location methodLocation = getLocation(methodSymbol, location);
-        if (!loadResourceMethodName.startsWith(LOAD_RESOURCE_PREFIX)) {
+        if (!loadMethodName.startsWith(LOAD_METHOD_PREFIX)) {
             addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, methodLocation,
-                          loadResourceMethodName, LOAD_RESOURCE_PREFIX, getFieldPath(methodSymbol));
+                          loadMethodName, LOAD_METHOD_PREFIX, loadMethodName);
             return;
         }
 
         // field name starting with a capital letter
-        String expectedFieldName = loadResourceMethodName.substring(LOAD_RESOURCE_PREFIX.length());
+        String expectedFieldName = loadMethodName.substring(LOAD_METHOD_PREFIX.length());
         MethodSymbol field = findRemoteOrGetResourceMethodSymbol(serviceMethods, expectedFieldName);
         if (field == null) {
             // field name starting with a simple letter
             expectedFieldName = lowerCaseFirstChar(expectedFieldName);
             field = findRemoteOrGetResourceMethodSymbol(serviceMethods, expectedFieldName);
         }
-        if (field == null) {
-            addDiagnostic(CompilationDiagnostic.NO_MATCHING_GRAPHQL_FIELD_FOUND_FOR_DATA_LOADER, methodLocation,
-                          expectedFieldName, loadResourceMethodName);
+        if (isRemoteMethod(methodSymbol) && (field == null || !isRemoteMethod(field))) {
+            addDiagnostic(CompilationDiagnostic.NO_MATCHING_REMOTE_METHOD_FOUND_FOR_LOAD_METHOD, methodLocation,
+                          expectedFieldName, loadMethodName);
             return;
         }
-        validateLoadMethodParams(methodSymbol, loadResourceMethodName, methodLocation, expectedFieldName, field);
+        if (isResourceMethod(methodSymbol) && (field == null || !isResourceMethod(field))) {
+            addDiagnostic(CompilationDiagnostic.NO_MATCHING_RESOURCE_METHOD_FOUND_FOR_LOAD_METHOD, methodLocation,
+                          expectedFieldName, loadMethodName);
+            return;
+        }
+        validateLoadMethodParams(methodSymbol, loadMethodName, methodLocation, expectedFieldName, field);
         validateLoadMethodReturnType(methodSymbol, methodLocation);
     }
 
-    private void validateLoadMethodParams(ResourceMethodSymbol methodSymbol, String loadResourceMethodName,
+    private void validateLoadMethodParams(MethodSymbol methodSymbol, String loadResourceMethodName,
                                           Location methodLocation, String expectedFieldName, MethodSymbol field) {
         boolean hasDataLoaderParam = false;
         Set<String> fieldMethodParamSignatures = field.typeDescriptor().params().isPresent() ?
@@ -364,7 +375,7 @@ public class ServiceValidator {
         }
     }
 
-    private void validateLoadMethodReturnType(ResourceMethodSymbol methodSymbol, Location location) {
+    private void validateLoadMethodReturnType(MethodSymbol methodSymbol, Location location) {
         if (methodSymbol.typeDescriptor().returnTypeDescriptor().isEmpty()) {
             return;
         }
@@ -372,8 +383,10 @@ public class ServiceValidator {
         if (returnType.typeKind() == TypeDescKind.NIL) {
             return;
         }
+        String loadMethodName = isResourceMethod(methodSymbol) ? getFieldPath((ResourceMethodSymbol) methodSymbol) :
+                methodSymbol.getName().orElse(EMPTY_STRING);
         addDiagnostic(CompilationDiagnostic.INVALID_RETURN_TYPE_IN_LOADER_METHOD, getLocation(returnType, location),
-                      returnType.signature(), getFieldPath(methodSymbol));
+                      returnType.signature(), loadMethodName);
     }
 
     private MethodSymbol findRemoteOrGetResourceMethodSymbol(List<MethodSymbol> serviceMethods,
@@ -631,6 +644,11 @@ public class ServiceValidator {
         }
         List<MethodSymbol> methodSymbols = new ArrayList<>(objectTypeSymbol.methods().values());
         for (MethodSymbol methodSymbol : methodSymbols) {
+            if (hasLoaderAnnotation(methodSymbol)) {
+                // TODO: validate Loader id to function pointer mapping
+                validateLoadMethod(methodSymbol, location, methodSymbols);
+                return;
+            }
             if (methodSymbol.kind() == SymbolKind.RESOURCE_METHOD) {
                 resourceMethodFound = true;
                 validateResourceMethod((ResourceMethodSymbol) methodSymbol, location, methodSymbols);
@@ -651,14 +669,15 @@ public class ServiceValidator {
                                             Location location) {
         String methodName = methodSymbol.kind() == SymbolKind.RESOURCE_METHOD ?
                 getFieldPath((ResourceMethodSymbol) methodSymbol) : methodSymbol.getName().orElse(EMPTY_STRING);
-        String loadMethodName = getLoadMethodName(methodName);
-        Set<String> methodNames = remoteOrResourceMethods.stream()
-                .map(method -> method.kind() == SymbolKind.RESOURCE_METHOD ?
-                        getFieldPath((ResourceMethodSymbol) method) : method.getName().orElse(EMPTY_STRING))
-                .collect(Collectors.toSet());
-        if (!methodNames.contains(loadMethodName)) {
+        String expectedLoadMethodName = getLoadMethodName(methodName);
+        boolean hasMatchingLoadMethod = remoteOrResourceMethods.stream().anyMatch(
+                method -> isResourceMethod(method) ?
+                        expectedLoadMethodName.equals(getFieldPath((ResourceMethodSymbol) method))
+                                && RESOURCE_FUNCTION_GET.equals(getAccessor((ResourceMethodSymbol) method)) :
+                        expectedLoadMethodName.equals(method.getName().orElse(EMPTY_STRING)));
+        if (!hasMatchingLoadMethod) {
             addDiagnostic(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, getLocation(methodSymbol, location),
-                          loadMethodName, methodName);
+                          expectedLoadMethodName, methodName);
         }
     }
 
@@ -701,13 +720,13 @@ public class ServiceValidator {
 
     private void validateInputParameters(MethodSymbol methodSymbol, Location location,
                                          List<MethodSymbol> remoteOrResourceMethods) {
-        boolean isLoadMethod = hasLoaderAnnotation(methodSymbol);
         FunctionTypeSymbol functionTypeSymbol = methodSymbol.typeDescriptor();
         if (functionTypeSymbol.params().isPresent()) {
             List<ParameterSymbol> parameterSymbols = functionTypeSymbol.params().get();
+            boolean hasDataLoaderAnnotation = hasLoaderAnnotation(methodSymbol);
             for (ParameterSymbol parameter : parameterSymbols) {
                 Location inputLocation = getLocation(parameter, location);
-                if (isDataLoaderModuleSymbol(parameter.typeDescriptor()) && !isLoadMethod) {
+                if (isDataLoaderModuleSymbol(parameter.typeDescriptor()) && !hasDataLoaderAnnotation) {
                     if (RESOURCE_FUNCTION_SUBSCRIBE.equals(methodSymbol.getName().orElse(EMPTY_STRING))) {
                         addDiagnostic(CompilationDiagnostic.INVALID_DATA_LOADER_USAGE_IN_SUBSCRIPTION, inputLocation,
                                       getFieldPath((ResourceMethodSymbol) methodSymbol));
@@ -724,7 +743,7 @@ public class ServiceValidator {
     }
 
     private String getLoadMethodName(String methodName) {
-        return LOAD_RESOURCE_PREFIX + methodName.substring(0, 1).toUpperCase(ENGLISH) + methodName.substring(1);
+        return LOAD_METHOD_PREFIX + methodName.substring(0, 1).toUpperCase(ENGLISH) + methodName.substring(1);
     }
 
     private void validateInputParameterType(TypeSymbol typeSymbol, Location location, boolean isResourceMethod) {
@@ -897,6 +916,11 @@ public class ServiceValidator {
         boolean resourceMethodFound = false;
         List<MethodSymbol> methodSymbols = new ArrayList<>(classSymbol.methods().values());
         for (MethodSymbol methodSymbol : methodSymbols) {
+            if (hasLoaderAnnotation(methodSymbol)) {
+                // TODO: validate loader id to function pointer mapping
+                validateLoadMethod(methodSymbol, location, methodSymbols);
+                continue;
+            }
             if (methodSymbol.kind() == SymbolKind.RESOURCE_METHOD) {
                 resourceMethodFound = true;
                 validateResourceMethod((ResourceMethodSymbol) methodSymbol, location, methodSymbols);

@@ -31,6 +31,10 @@ service on new graphql:Listener(9090) {
 
 isolated distinct service class Author {
 
+    resource function get name() returns string {
+        return "Author";
+    }
+
     @dataloader:Loader {
         batchFunction: bookLoaderFunction
     }

@@ -29,7 +29,7 @@ service on new graphql:Listener(9090) {
     @dataloader:Loader {
         batchFunction: authorLoaderFunction
     }
-    isolated resource function get loadUpdateAuthor(dataloader:DataLoader bookLoader) {
+    remote function loadUpdateAuthor(dataloader:DataLoader bookLoader) {
         
     }
 
