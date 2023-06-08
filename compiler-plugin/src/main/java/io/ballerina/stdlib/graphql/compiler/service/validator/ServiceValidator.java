@@ -95,6 +95,7 @@ public class ServiceValidator {
     private static final String FIELD_PATH_SEPARATOR = ".";
     private static final String LOAD_METHOD_PREFIX = "load";
     private static final String EMPTY_STRING = "";
+    private static final String REMOTE_KEY_WORD = "remote";
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
     private final List<TypeSymbol> existingReturnTypes = new ArrayList<>();
@@ -667,7 +668,7 @@ public class ServiceValidator {
 
     private void checkForMatchingLoadMethod(MethodSymbol methodSymbol, List<MethodSymbol> remoteOrResourceMethods,
                                             Location location) {
-        String methodName = methodSymbol.kind() == SymbolKind.RESOURCE_METHOD ?
+        String methodName = isResourceMethod(methodSymbol) ?
                 getFieldPath((ResourceMethodSymbol) methodSymbol) : methodSymbol.getName().orElse(EMPTY_STRING);
         String expectedLoadMethodName = getLoadMethodName(methodName);
         boolean hasMatchingLoadMethod = remoteOrResourceMethods.stream().anyMatch(
@@ -677,7 +678,9 @@ public class ServiceValidator {
                         expectedLoadMethodName.equals(method.getName().orElse(EMPTY_STRING)));
         if (!hasMatchingLoadMethod) {
             addDiagnostic(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, getLocation(methodSymbol, location),
-                          expectedLoadMethodName, methodName);
+                          isResourceMethod(methodSymbol) ? RESOURCE_FUNCTION_GET : REMOTE_KEY_WORD,
+                          expectedLoadMethodName,
+                          methodName);
         }
     }
 

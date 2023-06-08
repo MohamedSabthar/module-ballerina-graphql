@@ -322,12 +322,12 @@ public class ArgumentHandler {
     private BObject getDataLoader() {
         BObject internalNode = this.field.getObjectValue(INTERNAL_NODE);
         BString fieldName = internalNode.getStringValue(NAME_FIELD);
-        String loadResourceName = getLoadResourceMethodName(fieldName);
+        String loadResourceName = getLoadMethodName(fieldName);
         BMap<BString, Object> idDataLoaderMap = this.context.getMapValue(ID_DATA_LOADER_MAP);
         return idDataLoaderMap.getObjectValue(StringUtils.fromString(loadResourceName));
     }
 
-    private String getLoadResourceMethodName(BString fieldName) {
+    private String getLoadMethodName(BString fieldName) {
         return LOAD_METHOD_NAME_PREFIX + fieldName.getValue().substring(0, 1).toUpperCase(Locale.ROOT)
                 + fieldName.getValue().substring(1);
     }

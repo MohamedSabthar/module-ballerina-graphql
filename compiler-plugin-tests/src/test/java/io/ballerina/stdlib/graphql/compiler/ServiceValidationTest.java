@@ -1166,11 +1166,12 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, "loadBooks", "books");
+        String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND,  "get", "loadBooks",
+                                         "books");
         assertErrorMessage(diagnostic, message, 32, 32);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, "loadUpdateAuthor",
+        message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND,  "remote", "loadUpdateAuthor",
                                   "updateAuthor");
         assertErrorMessage(diagnostic, message, 25, 21);
     }

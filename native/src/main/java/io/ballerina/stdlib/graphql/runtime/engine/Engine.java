@@ -212,6 +212,11 @@ public class Engine {
         return getResourceMethod(serviceType, pathList, GET_ACCESSOR);
     }
 
+    public static Object getRemoteMethod(BObject service, BString methodName) {
+        ServiceType serviceType = (ServiceType) TypeUtils.getType(service);
+        return getRemoteMethod(serviceType, methodName.getValue());
+    }
+
     private static ResourceMethodType getResourceMethod(ServiceType serviceType, List<String> path, String accessor) {
         for (ResourceMethodType resourceMethod : serviceType.getResourceMethods()) {
             if (accessor.equals(resourceMethod.getAccessor()) && isPathsMatching(resourceMethod, path)) {
@@ -271,18 +276,23 @@ public class Engine {
         return null;
     }
 
-    public static boolean hasLoadResourceMethod(BObject serviceObject, BString resourceMethodName) {
+    public static boolean hasLoadMethod(BObject serviceObject, BString resourceMethodName, boolean isRemoteMethod) {
         Type serviceType = serviceObject.getOriginalType();
         if (serviceType.getTag() != SERVICE_TAG) {
             return false;
         }
         ServiceType rootServiceType = (ServiceType) serviceType;
+        if (isRemoteMethod) {
+            return Arrays.stream(rootServiceType.getRemoteMethods()).anyMatch(
+                    methodType -> methodType.getName().equals(resourceMethodName.getValue())
+                            && getLoadAnnotation(methodType) != null);
+        }
         return Arrays.stream(rootServiceType.getResourceMethods()).anyMatch(
                 methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())
                         && getLoadAnnotation(methodType) != null);
     }
 
-    private static BMap<BString, Object> getLoadAnnotation(ResourceMethodType resourceMethodType) {
+    private static BMap<BString, Object> getLoadAnnotation(MethodType resourceMethodType) {
         String dataLoaderModuleName = getDataLoaderSubModuleNameSuffix();
         return (BMap<BString, Object>) resourceMethodType.getAnnotation(StringUtils.fromString(dataLoaderModuleName));
     }
@@ -298,17 +308,18 @@ public class Engine {
         return dataLoaderModuleName + COLON + LOADER_ANNOTATION_NAME;
     }
 
-    public static BFunctionPointer getBatchFunction(BObject serviceObject, BString resourceMethodName) {
-        ResourceMethodType resourceMethodType = Arrays.stream(
-                        ((ServiceType) serviceObject.getOriginalType()).getResourceMethods())
-                .filter(methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())).findFirst()
-                .get();
-        BMap<BString, Object> loadAnnotation = getLoadAnnotation(resourceMethodType);
+    public static BFunctionPointer getBatchFunctionFromLoadMethodAnnotation(BObject serviceObject,
+                                                                            BString loadMethodName,
+                                                                            boolean loadMethodIsRemote) {
+        ServiceType serviceType = (ServiceType) serviceObject.getOriginalType();
+        MethodType loadMethodType = loadMethodIsRemote ? getRemoteMethod(serviceType, loadMethodName.getValue()) :
+                getResourceMethod(serviceType, List.of(loadMethodName.getValue()), GET_ACCESSOR);
+        BMap<BString, Object> loadAnnotation = getLoadAnnotation(loadMethodType);
         return (BFunctionPointer) loadAnnotation.get(BATCH_FUNCTION_NAME);
     }
 
-    public static void executeLoadResource(Environment environment, BObject context, BObject service,
-                                           ResourceMethodType resourceMethod, BObject fieldObject) {
+    public static void executeLoadMethod(Environment environment, BObject context, BObject service,
+                                         MethodType resourceMethod, BObject fieldObject) {
         Future future = environment.markAsync();
         ExecutionCallback executionCallback = new ExecutionCallback(future);
         ServiceType serviceType = (ServiceType) TypeUtils.getType(service);

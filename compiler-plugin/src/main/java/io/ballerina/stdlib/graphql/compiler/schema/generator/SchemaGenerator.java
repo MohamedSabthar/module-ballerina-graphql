@@ -147,12 +147,12 @@ public class SchemaGenerator {
     private void findRootTypes(Node serviceNode) {
         Type queryType = addType(TypeName.QUERY);
         for (MethodSymbol methodSymbol : getMethods(serviceNode)) {
+            if (hasLoaderAnnotation(methodSymbol)) {
+                continue;
+            }
             if (isResourceMethod(methodSymbol)) {
                 ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) methodSymbol;
                 String accessor = getAccessor(resourceMethodSymbol);
-                if (hasLoaderAnnotation(resourceMethodSymbol)) {
-                    continue;
-                }
                 if (RESOURCE_FUNCTION_GET.equals(accessor)) {
                     queryType.addField(getField((resourceMethodSymbol)));
                 } else {
