@@ -18,7 +18,6 @@
 
 package io.ballerina.stdlib.graphql.compiler.service.validator;
 
-import io.ballerina.compiler.api.symbols.AnnotationSymbol;
 import io.ballerina.compiler.api.symbols.ArrayTypeSymbol;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.EnumSymbol;
@@ -79,7 +78,6 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isValidGraphqlParameter;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_GET;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_SUBSCRIBE;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.getLoaderAnnotation;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.getLocation;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.hasLoaderAnnotation;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.isInvalidFieldName;
@@ -312,15 +310,14 @@ public class ServiceValidator {
     private void validateLoadMethod(MethodSymbol methodSymbol, Location location, List<MethodSymbol> serviceMethods) {
         String loadMethodName = isResourceMethod(methodSymbol) ? getFieldPath((ResourceMethodSymbol) methodSymbol) :
                 methodSymbol.getName().orElse(EMPTY_STRING);
+        Location methodLocation = getLocation(methodSymbol, location);
         if (isResourceMethod(methodSymbol) && RESOURCE_FUNCTION_SUBSCRIBE.equals(
                 getAccessor((ResourceMethodSymbol) methodSymbol))) {
-            AnnotationSymbol loaderAnnotation = getLoaderAnnotation(methodSymbol);
             addDiagnostic(CompilationDiagnostic.INVALID_USAGE_OF_LOADER_ANNOTATION_IN_SUBSCRIBE_RESOURCE,
-                          getLocation(loaderAnnotation, location), loadMethodName);
+                          methodLocation, loadMethodName);
             return;
         }
 
-        Location methodLocation = getLocation(methodSymbol, location);
         if (!loadMethodName.startsWith(LOAD_METHOD_PREFIX)) {
             addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, methodLocation,
                           loadMethodName, LOAD_METHOD_PREFIX, loadMethodName);

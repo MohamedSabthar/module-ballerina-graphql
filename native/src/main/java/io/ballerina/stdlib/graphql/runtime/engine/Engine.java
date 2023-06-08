@@ -308,9 +308,8 @@ public class Engine {
         return dataLoaderModuleName + COLON + LOADER_ANNOTATION_NAME;
     }
 
-    public static BFunctionPointer getBatchFunctionFromLoadMethodAnnotation(BObject serviceObject,
-                                                                            BString loadMethodName,
-                                                                            boolean loadMethodIsRemote) {
+    public static BFunctionPointer getBatchFunction(BObject serviceObject, BString loadMethodName,
+                                                    boolean loadMethodIsRemote) {
         ServiceType serviceType = (ServiceType) serviceObject.getOriginalType();
         MethodType loadMethodType = loadMethodIsRemote ? getRemoteMethod(serviceType, loadMethodName.getValue()) :
                 getResourceMethod(serviceType, List.of(loadMethodName.getValue()), GET_ACCESSOR);

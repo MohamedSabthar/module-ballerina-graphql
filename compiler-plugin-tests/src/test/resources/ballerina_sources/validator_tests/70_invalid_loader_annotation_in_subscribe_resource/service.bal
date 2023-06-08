@@ -18,36 +18,19 @@ import ballerina/graphql;
 import ballerina/graphql.dataloader;
 
 service on new graphql:Listener(9090) {
-    resource function get authors(int[] ids) returns Author[]|error {
-        return [];
+    resource function get greet(int[] ids) returns string {
+        return "Hello World!";
     }
 
     @dataloader:Loader {
-        batchFunction: bookLoaderFunction
+        batchFunction: batchData
     }
-    isolated resource function get loadBooks(dataloader:DataLoader bookLoader) {
-    }
-
-    @dataloader:Loader {
-        batchFunction: bookLoaderFunction
-    }
-    remote function loadAuthors(dataloader:DataLoader bookLoader) {
+    resource function subscribe data(dataloader:DataLoader loader) returns stream<string> {
+        return ["Hello", "World!"].toStream();
     }
 }
 
-isolated distinct service class Author {
-
-    resource function get name() returns string {
-        return "Author";
-    }
-
-    @dataloader:Loader {
-        batchFunction: bookLoaderFunction
-    }
-    isolated resource function get loadBooks(dataloader:DataLoader bookLoader) {
-    }
-}
-
-isolated function bookLoaderFunction(readonly & anydata[] ids) returns anydata[]|error {
-    return ids;
+isolated function batchData(readonly & anydata[] ids) returns anydata[]|error {
+    return [];
 };
+

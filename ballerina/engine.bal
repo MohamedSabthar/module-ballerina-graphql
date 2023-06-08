@@ -293,7 +293,7 @@ isolated class Engine {
     private isolated function getResultFromLoadMethodExecution(Context context, Field 'field, string loadMethodName,
                                                                boolean isRemoteMethod) returns PlaceHolderNode? {
         service object {} serviceObject = <service object {}>'field.getServiceObject();
-        var batchFunction = self.getBatchFunctionFromLoadMethodAnnotation(serviceObject, loadMethodName, isRemoteMethod);
+        var batchFunction = self.getBatchFunction(serviceObject, loadMethodName, isRemoteMethod);
         context.addDataLoader(batchFunction, loadMethodName);
         handle? loadMethodHandle = ();
         if isRemoteMethod {
@@ -418,7 +418,7 @@ isolated class Engine {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
 
-    isolated function getBatchFunctionFromLoadMethodAnnotation(service object {} serviceObject, string loadMethodName, boolean isRemoteMethod)
+    isolated function getBatchFunction(service object {} serviceObject, string loadMethodName, boolean isRemoteMethod)
     returns (isolated function (readonly & anydata[] keys) returns anydata[]|error) = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;

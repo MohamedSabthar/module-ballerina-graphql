@@ -1108,16 +1108,21 @@ public class ServiceValidationTest {
     public void testLoaderMethodWithoutGraphqlFieldMapping() {
         String packagePath = "63_loader_method_without_graphql_field_mapping";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
-        Assert.assertEquals(diagnosticResult.errorCount(), 2);
+        Assert.assertEquals(diagnosticResult.errorCount(), 3);
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_RESOURCE_METHOD_FOUND_FOR_LOAD_METHOD,
                                          "books", "loadBooks");
-        assertErrorMessage(diagnostic, message, 41, 32);
+        assertErrorMessage(diagnostic, message, 47, 32);
 
         diagnostic = diagnosticIterator.next();
         assertErrorMessage(diagnostic, message, 28, 32);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_REMOTE_METHOD_FOUND_FOR_LOAD_METHOD,
+                                  "authors", "loadAuthors");
+        assertErrorMessage(diagnostic, message, 34, 21);
     }
 
     @Test(groups = "invalid")
@@ -1193,6 +1198,19 @@ public class ServiceValidationTest {
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.INVALID_DATA_LOADER_USAGE_IN_SUBSCRIPTION, "data");
         assertErrorMessage(diagnostic, message, 25, 60);
+    }
+
+    @Test(groups = "invalid")
+    public void testInvalidLoaderAnnotationInSubscribeResource() {
+        String packagePath = "70_invalid_loader_annotation_in_subscribe_resource";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.INVALID_USAGE_OF_LOADER_ANNOTATION_IN_SUBSCRIBE_RESOURCE,
+                                         "data");
+        assertErrorMessage(diagnostic, message, 28, 23);
     }
 
     private DiagnosticResult getDiagnosticResult(String packagePath) {
