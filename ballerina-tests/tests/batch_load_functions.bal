@@ -21,11 +21,13 @@ isolated function authorLoaderFunction(readonly & anydata[] ids) returns AuthorR
     lock {
         databaseHitForAuthorField += 1;
     }
-    readonly & int[] validKeys = keys.'filter(key => authorTable.hasKey(key)).cloneReadOnly();
-    if keys.length() != validKeys.length() {
-        return error("Invalid keys found for authors");
+    lock {
+        readonly & int[] validKeys = keys.'filter(key => authorTable.hasKey(key)).cloneReadOnly();
+        if keys.length() != validKeys.length() {
+            return error("Invalid keys found for authors");
+        }
+        return validKeys.'map(key => authorTable.get(key));
     }
-    return validKeys.'map(key => authorTable.get(key));
 };
 
 isolated function bookLoaderFunction(readonly & anydata[] ids) returns BookRow[][]|error {
@@ -36,6 +38,28 @@ isolated function bookLoaderFunction(readonly & anydata[] ids) returns BookRow[]
         databaseHitForBookField += 1;
     }
     return keys.'map(isolated function(readonly & int key) returns BookRow[] {
-        return bookTable.'filter(book => book.author == key).toArray();
+        lock {
+            return bookTable.'filter(book => book.author == key).toArray().clone();
+        }
     });
+};
+
+isolated function authorUpdateLoaderFunction(readonly & anydata[] idNames) returns AuthorRow[]|error {
+    readonly & [int, string][] idValuePair = <readonly & [int, string][]>idNames;
+    // simulate batch udpate
+    lock {
+        databaseHitForUpdateAuthorNameField += 1;
+    }
+    lock {
+        AuthorRow[] updatedAuthorRows = [];
+        foreach [int, string] [key, name] in idValuePair {
+            if !authorTable.hasKey(key) {
+                return error(string `Invalid key author key found: ${key}`);
+            }
+            AuthorRow authorRow = {id: key, name};
+            authorTable.put(authorRow);
+            updatedAuthorRows.push(authorRow.clone());
+        }
+        return updatedAuthorRows.clone();
+    }
 };

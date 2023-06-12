@@ -18,7 +18,7 @@ import ballerina/graphql;
 import ballerina/test;
 
 @test:Config {
-    groups: ["dataloader"]
+    groups: ["dataloader", "query"]
 }
 isolated function testDataLoaderWithQuery() returns error? {
     string url = "localhost:9090/dataloader";
@@ -38,7 +38,7 @@ isolated function testDataLoaderWithQuery() returns error? {
 }
 
 @test:Config {
-    groups: ["dataloader"]
+    groups: ["dataloader", "query"]
 }
 isolated function testDataLoaderWithDifferentAliasForSameField() returns error? {
     string url = "localhost:9090/dataloader";
@@ -50,6 +50,27 @@ isolated function testDataLoaderWithDifferentAliasForSameField() returns error? 
     lock {
         test:assertEquals(databaseHitForAuthorField, 1, "Database hit for author field is not 1");
         databaseHitForAuthorField = 0;
+    }
+    lock {
+        test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
+        databaseHitForBookField = 0;
+    }
+}
+
+@test:Config {
+    groups: ["dataloader", "mutation"],
+    dependsOn: [testDataLoaderWithQuery]
+}
+isolated function testDataLoaderWithMutation() returns error? {
+    string url = "localhost:9090/dataloader";
+    graphql:Client graphqlClient = check new (url);
+    string document = check getGraphqlDocumentFromFile("dataloader_with_mutation");
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = check getJsonContentFromFile("dataloader_with_mutation");
+    assertJsonValuesWithOrder(response, expectedPayload);
+    lock {
+        test:assertEquals(databaseHitForUpdateAuthorNameField, 1, "Database hit for updateAuthorName field is not 1");
+        databaseHitForUpdateAuthorNameField = 0;
     }
     lock {
         test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");

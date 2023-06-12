@@ -2108,4 +2108,18 @@ service /dataloader on wrappedListener {
             authorLoader.load(id);
         });
     }
+
+    remote function updateAuthorName(int id, string name, dataloader:DataLoader authorUpdateLoader) returns AuthorData|error {
+        [int, string] key = [id, name];
+        AuthorRow authorRow = check authorUpdateLoader.get(key);
+        return new (authorRow);
+    }
+
+    @dataloader:Loader {
+        batchFunction: authorUpdateLoaderFunction
+    }
+    remote function loadUpdateAuthorName(int id, string name, dataloader:DataLoader authorUpdateLoader) {
+        [int, string] key = [id, name];
+        authorUpdateLoader.load(key);
+    }
 }

@@ -271,7 +271,7 @@ const WS_COMPLETE = "complete";
 const GRAPHQL_TRANSPORT_WS = "graphql-transport-ws";
 const WS_SUB_PROTOCOL = "Sec-WebSocket-Protocol";
 
-final readonly & table<AuthorRow> key(id) authorTable = table [
+final isolated table<AuthorRow> key(id) authorTable = table [
     {id: 1, name: "Author 1"},
     {id: 2, name: "Author 2"},
     {id: 3, name: "Author 3"},
@@ -279,7 +279,7 @@ final readonly & table<AuthorRow> key(id) authorTable = table [
     {id: 5, name: "Author 5"}
 ];
 
-final readonly & table<BookRow> key(id) bookTable = table [
+final isolated table<BookRow> key(id) bookTable = table [
     {id: 1, title: "Book 1", author: 1},
     {id: 2, title: "Book 2", author: 1},
     {id: 3, title: "Book 3", author: 1},
@@ -293,3 +293,4 @@ final readonly & table<BookRow> key(id) bookTable = table [
 
 isolated int databaseHitForBookField = 0;
 isolated int databaseHitForAuthorField = 0;
+isolated int databaseHitForUpdateAuthorNameField = 0;
