@@ -202,16 +202,19 @@ public isolated class Context {
         }
     }
 
-    isolated function addPlaceHolder(string id, PlaceHolder placeHolder) {
+    isolated function addPlaceHolder(string[] dataLoaderIds, PlaceHolder placeHolder) {
+        final readonly & string[] loaderIds = dataLoaderIds.cloneReadOnly();
         lock {
-            string hashCode = getHashCode(placeHolder);
-            self.hashCodePlaceHolderMap[hashCode] = placeHolder;
-            self.unResolvedPlaceHolderCount += 1;
+            foreach string id in loaderIds {
+                string hashCode = getHashCode(placeHolder);
+                self.hashCodePlaceHolderMap[hashCode] = placeHolder;
+                self.unResolvedPlaceHolderCount += 1;
 
-            if !self.idPlaceHolderMap.hasKey(id) {
-                self.idPlaceHolderMap[id] = [];
+                if !self.idPlaceHolderMap.hasKey(id) {
+                    self.idPlaceHolderMap[id] = [];
+                }
+                self.idPlaceHolderMap.get(id).push(placeHolder);
             }
-            self.idPlaceHolderMap.get(id).push(placeHolder);
         }
     }
 
@@ -219,8 +222,20 @@ public isolated class Context {
         lock {
             map<PlaceHolder[]> idPlaceHolderMap = self.idPlaceHolderMap;
             self.idPlaceHolderMap = {};
-            foreach [string, PlaceHolder[]] [id, placeHolders] in idPlaceHolderMap.entries() {
+            foreach [string, PlaceHolder[]] [id, _] in idPlaceHolderMap.entries() {
                 self.idDataLoaderMap.get(id).dispatch();
+                // foreach PlaceHolder placeHolder in placeHolders {
+                //     Engine? engine = self.getEngine();
+                //     if engine is () {
+                //         continue;
+                //     }
+                //     anydata resolvedVal = engine.resolve(self, 'placeHolder.getField(), false);
+                //     placeHolder.setValue(resolvedVal);
+                //     self.unResolvedPlaceHolderCount -= 1;
+                // }
+            }
+            foreach [string, PlaceHolder[]] [_, placeHolders] in idPlaceHolderMap.entries() {
+                // self.idDataLoaderMap.get(id).dispatch();
                 foreach PlaceHolder placeHolder in placeHolders {
                     Engine? engine = self.getEngine();
                     if engine is () {

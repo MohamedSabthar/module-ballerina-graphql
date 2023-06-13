@@ -15,12 +15,10 @@
 // under the License.
 
 # Provides a set of configurations for the load resource method.
-# + id - The id field allows reusing the DataLoader in different GraphQL fields
-# + batchFunction - The batch function to be used in the DataLoader
+# + batchFunctions - The map of batch function to be used in the DataLoader
 public type LoaderConfig record {|
-    string id?;
-    (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchFunction;
+    map<(isolated function (readonly & anydata[] keys) returns anydata[]|error)> batchFunctions;
 |};
 
 # The annotation to configure the load resource method with a DataLoader.
-public annotation  LoaderConfig  Loader on object function;
+public annotation LoaderConfig  Loader on object function;

@@ -293,8 +293,12 @@ isolated class Engine {
     private isolated function getResultFromLoadMethodExecution(Context context, Field 'field, string loadMethodName,
                                                                boolean isRemoteMethod) returns PlaceHolderNode? {
         service object {} serviceObject = <service object {}>'field.getServiceObject();
-        var batchFunction = self.getBatchFunction(serviceObject, loadMethodName, isRemoteMethod);
-        context.addDataLoader(batchFunction, loadMethodName);
+        var batchFunctions = self.getBatchFunctionsMap(serviceObject, loadMethodName, isRemoteMethod);
+        string[] batchFunctionIds = [];
+        foreach var [batchFunctionId, batchFunction] in batchFunctions.entries() {
+            context.addDataLoader(batchFunction, batchFunctionId);
+            batchFunctionIds.push(batchFunctionId);
+        }
         handle? loadMethodHandle = ();
         if isRemoteMethod {
             loadMethodHandle = self.getRemoteMethod(serviceObject, loadMethodName);
@@ -306,7 +310,8 @@ isolated class Engine {
         }
         self.executeLoadMethod(context, serviceObject, loadMethodHandle, 'field);
         PlaceHolder placeHolder = new ('field);
-        context.addPlaceHolder(loadMethodName, placeHolder);
+        // TODO: pass array of dataloader id's here
+        context.addPlaceHolder(batchFunctionIds, placeHolder);
         string hashCode = getHashCode(placeHolder);
         PlaceHolderNode ph = {hashCode};
         return ph;
@@ -418,8 +423,8 @@ isolated class Engine {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
 
-    isolated function getBatchFunction(service object {} serviceObject, string loadMethodName, boolean isRemoteMethod)
-    returns (isolated function (readonly & anydata[] keys) returns anydata[]|error) = @java:Method {
+    isolated function getBatchFunctionsMap(service object {} serviceObject, string loadMethodName, boolean isRemoteMethod)
+    returns map<(isolated function (readonly & anydata[] keys) returns anydata[]|error)> = @java:Method {
         'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
     } external;
 

@@ -355,12 +355,15 @@ public class ServiceValidator {
         List<ParameterSymbol> parameterSymbols = methodSymbol.typeDescriptor().params().isPresent() ?
                 methodSymbol.typeDescriptor().params().get() : new ArrayList<>();
         for (ParameterSymbol symbol : parameterSymbols) {
-            if (isDataLoaderModuleSymbol(symbol.typeDescriptor())) {
-                if (symbol.typeDescriptor().getName().isPresent() && symbol.typeDescriptor().getName().get()
-                        .equals(DATA_LOADER_IDENTIFIER)) {
-                    hasDataLoaderParam = true;
+            if (symbol.typeDescriptor().typeKind() == TypeDescKind.MAP) {
+                MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) symbol.typeDescriptor();
+                if (isDataLoaderModuleSymbol(mapTypeSymbol.typeParam())) {
+                    if (mapTypeSymbol.typeParam().getName().isPresent() && mapTypeSymbol.typeParam().getName().get()
+                            .equals(DATA_LOADER_IDENTIFIER)) {
+                        hasDataLoaderParam = true;
+                    }
+                    continue;
                 }
-                continue;
             }
             if (!fieldMethodParamSignatures.contains(symbol.signature())) {
                 addDiagnostic(CompilationDiagnostic.INVALID_PARAMETER_IN_LOAD_METHOD, methodLocation,
@@ -726,13 +729,17 @@ public class ServiceValidator {
             boolean hasDataLoaderAnnotation = hasLoaderAnnotation(methodSymbol);
             for (ParameterSymbol parameter : parameterSymbols) {
                 Location inputLocation = getLocation(parameter, location);
-                if (isDataLoaderModuleSymbol(parameter.typeDescriptor()) && !hasDataLoaderAnnotation) {
-                    if (RESOURCE_FUNCTION_SUBSCRIBE.equals(methodSymbol.getName().orElse(EMPTY_STRING))) {
-                        addDiagnostic(CompilationDiagnostic.INVALID_DATA_LOADER_USAGE_IN_SUBSCRIPTION, inputLocation,
-                                      getFieldPath((ResourceMethodSymbol) methodSymbol));
+                if (parameter.typeDescriptor().typeKind() == TypeDescKind.MAP) {
+                    MapTypeSymbol parameterTypeSymbol = (MapTypeSymbol) parameter.typeDescriptor();
+                    if (isDataLoaderModuleSymbol(parameterTypeSymbol.typeParam()) && !hasDataLoaderAnnotation) {
+                        if (RESOURCE_FUNCTION_SUBSCRIBE.equals(methodSymbol.getName().orElse(EMPTY_STRING))) {
+                            addDiagnostic(CompilationDiagnostic.INVALID_DATA_LOADER_USAGE_IN_SUBSCRIPTION,
+                                          inputLocation, getFieldPath((ResourceMethodSymbol) methodSymbol));
+                            continue;
+                        }
+                        checkForMatchingLoadMethod(methodSymbol, remoteOrResourceMethods, location);
                         continue;
                     }
-                    checkForMatchingLoadMethod(methodSymbol, remoteOrResourceMethods, location);
                 }
                 if (isValidGraphqlParameter(parameter.typeDescriptor())) {
                     continue;

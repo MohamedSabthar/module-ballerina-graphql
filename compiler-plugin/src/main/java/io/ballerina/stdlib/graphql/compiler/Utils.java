@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.hasGraphqlListener;
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isDataLoaderModuleSymbol;
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphQLServiceObjectDeclaration;
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
@@ -217,7 +216,7 @@ public final class Utils {
         if (typeSymbol.getName().isEmpty()) {
             return false;
         }
-        if (!isGraphqlModuleSymbol(typeSymbol) && !(isDataLoaderModuleSymbol(typeSymbol))) {
+        if (!isGraphqlModuleSymbol(typeSymbol)) {
             return false;
         }
         String typeName = typeSymbol.getName().get();

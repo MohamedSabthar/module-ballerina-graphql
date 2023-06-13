@@ -87,14 +87,14 @@ public enum DiagnosticMessage {
                       + "''{1}'' followed by the GraphQL field name where the data loader is used"),
     ERROR_141("no corresponding remote method with name ''{0}'' found for data loader remote method ''{1}''"),
     ERROR_142("invalid method signature found in resource method ''{0}''. The method requires a parameter of type "
-                      + "''dataloader:DataLoader''"),
+                      + "''map<dataloader:DataLoader>''"),
     ERROR_143("invalid parameter ''{0}'' found in data loader resource method ''{1}''. No matching parameter found for"
                       + " the GraphQL field ''{2}''"),
     ERROR_144("invalid return type ''{0}'' found in data loader resource method ''{1}''. The data loader resource "
                       + "method must not return any value"),
     ERROR_145("no matching {0} method ''{1}'' found for the GraphQL field ''{2}''. A data loader {0} "
                       + "method with the name ''{1}'' must be present in the service to use the data loader"),
-    ERROR_146("invalid usage of dataloader:DataLoader in subscribe resource ''{0}''"),
+    ERROR_146("invalid usage of map<dataloader:DataLoader> in subscribe resource ''{0}''"),
     ERROR_147("no corresponding get resource method with name ''{0}'' found for data loader resource method ''{1}''"),
     ERROR_148("invalid usage of @dataloader:Loader annotation in subscribe resource method ''{0}''");
 

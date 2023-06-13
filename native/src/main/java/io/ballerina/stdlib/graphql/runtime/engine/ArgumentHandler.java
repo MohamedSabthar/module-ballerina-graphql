@@ -25,6 +25,7 @@ import io.ballerina.runtime.api.types.ArrayType;
 import io.ballerina.runtime.api.types.Field;
 import io.ballerina.runtime.api.types.FiniteType;
 import io.ballerina.runtime.api.types.IntersectionType;
+import io.ballerina.runtime.api.types.MapType;
 import io.ballerina.runtime.api.types.MethodType;
 import io.ballerina.runtime.api.types.Parameter;
 import io.ballerina.runtime.api.types.RecordType;
@@ -34,6 +35,7 @@ import io.ballerina.runtime.api.utils.JsonUtils;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BArray;
+import io.ballerina.runtime.api.values.BFunctionPointer;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
@@ -68,6 +70,7 @@ public class ArgumentHandler {
     private final BMap<BString, Object> fileInfo;
     private final BObject context;
     private final BObject field;
+    private final BObject service;
 
     private static final String REPRESENTATION_TYPENAME = "Representation";
     private static final BString NAME_FIELD = StringUtils.fromString("name");
@@ -85,11 +88,12 @@ public class ArgumentHandler {
     private static final int T_INPUT_OBJECT = 22;
     private static final int T_LIST = 23;
 
-    public ArgumentHandler(MethodType method, BObject context, BObject field) {
+    public ArgumentHandler(MethodType method, BObject context, BObject field, BObject service) {
         this.method = method;
         this.fileInfo = (BMap<BString, Object>) context.getNativeData(FILE_INFO_FIELD);
         this.context = context;
         this.field = field;
+        this.service = service;
         this.argumentsMap = ValueCreator.createMapValue();
     }
 
@@ -299,8 +303,9 @@ public class ArgumentHandler {
                 result[j + 1] = true;
                 continue;
             }
-            if (isDataLoader(parameters[i].type)) {
-                result[j] = getDataLoader();
+            if (isDataLoaderMap(parameters[i].type)) {
+                BMap<BString, BFunctionPointer> batchFunctionsMap = getBatchFunctionsMap();
+                result[j] = getDataLoaderMap(batchFunctionsMap);
                 result[j + 1] = true;
                 continue;
             }
@@ -315,16 +320,36 @@ public class ArgumentHandler {
         return result;
     }
 
-    private static boolean isDataLoader(Type type) {
-        return isDataLoaderModule(type) && type.getName().equals(DATA_LOADER_OBJECT);
+    private BMap<BString, Object> getDataLoaderMap(BMap<BString, BFunctionPointer> batchFunctionsMap) {
+        BMap<BString, Object> idDataLoaderMap = this.context.getMapValue(ID_DATA_LOADER_MAP);
+        BMap<BString, Object> dataLoaderMap = ValueCreator.createMapValue();
+        for (BString id : idDataLoaderMap.getKeys()) {
+            dataLoaderMap.put(id, idDataLoaderMap.getObjectValue(id));
+        }
+        return dataLoaderMap;
     }
 
-    private BObject getDataLoader() {
+    private static boolean isDataLoaderMap(Type type) {
+        if (type.getTag() != TypeTags.MAP_TAG) {
+            return false;
+        }
+        MapType mapType = (MapType) type;
+        Type constrainedType = mapType.getConstrainedType();
+        return isDataLoaderModule(constrainedType) && constrainedType.getName().equals(DATA_LOADER_OBJECT);
+    }
+
+    private BMap<BString, BFunctionPointer> getBatchFunctionsMap() {
         BObject internalNode = this.field.getObjectValue(INTERNAL_NODE);
         BString fieldName = internalNode.getStringValue(NAME_FIELD);
-        String loadResourceName = getLoadMethodName(fieldName);
-        BMap<BString, Object> idDataLoaderMap = this.context.getMapValue(ID_DATA_LOADER_MAP);
-        return idDataLoaderMap.getObjectValue(StringUtils.fromString(loadResourceName));
+        String loadMethodName = getLoadMethodName(fieldName);
+        boolean isLoadMethodIsRemote =
+                ((BString) this.field.get(StringUtils.fromString("operationType"))).getValue().equals("mutation")
+                        && ((BArray) this.field.get(StringUtils.fromString("path"))).size() == 1;
+        BMap<BString, BFunctionPointer> batchFunctionMap = Engine.getBatchFunctionsMap(this.service,
+                                                                                       StringUtils.fromString(
+                                                                                               loadMethodName),
+                                                                                       isLoadMethodIsRemote);
+        return batchFunctionMap;
     }
 
     private String getLoadMethodName(BString fieldName) {
