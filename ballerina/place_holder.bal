@@ -17,7 +17,7 @@
 import ballerina/jballerina.java;
 
 type PlaceHolderNode record {|
-    string hashCode;
+    string __uuid;
 |};
 
 isolated class PlaceHolder {

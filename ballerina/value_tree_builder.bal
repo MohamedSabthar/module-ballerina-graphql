@@ -37,7 +37,7 @@ isolated class ValueTreeBuilder {
             return partialValue;
         }
         if partialValue is PlaceHolderNode {
-            anydata value = context.getPlaceHolderValue(partialValue.hashCode);
+            anydata value = context.getPlaceHolderValue(partialValue.__uuid);
             return self.buildResultTree(context, value);
         }
         if partialValue is map<anydata> && isMap(partialValue) {

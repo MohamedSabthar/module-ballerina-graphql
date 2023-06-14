@@ -14,10 +14,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import graphql.dataloader;
 import ballerina/http;
 import ballerina/jballerina.java;
 import ballerina/lang.value;
-import graphql.dataloader;
 
 # The GraphQL context object used to pass the meta information between resolvers.
 public isolated class Context {
@@ -28,7 +28,7 @@ public isolated class Context {
     private boolean hasFileInfo = false; // This field value changed by setFileInfo method
     private map<dataloader:DataLoader> idDataLoaderMap = {};
     private map<PlaceHolder[]> idPlaceHolderMap = {};
-    private map<PlaceHolder> hashCodePlaceHolderMap = {};
+    private map<PlaceHolder> uuidPlaceHolderMap = {};
     private int unResolvedPlaceHolderCount = 0;
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
@@ -202,12 +202,11 @@ public isolated class Context {
         }
     }
 
-    isolated function addPlaceHolder(string[] dataLoaderIds, PlaceHolder placeHolder) {
+    isolated function addPlaceHolder(string[] dataLoaderIds, string uuid, PlaceHolder placeHolder) {
         final readonly & string[] loaderIds = dataLoaderIds.cloneReadOnly();
         lock {
             foreach string id in loaderIds {
-                string hashCode = getHashCode(placeHolder);
-                self.hashCodePlaceHolderMap[hashCode] = placeHolder;
+                self.uuidPlaceHolderMap[uuid] = placeHolder;
                 self.unResolvedPlaceHolderCount += 1;
 
                 if !self.idPlaceHolderMap.hasKey(id) {
@@ -249,9 +248,9 @@ public isolated class Context {
         }
     }
 
-    isolated function getPlaceHolderValue(string hashCode) returns anydata {
+    isolated function getPlaceHolderValue(string uuid) returns anydata {
         lock {
-            return self.hashCodePlaceHolderMap.remove(hashCode).getValue();
+            return self.uuidPlaceHolderMap.remove(uuid).getValue();
         }
     }
 

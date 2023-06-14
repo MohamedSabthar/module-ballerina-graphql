@@ -15,7 +15,7 @@
 // under the License.
 
 import ballerina/jballerina.java;
-
+import ballerina/uuid;
 import graphql.parser;
 
 isolated class Engine {
@@ -311,9 +311,9 @@ isolated class Engine {
         self.executeLoadMethod(context, serviceObject, loadMethodHandle, 'field);
         PlaceHolder placeHolder = new ('field);
         // TODO: pass array of dataloader id's here
-        context.addPlaceHolder(batchFunctionIds, placeHolder);
-        string hashCode = getHashCode(placeHolder);
-        PlaceHolderNode ph = {hashCode};
+        string uuid = uuid:createType1AsString();
+        context.addPlaceHolder(batchFunctionIds, uuid, placeHolder);
+        PlaceHolderNode ph = {__uuid: uuid};
         return ph;
     }
 
