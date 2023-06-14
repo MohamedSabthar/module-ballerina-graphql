@@ -2126,4 +2126,11 @@ service /dataloader on wrappedListener {
         dataloader:DataLoader authorUpdateLoader = loaders.get("auhtorUpdateLoader");
         authorUpdateLoader.load(key);
     }
+
+    resource function subscribe authors() returns stream<AuthorData> {
+        lock {
+            readonly & AuthorRow[] authorRows = authorTable.toArray().cloneReadOnly();
+            return authorRows.'map(authorRow => new AuthorData(authorRow)).toStream();
+        }
+    }
 }

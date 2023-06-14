@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/graphql;
+import ballerina/websocket;
 import ballerina/test;
 
 @test:Config {
@@ -58,8 +59,36 @@ isolated function testDataLoaderWithDifferentAliasForSameField() returns error? 
 }
 
 @test:Config {
+    groups: ["dataloader", "subscription"]
+}
+isolated function testDataLoaderWithSubscription() returns error? {
+    string document = check getGraphqlDocumentFromFile("dataloader_with_subscription");
+    string url = "ws://localhost:9090/dataloader";
+    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
+    websocket:Client wsClient = check new (url, config);
+    check initiateGraphqlWsConnection(wsClient);
+    check sendSubscriptionMessage(wsClient, document, "1");
+    json[] authorSequence = [
+        {name: "Author 1", books: [{id: 1, title: "Book 1"}, {id: 2, title: "Book 2"}, {id: 3, title: "Book 3"}]},
+        {name: "Author 2", books: [{id: 4, title: "Book 4"}, {id: 5, title: "Book 5"}]},
+        {name: "Author 3", books: [{id: 6, title: "Book 6"}, {id: 7, title: "Book 7"}]},
+        {name: "Author 4", books: [{id: 8, title: "Book 8"}]},
+        {name: "Author 5", books: [{id: 9, title: "Book 9"}]}
+    ];
+
+    foreach int i in 0 ..< 5 {
+        json expectedMsgPayload = {data: {authors: authorSequence[i]}};
+        check validateNextMessage(wsClient, expectedMsgPayload, id = "1");
+    }
+    lock {
+        test:assertEquals(databaseHitForBookField, 5, "Database hit for book field is not 5");
+        databaseHitForBookField = 0;
+    }
+}
+
+@test:Config {
     groups: ["dataloader", "mutation"],
-    dependsOn: [testDataLoaderWithQuery]
+    dependsOn: [testDataLoaderWithQuery, testDataLoaderWithSubscription]
 }
 isolated function testDataLoaderWithMutation() returns error? {
     string url = "localhost:9090/dataloader";
@@ -76,24 +105,4 @@ isolated function testDataLoaderWithMutation() returns error? {
         test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
         databaseHitForBookField = 0;
     }
-}
-
-@test:Config {
-    groups: ["dataloader", "mutation", "interceptor"]
-}
-isolated function testDataLoaderWithInterceptor() returns error? {
-    // string url = "localhost:9090/dataloader";
-    // graphql:Client graphqlClient = check new (url);
-    // string document = check getGraphqlDocumentFromFile("dataloader_with_mutation");
-    // json response = check graphqlClient->execute(document);
-    // json expectedPayload = check getJsonContentFromFile("dataloader_with_mutation");
-    // assertJsonValuesWithOrder(response, expectedPayload);
-    // lock {
-    //     test:assertEquals(databaseHitForUpdateAuthorNameField, 1, "Database hit for updateAuthorName field is not 1");
-    //     databaseHitForUpdateAuthorNameField = 0;
-    // }
-    // lock {
-    //     test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
-    //     databaseHitForBookField = 0;
-    // }
 }

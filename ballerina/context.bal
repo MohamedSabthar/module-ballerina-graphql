@@ -30,6 +30,7 @@ public isolated class Context {
     private map<PlaceHolder[]> idPlaceHolderMap = {};
     private map<PlaceHolder> uuidPlaceHolderMap = {};
     private int unResolvedPlaceHolderCount = 0;
+    private boolean containPlaceHolders = false;
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
                                   int nextInterceptor = 0) {
@@ -205,6 +206,7 @@ public isolated class Context {
     isolated function addPlaceHolder(string[] dataLoaderIds, string uuid, PlaceHolder placeHolder) {
         final readonly & string[] loaderIds = dataLoaderIds.cloneReadOnly();
         lock {
+            self.containPlaceHolders = true;
             foreach string id in loaderIds {
                 self.uuidPlaceHolderMap[uuid] = placeHolder;
                 self.unResolvedPlaceHolderCount += 1;
@@ -224,6 +226,13 @@ public isolated class Context {
             self.idDataLoaderMap.removeAll();
             self.idPlaceHolderMap.removeAll();
             self.uuidPlaceHolderMap.removeAll();
+            self.containPlaceHolders = false;
+        }
+    }
+
+    isolated function hasPlaceHolders() returns boolean {
+        lock {
+            return self.containPlaceHolders;
         }
     }
 

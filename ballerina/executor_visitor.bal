@@ -121,8 +121,13 @@ isolated class ExecutorVisitor {
 
     isolated function getOutput() returns OutputObject {
         lock {
-            ValueTreeBuilder valueTreeBuilder = new(self.context, self.data);
-            Data data = <Data>valueTreeBuilder.build();
+            Data data;
+            if self.context.hasPlaceHolders() {
+                ValueTreeBuilder valueTreeBuilder = new(self.context, self.data);
+                data = <Data>valueTreeBuilder.build();
+            } else {
+                data = self.data; // avoid rebuilding the result tree
+            }
             return getOutputObject(data.clone(), self.context.getErrors().clone());
         }
     }
