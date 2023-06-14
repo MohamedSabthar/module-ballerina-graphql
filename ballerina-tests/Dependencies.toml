@@ -79,6 +79,7 @@ dependencies = [
 	{org = "ballerina", name = "oauth2"},
 	{org = "ballerina", name = "task"},
 	{org = "ballerina", name = "time"},
+	{org = "ballerina", name = "uuid"},
 	{org = "ballerina", name = "websocket"}
 ]
 modules = [
@@ -346,6 +347,17 @@ dependencies = [
 ]
 modules = [
 	{org = "ballerina", packageName = "url", moduleName = "url"}
+]
+
+[[package]]
+org = "ballerina"
+name = "uuid"
+version = "1.5.1"
+dependencies = [
+	{org = "ballerina", name = "crypto"},
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.int"},
+	{org = "ballerina", name = "time"}
 ]
 
 [[package]]
