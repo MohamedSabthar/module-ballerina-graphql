@@ -217,6 +217,16 @@ public isolated class Context {
         }
     }
 
+    isolated function clearDataLoadersAndPlaceHolders() {
+        // This function is called at the end of each subscription loop execution.
+        // This avoid using the same data loader in the next loop itteration avoids filling up place holder map.
+        lock {
+            self.idDataLoaderMap.removeAll();
+            self.idPlaceHolderMap.removeAll();
+            self.uuidPlaceHolderMap.removeAll();
+        }
+    }
+
     isolated function resolvePlaceHolders() {
         lock {
             map<PlaceHolder[]> idPlaceHolderMap = self.idPlaceHolderMap;

@@ -77,3 +77,23 @@ isolated function testDataLoaderWithMutation() returns error? {
         databaseHitForBookField = 0;
     }
 }
+
+@test:Config {
+    groups: ["dataloader", "mutation", "interceptor"]
+}
+isolated function testDataLoaderWithInterceptor() returns error? {
+    // string url = "localhost:9090/dataloader";
+    // graphql:Client graphqlClient = check new (url);
+    // string document = check getGraphqlDocumentFromFile("dataloader_with_mutation");
+    // json response = check graphqlClient->execute(document);
+    // json expectedPayload = check getJsonContentFromFile("dataloader_with_mutation");
+    // assertJsonValuesWithOrder(response, expectedPayload);
+    // lock {
+    //     test:assertEquals(databaseHitForUpdateAuthorNameField, 1, "Database hit for updateAuthorName field is not 1");
+    //     databaseHitForUpdateAuthorNameField = 0;
+    // }
+    // lock {
+    //     test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
+    //     databaseHitForBookField = 0;
+    // }
+}
