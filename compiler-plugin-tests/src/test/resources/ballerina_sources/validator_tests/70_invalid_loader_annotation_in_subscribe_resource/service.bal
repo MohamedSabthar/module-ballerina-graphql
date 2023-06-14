@@ -23,9 +23,9 @@ service on new graphql:Listener(9090) {
     }
 
     @dataloader:Loader {
-        batchFunction: batchData
+        batchFunctions: {"batchLoader":batchData}
     }
-    resource function subscribe data(dataloader:DataLoader loader) returns stream<string> {
+    resource function subscribe data(map<dataloader:DataLoader> loader) returns stream<string> {
         return ["Hello", "World!"].toStream();
     }
 }

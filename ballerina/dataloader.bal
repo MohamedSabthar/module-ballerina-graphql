@@ -94,7 +94,7 @@ isolated class DefaultDataLoader {
 
 type Result record {|
     readonly anydata key;
-    anydata|error value; // TODO: need to change this to any|error
+    anydata|error value;
 |};
 
 type Key record {|

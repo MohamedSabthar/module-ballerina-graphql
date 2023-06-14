@@ -1197,7 +1197,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.INVALID_DATA_LOADER_USAGE_IN_SUBSCRIPTION, "data");
-        assertErrorMessage(diagnostic, message, 25, 60);
+        assertErrorMessage(diagnostic, message, 25, 65);
     }
 
     @Test(groups = "invalid")

@@ -26,12 +26,12 @@ service on new graphql:Listener(9090) {
 isolated distinct service class Author {
 
     @dataloader:Loader {
-        batchFunction: bookLoaderFunction
+        batchFunctions: {"bookLoader":bookLoaderFunction}
     }
-    isolated resource function get loadBooks(int id, dataloader:DataLoader dataloader) {
+    isolated resource function get loadBooks(int id, map<dataloader:DataLoader> loaders) {
     }
 
-    isolated resource function get books(dataloader:DataLoader dataloader) returns Book[] {
+    isolated resource function get books(map<dataloader:DataLoader> loaders) returns Book[] {
         return [];
     }
 }

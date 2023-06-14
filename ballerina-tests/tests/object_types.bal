@@ -406,16 +406,18 @@ public isolated distinct service class AuthorData {
         return self.author.name;
     }
 
-    isolated resource function get books(dataloader:DataLoader bookloader) returns BookData[]|error {
-        BookRow[] bookrows = check bookloader.get(self.author.id);
+    isolated resource function get books(map<dataloader:DataLoader> loaders) returns BookData[]|error {
+        dataloader:DataLoader bookLoader = loaders.get("bookLoader");
+        BookRow[] bookrows = check bookLoader.get(self.author.id);
         return from BookRow bookRow in bookrows
             select new BookData(bookRow);
     }
 
     @dataloader:Loader {
-        batchFunction: bookLoaderFunction
+        batchFunctions: {"bookLoader": bookLoaderFunction}
     }
-    isolated resource function get loadBooks(dataloader:DataLoader bookLoader) {
+    isolated resource function get loadBooks(map<dataloader:DataLoader> loaders) {
+        dataloader:DataLoader bookLoader = loaders.get("bookLoader");
         bookLoader.load(self.author.id);
     }
 }

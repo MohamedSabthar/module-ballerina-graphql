@@ -22,7 +22,7 @@ service on new graphql:Listener(9090) {
         return "Hello World!";
     }
 
-    resource function subscribe data(dataloader:DataLoader loader) returns stream<string> {
+    resource function subscribe data(map<dataloader:DataLoader> loaders) returns stream<string> {
         return ["Hello", "World!"].toStream();
     }
 }

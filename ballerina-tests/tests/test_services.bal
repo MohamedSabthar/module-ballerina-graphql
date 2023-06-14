@@ -2094,32 +2094,36 @@ service /annotations on wrappedListener {
 }
 
 service /dataloader on wrappedListener {
-    resource function get authors(int[] ids, dataloader:DataLoader authorLoader) returns AuthorData[]|error {
+    resource function get authors(int[] ids, map<dataloader:DataLoader> loaders) returns AuthorData[]|error {
+        dataloader:DataLoader authorLoader = loaders.get("authorLoader");
         AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
         return from AuthorRow authorRow in authorRows
             select new (authorRow);
     }
 
     @dataloader:Loader {
-        batchFunction: authorLoaderFunction
+        batchFunctions: {"authorLoader":authorLoaderFunction}
     }
-    resource function get loadAuthors(int[] ids, dataloader:DataLoader authorLoader) {
+    resource function get loadAuthors(int[] ids, map<dataloader:DataLoader> loaders) {
+        dataloader:DataLoader authorLoader = loaders.get("authorLoader");
         ids.forEach(function(int id) {
             authorLoader.load(id);
         });
     }
 
-    remote function updateAuthorName(int id, string name, dataloader:DataLoader authorUpdateLoader) returns AuthorData|error {
+    remote function updateAuthorName(int id, string name, map<dataloader:DataLoader> loaders) returns AuthorData|error {
         [int, string] key = [id, name];
+        dataloader:DataLoader authorUpdateLoader = loaders.get("auhtorUpdateLoader");
         AuthorRow authorRow = check authorUpdateLoader.get(key);
         return new (authorRow);
     }
 
     @dataloader:Loader {
-        batchFunction: authorUpdateLoaderFunction
+        batchFunctions: {"auhtorUpdateLoader": authorUpdateLoaderFunction}
     }
-    remote function loadUpdateAuthorName(int id, string name, dataloader:DataLoader authorUpdateLoader) {
+    remote function loadUpdateAuthorName(int id, string name, map<dataloader:DataLoader> loaders) {
         [int, string] key = [id, name];
+        dataloader:DataLoader authorUpdateLoader = loaders.get("auhtorUpdateLoader");
         authorUpdateLoader.load(key);
     }
 }
