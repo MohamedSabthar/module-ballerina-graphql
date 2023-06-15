@@ -868,3 +868,27 @@ readonly service class LogSubfields {
         return context.resolve('field);
     }
 }
+
+readonly service class AuthorInterceptor {
+    *graphql:Interceptor;
+
+    isolated remote function execute(graphql:Context context, graphql:Field 'field) returns anydata|error {
+        string fieldName = 'field.getName();
+        var data = context.resolve('field);
+        if fieldName == "authors" {
+            var firstAuthor = (<anydata[]>data)[0];
+            return [firstAuthor];
+        }
+        return data;
+    }
+}
+
+readonly service class BookInterceptor {
+    *graphql:Interceptor;
+
+    isolated remote function execute(graphql:Context context, graphql:Field 'field) returns anydata|error {
+        var data = context.resolve('field);
+        var firstBook = (<anydata[]>data)[0];
+        return [firstBook];
+    }
+}

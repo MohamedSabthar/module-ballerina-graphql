@@ -437,3 +437,33 @@ public isolated distinct service class BookData {
         return self.book.title;
     }
 }
+
+public isolated distinct service class AuthorDetail {
+    private final readonly & AuthorRow author;
+
+    isolated function init(AuthorRow author) {
+        self.author = author.cloneReadOnly();
+    }
+
+    isolated resource function get name() returns string {
+        return self.author.name;
+    }
+
+    @graphql:ResourceConfig {
+        interceptors: new BookInterceptor()
+    }
+    isolated resource function get books(map<dataloader:DataLoader> loaders) returns BookData[]|error {
+        dataloader:DataLoader bookLoader = loaders.get("bookLoader");
+        BookRow[] bookrows = check bookLoader.get(self.author.id);
+        return from BookRow bookRow in bookrows
+            select new BookData(bookRow);
+    }
+
+    @dataloader:Loader {
+        batchFunctions: {"bookLoader": bookLoaderFunction}
+    }
+    isolated resource function get loadBooks(map<dataloader:DataLoader> loaders) {
+        dataloader:DataLoader bookLoader = loaders.get("bookLoader");
+        bookLoader.load(self.author.id);
+    }
+}

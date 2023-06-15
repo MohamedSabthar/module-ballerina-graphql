@@ -106,3 +106,23 @@ isolated function testDataLoaderWithMutation() returns error? {
         databaseHitForBookField = 0;
     }
 }
+
+@test:Config {
+    groups: ["dataloader", "interceptor"]
+}
+isolated function testDataLoaderWithInterceptors() returns error? {
+    string url = "localhost:9090/dataloader_with_interceptor";
+    graphql:Client graphqlClient = check new (url);
+    string document = check getGraphqlDocumentFromFile("dataloader_with_interceptor");
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = check getJsonContentFromFile("dataloader_with_interceptor");
+    assertJsonValuesWithOrder(response, expectedPayload);
+    lock {
+        test:assertEquals(databaseHitForAuthorField, 1, "Database hit for authorField field is not 1");
+        databaseHitForAuthorField = 0;
+    }
+    lock {
+        test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
+        databaseHitForBookField = 0; // TODO: rename these variables to number of dispatch calls for...
+    }
+}
