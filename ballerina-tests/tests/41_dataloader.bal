@@ -126,3 +126,6 @@ isolated function testDataLoaderWithInterceptors() returns error? {
         databaseHitForBookField = 0; // TODO: rename these variables to number of dispatch calls for...
     }
 }
+
+// testBatchFunctionReturningErrors
+// testBatchFunctionReturingNonMatchingNumberOfResults
