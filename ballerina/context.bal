@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import graphql.dataloader;
 import ballerina/http;
 import ballerina/jballerina.java;
 import ballerina/lang.value;
@@ -25,6 +26,11 @@ public isolated class Context {
     private Engine? engine;
     private int nextInterceptor;
     private boolean hasFileInfo = false; // This field value changed by setFileInfo method
+    private map<dataloader:DataLoader> idDataLoaderMap = {};
+    private map<PlaceHolder[]> idPlaceHolderMap = {};
+    private map<PlaceHolder> uuidPlaceHolderMap = {};
+    private int unResolvedPlaceHolderCount = 0;
+    private boolean containPlaceHolders = false;
 
     public isolated function init(map<value:Cloneable|isolated object {}> attributes = {}, Engine? engine = (), 
                                   int nextInterceptor = 0) {
@@ -120,7 +126,7 @@ public isolated class Context {
     public isolated function resolve(Field 'field) returns anydata {
         Engine? engine = self.getEngine();
         if engine is Engine {
-            return engine.resolve(self, 'field);
+            return engine.resolve(self, 'field, false);
         }
         return;
     }
@@ -185,13 +191,91 @@ public isolated class Context {
         }
     }
 
-    isolated function cloneWithoutErrors() returns Context {
+    isolated function addDataLoader(
+            (isolated function (readonly & anydata[] keys) returns anydata[]|error) batchFunction, string id) {
         lock {
-            Context clonedContext = new(self.attributes, self.engine, self.nextInterceptor);
-            if self.hasFileInfo {
-                clonedContext.setFileInfo(self.getFileInfo());
+            if self.idDataLoaderMap.hasKey(id) {
+                return;
             }
-            return clonedContext;
+            DefaultDataLoader dataloader = new (batchFunction);
+            self.idDataLoaderMap[id] = dataloader;
+            return;
+        }
+    }
+
+    isolated function addPlaceHolder(string[] dataLoaderIds, string uuid, PlaceHolder placeHolder) {
+        final readonly & string[] loaderIds = dataLoaderIds.cloneReadOnly();
+        lock {
+            self.containPlaceHolders = true;
+            foreach string id in loaderIds {
+                self.uuidPlaceHolderMap[uuid] = placeHolder;
+                self.unResolvedPlaceHolderCount += 1;
+
+                if !self.idPlaceHolderMap.hasKey(id) {
+                    self.idPlaceHolderMap[id] = [];
+                }
+                self.idPlaceHolderMap.get(id).push(placeHolder);
+            }
+        }
+    }
+
+    isolated function clearDataLoadersAndPlaceHolders() {
+        // This function is called at the end of each subscription loop execution.
+        // This avoid using the same data loader in the next loop itteration avoids filling up place holder map.
+        lock {
+            self.idDataLoaderMap.removeAll();
+            self.idPlaceHolderMap.removeAll();
+            self.uuidPlaceHolderMap.removeAll();
+            self.containPlaceHolders = false;
+        }
+    }
+
+    isolated function hasPlaceHolders() returns boolean {
+        lock {
+            return self.containPlaceHolders;
+        }
+    }
+
+    isolated function resolvePlaceHolders() {
+        lock {
+            map<PlaceHolder[]> idPlaceHolderMap = self.idPlaceHolderMap;
+            self.idPlaceHolderMap = {};
+            foreach [string, PlaceHolder[]] [id, _] in idPlaceHolderMap.entries() {
+                self.idDataLoaderMap.get(id).dispatch();
+                // foreach PlaceHolder placeHolder in placeHolders {
+                //     Engine? engine = self.getEngine();
+                //     if engine is () {
+                //         continue;
+                //     }
+                //     anydata resolvedVal = engine.resolve(self, 'placeHolder.getField(), false);
+                //     placeHolder.setValue(resolvedVal);
+                //     self.unResolvedPlaceHolderCount -= 1;
+                // }
+            }
+            foreach [string, PlaceHolder[]] [_, placeHolders] in idPlaceHolderMap.entries() {
+                // self.idDataLoaderMap.get(id).dispatch();
+                foreach PlaceHolder placeHolder in placeHolders {
+                    Engine? engine = self.getEngine();
+                    if engine is () {
+                        continue;
+                    }
+                    anydata resolvedVal = engine.resolve(self, 'placeHolder.getField(), false);
+                    placeHolder.setValue(resolvedVal);
+                    self.unResolvedPlaceHolderCount -= 1;
+                }
+            }
+        }
+    }
+
+    isolated function getPlaceHolderValue(string uuid) returns anydata {
+        lock {
+            return self.uuidPlaceHolderMap.remove(uuid).getValue();
+        }
+    }
+
+    isolated function getUnresolvedPlaceHolderCount() returns int {
+        lock {
+            return self.unResolvedPlaceHolderCount;
         }
     }
 }

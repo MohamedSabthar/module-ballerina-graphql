@@ -28,6 +28,7 @@ import io.ballerina.runtime.api.types.ArrayType;
 import io.ballerina.runtime.api.types.Field;
 import io.ballerina.runtime.api.types.FiniteType;
 import io.ballerina.runtime.api.types.IntersectionType;
+import io.ballerina.runtime.api.types.MapType;
 import io.ballerina.runtime.api.types.MethodType;
 import io.ballerina.runtime.api.types.Parameter;
 import io.ballerina.runtime.api.types.RecordType;
@@ -39,6 +40,7 @@ import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.utils.ValueUtils;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BError;
+import io.ballerina.runtime.api.values.BFunctionPointer;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
@@ -51,12 +53,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import static io.ballerina.runtime.api.TypeTags.INTERSECTION_TAG;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.ARGUMENTS_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.FILE_INFO_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.NAME_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VALUE_FIELD;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VARIABLE_DEFINITION;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.VARIABLE_NAME_FIELD;
@@ -65,6 +67,7 @@ import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isEnum;
 import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isIgnoreType;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.INTERNAL_NODE;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isContext;
+import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isDataLoaderModule;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isField;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isFileUpload;
 import static io.ballerina.stdlib.graphql.runtime.utils.Utils.isSubgraphModule;
@@ -78,12 +81,19 @@ public class ArgumentHandler {
     private final BMap<BString, Object> fileInfo;
     private final BObject context;
     private final BObject field;
+    private final BObject service;
     private final BObject responseGenerator;
     private final boolean validation;
 
     private static final String REPRESENTATION_TYPENAME = "Representation";
     private static final String ADD_CONSTRAINT_ERRORS_METHOD = "addConstraintValidationErrors";
     private static final String CONSTRAINT_ERROR_MESSAGE = "Constraint validation errors found.";
+    private static final BString NAME_FIELD = StringUtils.fromString("name");
+    private static final BString KIND_FIELD = StringUtils.fromString("kind");
+
+    private static final String LOAD_METHOD_NAME_PREFIX = "load";
+    private static final String DATA_LOADER_OBJECT = "DataLoader";
+    private static final BString ID_DATA_LOADER_MAP = StringUtils.fromString("idDataLoaderMap");
 
     // graphql.parser types
     private static final int T_STRING = 2;
@@ -99,12 +109,13 @@ public class ArgumentHandler {
     private static final String ARGUMENT_TYPE_PARAM = "$param$";
 
     public ArgumentHandler(MethodType method, BObject context, BObject field, BObject responseGenerator,
-                           boolean validation) {
+                           BObject service, boolean validation) {
         this.method = method;
         this.fileInfo = (BMap<BString, Object>) context.getNativeData(FILE_INFO_FIELD);
         this.context = context;
         this.field = field;
         populateIdTypeArguments(method.getAnnotations());
+        this.service = service;
         this.argumentsMap = ValueCreator.createMapValue();
         this.responseGenerator = responseGenerator;
         this.validation = validation;
@@ -165,7 +176,7 @@ public class ArgumentHandler {
         BArray argumentArray = fieldNode.getArrayValue(ARGUMENTS_FIELD);
         for (int i = 0; i < argumentArray.size(); i++) {
             BObject argumentNode = (BObject) argumentArray.get(i);
-            BString argumentName = argumentNode.getStringValue(NAME_FIELD);
+            BString argumentName = argumentNode.getStringValue(EngineUtils.NAME_FIELD);
             Parameter parameter = Objects.requireNonNull(getParameterForArgumentNode(argumentName));
             Object argumentValue = this.getArgumentValue(argumentNode, parameter.type);
             this.argumentsMap.put(argumentName, argumentValue);
@@ -359,7 +370,7 @@ public class ArgumentHandler {
         BArray inputObjectFields = argumentNode.getArrayValue(VALUE_FIELD);
         for (int i = 0; i < inputObjectFields.size(); i++) {
             BObject inputObjectField = (BObject) inputObjectFields.get(i);
-            BString inputObjectFieldName = inputObjectField.getStringValue(NAME_FIELD);
+            BString inputObjectFieldName = inputObjectField.getStringValue(EngineUtils.NAME_FIELD);
             Field field = recordType.getFields().get(inputObjectFieldName.getValue());
             Object fieldValue = getArgumentValue(inputObjectField, field.getFieldType());
             recordValue.put(inputObjectFieldName, fieldValue);
@@ -368,7 +379,7 @@ public class ArgumentHandler {
     }
 
     private Object getJsonArgument(BObject argumentNode) {
-        int kind = (int) argumentNode.getIntValue(StringUtils.fromString("kind"));
+        int kind = (int) argumentNode.getIntValue(KIND_FIELD);
         Object valueField = argumentNode.get(VALUE_FIELD);
         switch (kind) {
             case T_STRING:
@@ -400,7 +411,7 @@ public class ArgumentHandler {
         BArray inputObjectFields = argumentNode.getArrayValue(VALUE_FIELD);
         for (int i = 0; i < inputObjectFields.size(); i++) {
             BObject inputObjectField = (BObject) inputObjectFields.get(i);
-            BString inputObjectFieldName = inputObjectField.getStringValue(NAME_FIELD);
+            BString inputObjectFieldName = inputObjectField.getStringValue(EngineUtils.NAME_FIELD);
             Object fieldValue = getJsonArgument(inputObjectField);
             mapValue.put(inputObjectFieldName, fieldValue);
         }
@@ -503,6 +514,12 @@ public class ArgumentHandler {
                 result[j + 1] = true;
                 continue;
             }
+            if (isDataLoaderMap(parameters[i].type)) {
+                BMap<BString, BFunctionPointer> batchFunctionsMap = getBatchFunctionsMap();
+                result[j] = getDataLoaderMap(batchFunctionsMap);
+                result[j + 1] = true;
+                continue;
+            }
             if (this.argumentsMap.get(StringUtils.fromString(parameters[i].name)) == null) {
                 result[j] = parameters[i].type.getZeroValue();
                 result[j + 1] = false;
@@ -512,6 +529,43 @@ public class ArgumentHandler {
             }
         }
         return result;
+    }
+
+    private BMap<BString, Object> getDataLoaderMap(BMap<BString, BFunctionPointer> batchFunctionsMap) {
+        BMap<BString, Object> idDataLoaderMap = this.context.getMapValue(ID_DATA_LOADER_MAP);
+        BMap<BString, Object> dataLoaderMap = ValueCreator.createMapValue();
+        for (BString id : idDataLoaderMap.getKeys()) {
+            dataLoaderMap.put(id, idDataLoaderMap.getObjectValue(id));
+        }
+        return dataLoaderMap;
+    }
+
+    private static boolean isDataLoaderMap(Type type) {
+        if (type.getTag() != TypeTags.MAP_TAG) {
+            return false;
+        }
+        MapType mapType = (MapType) type;
+        Type constrainedType = mapType.getConstrainedType();
+        return isDataLoaderModule(constrainedType) && constrainedType.getName().equals(DATA_LOADER_OBJECT);
+    }
+
+    private BMap<BString, BFunctionPointer> getBatchFunctionsMap() {
+        BObject internalNode = this.field.getObjectValue(INTERNAL_NODE);
+        BString fieldName = internalNode.getStringValue(NAME_FIELD);
+        String loadMethodName = getLoadMethodName(fieldName);
+        boolean isLoadMethodIsRemote =
+                ((BString) this.field.get(StringUtils.fromString("operationType"))).getValue().equals("mutation")
+                        && ((BArray) this.field.get(StringUtils.fromString("path"))).size() == 1;
+        BMap<BString, BFunctionPointer> batchFunctionMap = Engine.getBatchFunctionsMap(this.service,
+                                                                                       StringUtils.fromString(
+                                                                                               loadMethodName),
+                                                                                       isLoadMethodIsRemote);
+        return batchFunctionMap;
+    }
+
+    private String getLoadMethodName(BString fieldName) {
+        return LOAD_METHOD_NAME_PREFIX + fieldName.getValue().substring(0, 1).toUpperCase(Locale.ROOT)
+                + fieldName.getValue().substring(1);
     }
 
     private static Type getEffectiveType(IntersectionType intersectionType) {

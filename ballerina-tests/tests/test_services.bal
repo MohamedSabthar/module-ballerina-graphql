@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/graphql;
+import ballerina/graphql.dataloader;
 import ballerina/http;
 import ballerina/uuid;
 import ballerina/lang.runtime;
@@ -2105,16 +2106,45 @@ service /annotations on wrappedListener {
     }
 }
 
-service /parallel on wrappedListener {
-    private string data = "Hello";
-    resource function get a() returns string {
-        runtime:sleep(1);
-        self.data += "!";
-        return self.data;
+service /dataloader on wrappedListener {
+    resource function get authors(int[] ids, map<dataloader:DataLoader> loaders) returns AuthorData[]|error {
+        dataloader:DataLoader authorLoader = loaders.get("authorLoader");
+        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
+        return from AuthorRow authorRow in authorRows
+            select new (authorRow);
     }
-    resource function get b() returns string {
-        self.data += " World";
-        return self.data;
+
+    @dataloader:Loader {
+        batchFunctions: {"authorLoader": authorLoaderFunction}
+    }
+    resource function get loadAuthors(int[] ids, map<dataloader:DataLoader> loaders) {
+        dataloader:DataLoader authorLoader = loaders.get("authorLoader");
+        ids.forEach(function(int id) {
+            authorLoader.load(id);
+        });
+    }
+
+    remote function updateAuthorName(int id, string name, map<dataloader:DataLoader> loaders) returns AuthorData|error {
+        [int, string] key = [id, name];
+        dataloader:DataLoader authorUpdateLoader = loaders.get("auhtorUpdateLoader");
+        AuthorRow authorRow = check authorUpdateLoader.get(key);
+        return new (authorRow);
+    }
+
+    @dataloader:Loader {
+        batchFunctions: {"auhtorUpdateLoader": authorUpdateLoaderFunction}
+    }
+    remote function loadUpdateAuthorName(int id, string name, map<dataloader:DataLoader> loaders) {
+        [int, string] key = [id, name];
+        dataloader:DataLoader authorUpdateLoader = loaders.get("auhtorUpdateLoader");
+        authorUpdateLoader.load(key);
+    }
+
+    resource function subscribe authors() returns stream<AuthorData> {
+        lock {
+            readonly & AuthorRow[] authorRows = authorTable.toArray().cloneReadOnly();
+            return authorRows.'map(authorRow => new AuthorData(authorRow)).toStream();
+        }
     }
 }
 
@@ -2333,5 +2363,46 @@ public distinct service class Student5 {
 
     resource function get name() returns string {
         return self.name;
+    }
+}
+
+@graphql:ServiceConfig {
+    interceptors: new AuthorInterceptor()
+}
+service /dataloader_with_interceptor on wrappedListener {
+    resource function get authors(int[] ids, map<dataloader:DataLoader> loaders) returns AuthorDetail[]|error {
+        dataloader:DataLoader authorLoader = loaders.get("authorLoader");
+        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
+        return from AuthorRow authorRow in authorRows
+            select new (authorRow);
+    }
+
+    @dataloader:Loader {
+        batchFunctions: {"authorLoader": authorLoaderFunction}
+    }
+    resource function get loadAuthors(int[] ids, map<dataloader:DataLoader> loaders) {
+        dataloader:DataLoader authorLoader = loaders.get("authorLoader");
+        ids.forEach(function(int id) {
+            authorLoader.load(id);
+        });
+    }
+}
+
+service /dataloader_with_faulty_batch_function on wrappedListener {
+    resource function get authors(int[] ids, map<dataloader:DataLoader> loaders) returns AuthorData[]|error {
+        dataloader:DataLoader authorLoader = loaders.get("authorLoader");
+        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
+        return from AuthorRow authorRow in authorRows
+            select new (authorRow);
+    }
+
+    @dataloader:Loader {
+        batchFunctions: {"authorLoader": faultyAuthorLoaderFunction}
+    }
+    resource function get loadAuthors(int[] ids, map<dataloader:DataLoader> loaders) {
+        dataloader:DataLoader authorLoader = loaders.get("authorLoader");
+        ids.forEach(function(int id) {
+            authorLoader.load(id);
+        });
     }
 }
