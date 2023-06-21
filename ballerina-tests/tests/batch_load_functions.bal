@@ -19,7 +19,7 @@ isolated function authorLoaderFunction(readonly & anydata[] ids) returns AuthorR
     // simulate the following database query
     // SELECT * FROM authors WHERE id IN (...keys);
     lock {
-        databaseHitForAuthorField += 1;
+        dispatchCountForAuthorField += 1;
     }
     lock {
         readonly & int[] validKeys = keys.'filter(key => authorTable.hasKey(key)).cloneReadOnly();
@@ -35,7 +35,7 @@ isolated function bookLoaderFunction(readonly & anydata[] ids) returns BookRow[]
     // simulate the following database query
     // SELECT * FROM books WHERE author IN (...keys);
     lock {
-        databaseHitForBookField += 1;
+        dispatchCountForBookField += 1;
     }
     return keys.'map(isolated function(readonly & int key) returns BookRow[] {
         lock {
@@ -48,7 +48,7 @@ isolated function authorUpdateLoaderFunction(readonly & anydata[] idNames) retur
     readonly & [int, string][] idValuePair = <readonly & [int, string][]>idNames;
     // simulate batch udpate
     lock {
-        databaseHitForUpdateAuthorNameField += 1;
+        dispatchCountForUpdateAuthorNameField += 1;
     }
     lock {
         AuthorRow[] updatedAuthorRows = [];
@@ -61,5 +61,13 @@ isolated function authorUpdateLoaderFunction(readonly & anydata[] idNames) retur
             updatedAuthorRows.push(authorRow.clone());
         }
         return updatedAuthorRows.clone();
+    }
+};
+
+isolated function faultyAuthorLoaderFunction(readonly & anydata[] ids) returns AuthorRow[]|error {
+    readonly & int[] keys = <readonly & int[]>ids;
+    lock {
+        readonly & int[] validKeys = keys.'filter(key => authorTable.hasKey(key)).cloneReadOnly();
+        return validKeys.'map(key => authorTable.get(key));
     }
 };

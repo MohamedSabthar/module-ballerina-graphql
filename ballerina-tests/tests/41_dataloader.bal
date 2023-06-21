@@ -29,12 +29,12 @@ isolated function testDataLoaderWithQuery() returns error? {
     json expectedPayload = check getJsonContentFromFile("dataloader_with_query");
     assertJsonValuesWithOrder(response, expectedPayload);
     lock {
-        test:assertEquals(databaseHitForAuthorField, 1, "Database hit for author field is not 1");
-        databaseHitForAuthorField = 0;
+        test:assertEquals(dispatchCountForAuthorField, 1, "Database hit for author field is not 1");
+        dispatchCountForAuthorField = 0;
     }
     lock {
-        test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
-        databaseHitForBookField = 0;
+        test:assertEquals(dispatchCountForBookField, 1, "Database hit for book field is not 1");
+        dispatchCountForBookField = 0;
     }
 }
 
@@ -49,12 +49,12 @@ isolated function testDataLoaderWithDifferentAliasForSameField() returns error? 
     json expectedPayload = check getJsonContentFromFile("dataloader_with_different_alias_for_same_field");
     assertJsonValuesWithOrder(response, expectedPayload);
     lock {
-        test:assertEquals(databaseHitForAuthorField, 1, "Database hit for author field is not 1");
-        databaseHitForAuthorField = 0;
+        test:assertEquals(dispatchCountForAuthorField, 1, "Database hit for author field is not 1");
+        dispatchCountForAuthorField = 0;
     }
     lock {
-        test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
-        databaseHitForBookField = 0;
+        test:assertEquals(dispatchCountForBookField, 1, "Database hit for book field is not 1");
+        dispatchCountForBookField = 0;
     }
 }
 
@@ -81,8 +81,8 @@ isolated function testDataLoaderWithSubscription() returns error? {
         check validateNextMessage(wsClient, expectedMsgPayload, id = "1");
     }
     lock {
-        test:assertEquals(databaseHitForBookField, 5, "Database hit for book field is not 5");
-        databaseHitForBookField = 0;
+        test:assertEquals(dispatchCountForBookField, 5, "Database hit for book field is not 5");
+        dispatchCountForBookField = 0;
     }
 }
 
@@ -98,12 +98,12 @@ isolated function testDataLoaderWithMutation() returns error? {
     json expectedPayload = check getJsonContentFromFile("dataloader_with_mutation");
     assertJsonValuesWithOrder(response, expectedPayload);
     lock {
-        test:assertEquals(databaseHitForUpdateAuthorNameField, 1, "Database hit for updateAuthorName field is not 1");
-        databaseHitForUpdateAuthorNameField = 0;
+        test:assertEquals(dispatchCountForUpdateAuthorNameField, 1, "Database hit for updateAuthorName field is not 1");
+        dispatchCountForUpdateAuthorNameField = 0;
     }
     lock {
-        test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
-        databaseHitForBookField = 0;
+        test:assertEquals(dispatchCountForBookField, 1, "Database hit for book field is not 1");
+        dispatchCountForBookField = 0;
     }
 }
 
@@ -118,14 +118,47 @@ isolated function testDataLoaderWithInterceptors() returns error? {
     json expectedPayload = check getJsonContentFromFile("dataloader_with_interceptor");
     assertJsonValuesWithOrder(response, expectedPayload);
     lock {
-        test:assertEquals(databaseHitForAuthorField, 1, "Database hit for authorField field is not 1");
-        databaseHitForAuthorField = 0;
+        test:assertEquals(dispatchCountForAuthorField, 1, "Database hit for authorField field is not 1");
+        dispatchCountForAuthorField = 0;
     }
     lock {
-        test:assertEquals(databaseHitForBookField, 1, "Database hit for book field is not 1");
-        databaseHitForBookField = 0; // TODO: rename these variables to number of dispatch calls for...
+        test:assertEquals(dispatchCountForBookField, 1, "Database hit for book field is not 1");
+        dispatchCountForBookField = 0;
     }
 }
 
-// testBatchFunctionReturningErrors
-// testBatchFunctionReturingNonMatchingNumberOfResults
+@test:Config {
+    groups: ["dataloader"]
+}
+isolated function testBatchFunctionReturningErrors() returns error? {
+    string url = "localhost:9090/dataloader";
+    graphql:Client graphqlClient = check new (url);
+    string document = check getGraphqlDocumentFromFile("batch_function_returing_errors");
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = check getJsonContentFromFile("batch_function_returing_errors");
+    assertJsonValuesWithOrder(response, expectedPayload);
+    lock {
+        test:assertEquals(dispatchCountForAuthorField, 1, "Database hit for author field is not 1");
+        dispatchCountForAuthorField = 0;
+    }
+    lock {
+        test:assertEquals(dispatchCountForBookField, 0, "Database hit for book field is not 1");
+        dispatchCountForBookField = 0;
+    }
+}
+
+@test:Config {
+    groups: ["dataloader"]
+}
+isolated function testBatchFunctionReturingNonMatchingNumberOfResults() returns error? {
+    string url = "localhost:9090/dataloader_with_faulty_batch_function";
+    graphql:Client graphqlClient = check new (url);
+    string document = check getGraphqlDocumentFromFile("batch_function_returing_non_matcing_number_of_results");
+    json response = check graphqlClient->execute(document);
+    json expectedPayload = check getJsonContentFromFile("batch_function_returing_non_matcing_number_of_results");
+    assertJsonValuesWithOrder(response, expectedPayload);
+    lock {
+        test:assertEquals(dispatchCountForBookField, 0, "Database hit for book field is not 1");
+        dispatchCountForBookField = 0;
+    }
+}

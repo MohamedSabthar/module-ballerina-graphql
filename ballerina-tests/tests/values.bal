@@ -291,6 +291,6 @@ final isolated table<BookRow> key(id) bookTable = table [
     {id: 9, title: "Book 9", author: 5}
 ];
 
-isolated int databaseHitForBookField = 0;
-isolated int databaseHitForAuthorField = 0;
-isolated int databaseHitForUpdateAuthorNameField = 0;
+isolated int dispatchCountForBookField = 0;
+isolated int dispatchCountForAuthorField = 0;
+isolated int dispatchCountForUpdateAuthorNameField = 0;
