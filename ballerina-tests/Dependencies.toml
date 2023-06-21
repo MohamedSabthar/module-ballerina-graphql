@@ -369,7 +369,6 @@ modules = [
 org = "ballerina"
 name = "uuid"
 version = "1.6.0"
-scope = "testOnly"
 dependencies = [
 	{org = "ballerina", name = "crypto"},
 	{org = "ballerina", name = "jballerina.java"},
