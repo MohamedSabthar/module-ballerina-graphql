@@ -75,6 +75,7 @@ public final class Utils {
     private static final String ORG_NAME = "ballerina";
     private static final String GRAPHQL_MODULE_NAME = "graphql";
     private static final String UUID_MODULE_NAME = "uuid";
+    public static final String DATA_LOADER_IDENTIFIER = "DataLoader";
 
     private Utils() {
     }
@@ -228,7 +229,8 @@ public final class Utils {
             return false;
         }
         String typeName = typeSymbol.getName().get();
-        return FIELD_IDENTIFIER.equals(typeName) || CONTEXT_IDENTIFIER.equals(typeName);
+        return FIELD_IDENTIFIER.equals(typeName) || CONTEXT_IDENTIFIER.equals(typeName)
+                || DATA_LOADER_IDENTIFIER.equals(typeName);
     }
 
     public static String getAccessor(ResourceMethodSymbol resourceMethodSymbol) {

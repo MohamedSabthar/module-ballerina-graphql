@@ -25,7 +25,6 @@ import io.ballerina.runtime.api.values.BString;
 /**
  * This class provides utility functions for Ballerina PlaceHolder class.
  */
-@SuppressWarnings("unchecked")
 public class PlaceHolderUtils {
     private static final BString PLACE_HOLDER_FIELD_OBJECT_FIELD = StringUtils.fromString("field");
 

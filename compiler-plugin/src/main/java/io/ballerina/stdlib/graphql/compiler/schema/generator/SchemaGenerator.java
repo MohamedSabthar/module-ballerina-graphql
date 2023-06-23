@@ -75,6 +75,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
+import static io.ballerina.stdlib.graphql.commons.utils.Utils.isDataLoaderModuleSymbol;
+import static io.ballerina.stdlib.graphql.compiler.Utils.DATA_LOADER_IDENTIFIER;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
@@ -91,6 +93,7 @@ import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUti
 import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getTypePosition;
 import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getWrapperType;
 import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_GET;
+import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.hasLoaderAnnotation;
 
 /**
  * Generates the GraphQL schema from a given, valid, Ballerina service.
@@ -150,6 +153,9 @@ public class SchemaGenerator {
     private void findRootTypes(Node serviceNode) {
         Type queryType = addType(TypeName.QUERY);
         for (MethodSymbol methodSymbol : getMethods(serviceNode)) {
+            if (hasLoaderAnnotation(methodSymbol)) {
+                continue;
+            }
             if (isResourceMethod(methodSymbol)) {
                 ResourceMethodSymbol resourceMethodSymbol = (ResourceMethodSymbol) methodSymbol;
                 String accessor = getAccessor(resourceMethodSymbol);
@@ -249,13 +255,24 @@ public class SchemaGenerator {
             return;
         }
         for (ParameterSymbol parameterSymbol : methodSymbol.typeDescriptor().params().get()) {
-            if (isValidGraphqlParameter(parameterSymbol.typeDescriptor()) || parameterSymbol.getName().isEmpty()) {
+            if (isValidGraphqlParameter(parameterSymbol.typeDescriptor()) || parameterSymbol.getName().isEmpty()
+                    || isDataLoaderMap(parameterSymbol.typeDescriptor())) {
                 continue;
             }
             String parameterName = parameterSymbol.getName().get();
             String description = getParameterDescription(parameterName, methodSymbol);
             field.addArg(getArg(parameterName, description, parameterSymbol));
         }
+    }
+
+    private static boolean isDataLoaderMap(TypeSymbol typeSymbol) {
+        if (typeSymbol.typeKind() == TypeDescKind.MAP) {
+            MapTypeSymbol mapTypeSymbol = (MapTypeSymbol) typeSymbol;
+            TypeSymbol mapTypeParam = mapTypeSymbol.typeParam();
+            return isDataLoaderModuleSymbol(mapTypeParam) && mapTypeParam.getName().isPresent()
+                    && mapTypeParam.getName().get().equals(DATA_LOADER_IDENTIFIER);
+        }
+        return false;
     }
 
     private InputValue getArg(String parameterName, String description, ParameterSymbol parameterSymbol) {
@@ -465,7 +482,7 @@ public class SchemaGenerator {
         Type objectType = addType(name, TypeKind.OBJECT, description, position, ObjectKind.CLASS);
 
         for (MethodSymbol methodSymbol : classSymbol.methods().values()) {
-            if (isResourceMethod(methodSymbol)) {
+            if (isResourceMethod(methodSymbol) && !hasLoaderAnnotation(methodSymbol)) {
                 objectType.addField(getField((ResourceMethodSymbol) methodSymbol));
             }
         }
