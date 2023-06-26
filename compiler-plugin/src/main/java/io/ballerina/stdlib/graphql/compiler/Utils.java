@@ -58,6 +58,7 @@ import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSym
 import static io.ballerina.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
 import static io.ballerina.stdlib.graphql.compiler.ModuleLevelVariableDeclarationAnalysisTask.getDescription;
 import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getDescription;
+import static java.util.Locale.ENGLISH;
 
 /**
  * Util class for the compiler plugin.
@@ -72,8 +73,8 @@ public final class Utils {
     public static final String SERVICE_CONFIG_IDENTIFIER = "ServiceConfig";
     public static final String SUBGRAPH_ANNOTATION_NAME = "Subgraph";
     public static final String UUID_RECORD_NAME = "Uuid";
+    public static final String DATA_LOADER_IDENTIFIER = "DataLoader";
     private static final String ORG_NAME = "ballerina";
-    private static final String GRAPHQL_MODULE_NAME = "graphql";
     private static final String UUID_MODULE_NAME = "uuid";
 
     private Utils() {
@@ -228,7 +229,8 @@ public final class Utils {
             return false;
         }
         String typeName = typeSymbol.getName().get();
-        return FIELD_IDENTIFIER.equals(typeName) || CONTEXT_IDENTIFIER.equals(typeName);
+        return FIELD_IDENTIFIER.equals(typeName) || CONTEXT_IDENTIFIER.equals(typeName)
+                || DATA_LOADER_IDENTIFIER.equals(typeName); // TODO: Check this place, it should be map of dataloaders
     }
 
     public static String getAccessor(ResourceMethodSymbol resourceMethodSymbol) {
@@ -326,5 +328,12 @@ public final class Utils {
                 return true;
         }
         return false;
+    }
+
+    public static String lowerCaseFirstChar(String string) {
+        if (string.isEmpty() || string.length() == 1) {
+            return string.toLowerCase(ENGLISH);
+        }
+        return string.substring(0, 1).toLowerCase(ENGLISH) + string.substring(1);
     }
 }
