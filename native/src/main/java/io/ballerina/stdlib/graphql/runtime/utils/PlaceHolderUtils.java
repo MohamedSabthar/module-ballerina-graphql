@@ -25,18 +25,17 @@ import io.ballerina.runtime.api.values.BString;
 /**
  * This class provides utility functions for Ballerina PlaceHolder class.
  */
-@SuppressWarnings("unchecked")
 public class PlaceHolderUtils {
-    private static final BString PLACE_HOLDER_FIELD_OBJECT_FIELD = StringUtils.fromString("field");
+    private static final BString PLACE_HOLDER_FIELD_OBJECT = StringUtils.fromString("field");
 
     private PlaceHolderUtils() {
     }
 
     public static void setFieldValue(BObject placeHolder, BObject field) {
-        placeHolder.set(PLACE_HOLDER_FIELD_OBJECT_FIELD, field);
+        placeHolder.set(PLACE_HOLDER_FIELD_OBJECT, field);
     }
 
     public static BObject getFieldValue(BObject placeHolder) {
-        return (BObject) placeHolder.get(PLACE_HOLDER_FIELD_OBJECT_FIELD);
+        return (BObject) placeHolder.get(PLACE_HOLDER_FIELD_OBJECT);
     }
 }

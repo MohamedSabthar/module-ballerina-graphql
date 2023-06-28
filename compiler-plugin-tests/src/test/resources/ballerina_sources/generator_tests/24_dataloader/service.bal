@@ -16,7 +16,6 @@
 
 import ballerina/graphql;
 import ballerina/graphql.dataloader;
-import ballerina/io;
 
 service on new graphql:Listener(9090) {
     resource function get authors(int[] ids, map<dataloader:DataLoader> loaders) returns Author[]|error {
