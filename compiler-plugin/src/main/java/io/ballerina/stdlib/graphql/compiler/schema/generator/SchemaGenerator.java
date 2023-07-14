@@ -134,9 +134,11 @@ public class SchemaGenerator {
             String entityName = entry.getKey();
             Symbol symbol = entry.getValue();
             if (symbol.kind() == SymbolKind.TYPE_DEFINITION) {
-                this.schema.addEntity(getType(entityName, (TypeDefinitionSymbol) symbol));
+                TypeDefinitionSymbol typeDefinitionSymbol = (TypeDefinitionSymbol) symbol;
+                this.schema.addEntity(getType(entityName, typeDefinitionSymbol));
             } else if (symbol.kind() == SymbolKind.CLASS) {
-                this.schema.addEntity(getType(entityName, (ClassSymbol) symbol));
+                ClassSymbol classSymbol = (ClassSymbol) symbol;
+                this.schema.addEntity(getType(entityName, classSymbol));
             }
         }
     }

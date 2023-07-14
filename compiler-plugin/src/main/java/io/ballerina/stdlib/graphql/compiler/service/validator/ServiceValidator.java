@@ -18,6 +18,8 @@
 
 package io.ballerina.stdlib.graphql.compiler.service.validator;
 
+import io.ballerina.compiler.api.symbols.Annotatable;
+import io.ballerina.compiler.api.symbols.AnnotationSymbol;
 import io.ballerina.compiler.api.symbols.ArrayTypeSymbol;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.EnumSymbol;
@@ -44,9 +46,15 @@ import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
 import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.ResourcePath;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
@@ -86,9 +94,8 @@ import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUt
  * Validate functions in Ballerina GraphQL services.
  */
 public class ServiceValidator {
+    private static final String ENTITY_ANNOTATION = "Entity";
     private static final String FIELD_PATH_SEPARATOR = ".";
-    private static final String ID_ANNOT_NAME = "ID";
-    private static final String[] allowedIDTypes = {"int", "string", "float", "decimal", "uuid:UUID"};
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
     private final List<TypeSymbol> existingReturnTypes = new ArrayList<>();
@@ -120,6 +127,75 @@ public class ServiceValidator {
         } else if (serviceNode.kind() == SyntaxKind.OBJECT_CONSTRUCTOR) {
             validateServiceObject();
         }
+        validateEntityAnnotations();
+    }
+
+    private void validateEntityAnnotations() {
+        for (Map.Entry<String, Symbol> entry : this.interfaceEntityFinder.getEntities().entrySet()) {
+            String entityName = entry.getKey();
+            Symbol symbol = entry.getValue();
+            if (symbol.kind() == SymbolKind.TYPE_DEFINITION) {
+                TypeDefinitionSymbol typeDefinitionSymbol = (TypeDefinitionSymbol) symbol;
+                AnnotationSymbol entityAnnotation = getEntityAnnotation(typeDefinitionSymbol);
+                EntityAnnotationFinder entityAnnotationFinder = new EntityAnnotationFinder(context.semanticModel(),
+                                                                                           entityAnnotation,
+                                                                                           context.currentPackage()
+                                                                                                   .project(),
+                                                                                           context.moduleId());
+                if (entityAnnotationFinder.find().isEmpty()) {
+                    // add warning
+                    continue;
+                }
+                AnnotationNode entityAnnotationNode = entityAnnotationFinder.find().get();
+                if (entityAnnotationNode.annotValue().isEmpty()) {
+                    continue;
+                }
+                MappingConstructorExpressionNode mappingConstructorExprNode = entityAnnotationNode.annotValue().get();
+                SeparatedNodeList<MappingFieldNode> fieldNodes = mappingConstructorExprNode.fields();
+                for (var fieldNode : fieldNodes) {
+                    if (fieldNode.kind() != SyntaxKind.SPECIFIC_FIELD) {
+                        // warning
+                        continue;
+                    }
+                    SpecificFieldNode specificFieldNode = (SpecificFieldNode) fieldNode;
+                    Node fieldNameNode = specificFieldNode.fieldName();
+                    if (fieldNameNode.kind() != SyntaxKind.IDENTIFIER_TOKEN) {
+                        // warning
+                        continue;
+                    }
+                    IdentifierToken fieldNameToken = (IdentifierToken) fieldNameNode;
+                    String fieldName = fieldNameToken.text().trim();
+                    if (fieldName.equals("key")) {
+                        // logic to check Bstring or Bstring array
+                        // TODO: contiue from here
+
+                    } else if (fieldName.equals("resolveReference")) {
+                        // logic to nil or else
+                    }
+                }
+            } else if (symbol.kind() == SymbolKind.CLASS) {
+                ClassSymbol classSymbol = (ClassSymbol) symbol;
+                AnnotationSymbol entityAnnotation = getEntityAnnotation(classSymbol);
+                EntityAnnotationFinder entityAnnotationFinder = new EntityAnnotationFinder(context.semanticModel(),
+                                                                                           entityAnnotation,
+                                                                                           context.currentPackage()
+                                                                                                   .project(),
+                                                                                           context.moduleId());
+                if (entityAnnotationFinder.find().isEmpty()) {
+                    // add warning
+                    continue;
+                }
+                AnnotationNode annotationNode = entityAnnotationFinder.find().get();
+
+            }
+        }
+    }
+
+    private AnnotationSymbol getEntityAnnotation(Annotatable annotatable) {
+        // noinspection OptionalGetWithoutIsPresent
+        return annotatable.annotations().stream()
+                .filter(annotationSymbol -> annotationSymbol.getName().orElse("").equals(ENTITY_ANNOTATION))
+                .findFirst().get();
     }
 
     private void validateServiceObject() {

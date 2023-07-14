@@ -67,7 +67,7 @@ public abstract class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnal
 
     public InterfaceEntityFinder getInterfaceFinder(SemanticModel semanticModel) {
         InterfaceEntityFinder interfaceEntityFinder = new InterfaceEntityFinder();
-        interfaceEntityFinder.populateInterfaces(semanticModel);
+        interfaceEntityFinder.populateInterfacesAndEntities(semanticModel);
         return interfaceEntityFinder;
     }
 
