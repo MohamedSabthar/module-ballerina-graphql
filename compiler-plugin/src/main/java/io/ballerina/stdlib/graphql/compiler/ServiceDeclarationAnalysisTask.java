@@ -61,7 +61,8 @@ public class ServiceDeclarationAnalysisTask extends ServiceAnalysisTask {
         @SuppressWarnings("OptionalGetWithoutIsPresent")
         ServiceDeclarationSymbol symbol = (ServiceDeclarationSymbol) context.semanticModel().symbol(node).get();
         String description = getDescription(symbol);
-        Schema schema = generateSchema(context, interfaceEntityFinder, node, description);
+        Schema schema = generateSchema(context, interfaceEntityFinder, node, description,
+                                       serviceValidator.getEntityKeyDirectives());
         DocumentId documentId = context.documentId();
         addToModifierContextMap(documentId, node, schema);
     }

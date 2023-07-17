@@ -232,39 +232,10 @@ public class EngineUtils {
         return (BObject) context.getNativeData(FIELD_OBJECT);
     }
 
-    public static Object getSdlString(BString schemaString, BMap<BString, Object> keyDirectives) {
+    public static Object getSdlString(BString schemaString) {
         Schema schema = getDecodedSchema(schemaString);
-        Map<String, KeyDirectivesArgumentHolder> directiveFields = getEntityKeyDirectiveFieldValues(keyDirectives);
-        String sdl = SdlSchemaStringGenerator.generate(schema, directiveFields);
+        String sdl = SdlSchemaStringGenerator.generate(schema);
         return StringUtils.fromString(sdl);
-    }
-
-    private static Map<String, KeyDirectivesArgumentHolder> getEntityKeyDirectiveFieldValues(
-            BMap<BString, Object> keyDirectives) {
-        Map<String, KeyDirectivesArgumentHolder> entityKeyDirectiveFields = new HashMap<>();
-        for (Map.Entry<BString, Object> keyDirective : keyDirectives.entrySet()) {
-            Map<BString, Object> federatedEntityRecord = (Map<BString, Object>) keyDirective.getValue();
-            List<String> entityKeyDirectivesFields = getEntityKeyDirectivesFields(federatedEntityRecord);
-            boolean resolvable = federatedEntityRecord.get(ENTITY_ANNOTATION_RESOLVER_FIELD) != null;
-            KeyDirectivesArgumentHolder arguments = new KeyDirectivesArgumentHolder(entityKeyDirectivesFields,
-                                                                                    resolvable);
-            entityKeyDirectiveFields.put(keyDirective.getKey().getValue(), arguments);
-        }
-        return entityKeyDirectiveFields;
-    }
-
-    private static List<String> getEntityKeyDirectivesFields(Map<BString, Object> federatedEntityRecord) {
-        Object keys = federatedEntityRecord.get(ENTITY_ANNOTATION_KEY_FIELD);
-        if (keys instanceof BString) {
-            return List.of(((BString) keys).getValue());
-        }
-        BArray keysArray = (BArray) keys;
-        long size = keysArray.size();
-        List<String> keyDirectiveFields = new ArrayList<>();
-        for (int i = 0; i < size; i++) {
-            keyDirectiveFields.add(keysArray.getBString(i).getValue());
-        }
-        return keyDirectiveFields;
     }
 
     public static void setResult(BObject executorVisitor, Object result) {

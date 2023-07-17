@@ -64,6 +64,7 @@ import io.ballerina.stdlib.graphql.commons.types.Schema;
 import io.ballerina.stdlib.graphql.commons.types.Type;
 import io.ballerina.stdlib.graphql.commons.types.TypeKind;
 import io.ballerina.stdlib.graphql.commons.types.TypeName;
+import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
 import io.ballerina.stdlib.graphql.commons.utils.Utils;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
 
@@ -109,11 +110,12 @@ public class SchemaGenerator {
     private final Project project;
     private final List<Type> visitedInterfaces;
 
+
     public SchemaGenerator(Node serviceNode, InterfaceEntityFinder interfaceEntityFinder, SemanticModel semanticModel,
-                           Project project, String description, boolean isSubgraph) {
+                           Project project, String description, boolean isSubgraph, Map<String, KeyDirectivesArgumentHolder> entityKeyDirectives) {
         this.serviceNode = serviceNode;
         this.interfaceEntityFinder = interfaceEntityFinder;
-        this.schema = new Schema(description, isSubgraph);
+        this.schema = new Schema(description, isSubgraph, entityKeyDirectives);
         this.semanticModel = semanticModel;
         this.project = project;
         this.visitedInterfaces = new ArrayList<>();

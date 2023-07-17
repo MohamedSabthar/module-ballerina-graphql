@@ -47,7 +47,10 @@ import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.ResourcePath;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.ListConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -59,6 +62,7 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
 import io.ballerina.stdlib.graphql.commons.types.TypeName;
+import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
 import io.ballerina.stdlib.graphql.compiler.Utils;
 import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
@@ -66,9 +70,11 @@ import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 import io.ballerina.tools.diagnostics.Location;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
@@ -94,7 +100,9 @@ import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUt
  * Validate functions in Ballerina GraphQL services.
  */
 public class ServiceValidator {
+    private static final String RESOLVE_REFERENCE = "resolveReference";
     private static final String ENTITY_ANNOTATION = "Entity";
+    private static final String KEY = "key";
     private static final String FIELD_PATH_SEPARATOR = ".";
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
@@ -109,6 +117,13 @@ public class ServiceValidator {
     private TypeSymbol rootInputParameterTypeSymbol;
 
     private final List<String> currentFieldPath;
+
+    public Map<String, KeyDirectivesArgumentHolder> getEntityKeyDirectives() {
+        return entityKeyDirectives;
+    }
+
+    private final Map<String, KeyDirectivesArgumentHolder> entityKeyDirectives = new HashMap<>();
+
 
     public ServiceValidator(SyntaxNodeAnalysisContext context, Node serviceNode,
                             InterfaceEntityFinder interfaceEntityFinder, boolean isSubgraph) {
@@ -127,71 +142,93 @@ public class ServiceValidator {
         } else if (serviceNode.kind() == SyntaxKind.OBJECT_CONSTRUCTOR) {
             validateServiceObject();
         }
-        validateEntityAnnotations();
+        validateEntities();
     }
 
-    private void validateEntityAnnotations() {
+    private void validateEntities() {
         for (Map.Entry<String, Symbol> entry : this.interfaceEntityFinder.getEntities().entrySet()) {
-            String entityName = entry.getKey();
-            Symbol symbol = entry.getValue();
-            if (symbol.kind() == SymbolKind.TYPE_DEFINITION) {
-                TypeDefinitionSymbol typeDefinitionSymbol = (TypeDefinitionSymbol) symbol;
-                AnnotationSymbol entityAnnotation = getEntityAnnotation(typeDefinitionSymbol);
-                EntityAnnotationFinder entityAnnotationFinder = new EntityAnnotationFinder(context.semanticModel(),
-                                                                                           entityAnnotation,
-                                                                                           context.currentPackage()
-                                                                                                   .project(),
-                                                                                           context.moduleId());
-                if (entityAnnotationFinder.find().isEmpty()) {
-                    // add warning
-                    continue;
-                }
-                AnnotationNode entityAnnotationNode = entityAnnotationFinder.find().get();
-                if (entityAnnotationNode.annotValue().isEmpty()) {
-                    continue;
-                }
-                MappingConstructorExpressionNode mappingConstructorExprNode = entityAnnotationNode.annotValue().get();
-                SeparatedNodeList<MappingFieldNode> fieldNodes = mappingConstructorExprNode.fields();
-                for (var fieldNode : fieldNodes) {
-                    if (fieldNode.kind() != SyntaxKind.SPECIFIC_FIELD) {
-                        // warning
-                        continue;
-                    }
-                    SpecificFieldNode specificFieldNode = (SpecificFieldNode) fieldNode;
-                    Node fieldNameNode = specificFieldNode.fieldName();
-                    if (fieldNameNode.kind() != SyntaxKind.IDENTIFIER_TOKEN) {
-                        // warning
-                        continue;
-                    }
-                    IdentifierToken fieldNameToken = (IdentifierToken) fieldNameNode;
-                    String fieldName = fieldNameToken.text().trim();
-                    if (fieldName.equals("key")) {
-                        // logic to check Bstring or Bstring array
-                        // TODO: contiue from here
-
-                    } else if (fieldName.equals("resolveReference")) {
-                        // logic to nil or else
-                    }
-                }
-            } else if (symbol.kind() == SymbolKind.CLASS) {
-                ClassSymbol classSymbol = (ClassSymbol) symbol;
-                AnnotationSymbol entityAnnotation = getEntityAnnotation(classSymbol);
-                EntityAnnotationFinder entityAnnotationFinder = new EntityAnnotationFinder(context.semanticModel(),
-                                                                                           entityAnnotation,
-                                                                                           context.currentPackage()
-                                                                                                   .project(),
-                                                                                           context.moduleId());
-                if (entityAnnotationFinder.find().isEmpty()) {
-                    // add warning
-                    continue;
-                }
-                AnnotationNode annotationNode = entityAnnotationFinder.find().get();
-
+            AnnotationSymbol entityAnnotationSymbol;
+            if (entry.getValue().kind() == SymbolKind.TYPE_DEFINITION) {
+                entityAnnotationSymbol = getEntityAnnotationSymbol((TypeDefinitionSymbol) entry.getValue());
+            } else if (entry.getValue().kind() == SymbolKind.CLASS) {
+                entityAnnotationSymbol = getEntityAnnotationSymbol((ClassSymbol) entry.getValue());
+            } else {
+                continue;
             }
+            EntityAnnotationFinder entityAnnotationFinder = new EntityAnnotationFinder(this.context,
+                                                                                       entityAnnotationSymbol,
+                                                                                       entry.getKey());
+            Optional<AnnotationNode> entityAnnotation = entityAnnotationFinder.find();
+            if (entityAnnotation.isEmpty()) {
+                continue;
+            }
+            validateEntityAnnotation(entityAnnotation.get(), entry.getKey());
         }
     }
 
-    private AnnotationSymbol getEntityAnnotation(Annotatable annotatable) {
+    private void validateEntityAnnotation(AnnotationNode entityAnnotation, String entityName) {
+        if (entityAnnotation.annotValue().isEmpty()) {
+            return;
+        }
+        MappingConstructorExpressionNode mappingConstructorExprNode = entityAnnotation.annotValue().get();
+        SeparatedNodeList<MappingFieldNode> fieldNodes = mappingConstructorExprNode.fields();
+        ArrayList<String> keys = new ArrayList<>();
+        boolean isResolvable = false;
+        for (MappingFieldNode fieldNode : fieldNodes) {
+            if (fieldNode.kind() != SyntaxKind.SPECIFIC_FIELD) {
+                // TODO: add warning
+                continue;
+            }
+            SpecificFieldNode specificFieldNode = (SpecificFieldNode) fieldNode;
+            Node fieldNameNode = specificFieldNode.fieldName();
+            if (fieldNameNode.kind() != SyntaxKind.IDENTIFIER_TOKEN) {
+                // TODO: add warning
+                continue;
+            }
+            IdentifierToken fieldNameToken = (IdentifierToken) fieldNameNode;
+            String fieldName = fieldNameToken.text().trim();
+            if (fieldName.equals(KEY)) {
+                keys = getEntityKeys(specificFieldNode);
+            } else if (fieldName.equals(RESOLVE_REFERENCE)) {
+                // noinspection OptionalGetWithoutIsPresent
+                ExpressionNode expressionNode = specificFieldNode.valueExpr().get();
+                isResolvable = expressionNode.kind() != SyntaxKind.NIL_LITERAL;
+            }
+        }
+        this.entityKeyDirectives.put(entityName, new KeyDirectivesArgumentHolder(keys, isResolvable));
+    }
+
+    private ArrayList<String> getEntityKeys(SpecificFieldNode specificFieldNode) {
+        ArrayList<String> keys = new ArrayList<>();
+        // noinspection OptionalGetWithoutIsPresent
+        ExpressionNode keyFieldExpression = specificFieldNode.valueExpr().get();
+        if (keyFieldExpression.kind() == SyntaxKind.STRING_LITERAL) {
+            keys.add(getKeyValueFromStringLiteralNode((BasicLiteralNode) keyFieldExpression));
+            return keys;
+        }
+        if (keyFieldExpression.kind() == SyntaxKind.LIST_CONSTRUCTOR) {
+            ListConstructorExpressionNode listConstructorExpressionNode = (ListConstructorExpressionNode) keyFieldExpression;
+            SeparatedNodeList<Node> expressions = listConstructorExpressionNode.expressions();
+            for (Node expression : expressions) {
+                if (expression.kind() != SyntaxKind.STRING_LITERAL) {
+                    // TODO: add warning
+                    continue;
+                }
+                keys.add(getKeyValueFromStringLiteralNode((BasicLiteralNode) expression));
+            }
+            return keys;
+        }
+        // TODO: add warning
+        // add warning saying not supported expression kind
+        return keys;
+    }
+
+    private String getKeyValueFromStringLiteralNode(BasicLiteralNode expression) {
+        String literalToken = expression.literalToken().text().trim();
+        return literalToken.substring(1, literalToken.length() - 1);
+    }
+
+    private AnnotationSymbol getEntityAnnotationSymbol(Annotatable annotatable) {
         // noinspection OptionalGetWithoutIsPresent
         return annotatable.annotations().stream()
                 .filter(annotationSymbol -> annotationSymbol.getName().orElse("").equals(ENTITY_ANNOTATION))

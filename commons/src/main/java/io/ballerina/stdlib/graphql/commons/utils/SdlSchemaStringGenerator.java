@@ -34,7 +34,6 @@ import io.ballerina.stdlib.graphql.commons.types.TypeName;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -99,12 +98,8 @@ public class SdlSchemaStringGenerator {
     private final Schema schema;
 
     public static String generate(Schema schema) {
-        return generate(schema, new HashMap<>());
-    }
-
-    public static String generate(Schema schema, Map<String, KeyDirectivesArgumentHolder> entityKeyDirectives) {
         schema.addSubgraphSchemaAdditions();
-        SdlSchemaStringGenerator sdlGenerator = new SdlSchemaStringGenerator(schema, entityKeyDirectives);
+        SdlSchemaStringGenerator sdlGenerator = new SdlSchemaStringGenerator(schema, schema.getEntityKeyDirectives());
         return sdlGenerator.getSDLSchemaString();
     }
 

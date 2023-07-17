@@ -31,6 +31,7 @@ import io.ballerina.projects.Project;
 import io.ballerina.projects.plugins.AnalysisTask;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
+import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
 import io.ballerina.stdlib.graphql.compiler.schema.generator.GraphqlModifierContext;
 import io.ballerina.stdlib.graphql.compiler.schema.generator.SchemaGenerator;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
@@ -72,12 +73,12 @@ public abstract class ServiceAnalysisTask implements AnalysisTask<SyntaxNodeAnal
     }
 
     public Schema generateSchema(SyntaxNodeAnalysisContext context, InterfaceEntityFinder interfaceEntityFinder,
-                                 Node node, String description) {
+                                 Node node, String description, Map<String, KeyDirectivesArgumentHolder> entityKeyDirectives) {
         boolean isSubgraph = nodeSubgraphMap.get(node);
         SemanticModel semanticModel = context.semanticModel();
         Project project = context.currentPackage().project();
         SchemaGenerator schemaGenerator = new SchemaGenerator(node, interfaceEntityFinder, semanticModel, project,
-                                                              description, isSubgraph);
+                                                              description, isSubgraph, entityKeyDirectives);
         return schemaGenerator.generate();
     }
 

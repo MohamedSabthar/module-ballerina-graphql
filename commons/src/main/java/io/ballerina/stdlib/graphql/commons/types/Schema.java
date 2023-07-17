@@ -18,6 +18,8 @@
 
 package io.ballerina.stdlib.graphql.commons.types;
 
+import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +40,12 @@ public class Schema implements Serializable {
     private Type queryType;
     private Type mutationType = null;
     private Type subscriptionType = null;
+
+    public Map<String, KeyDirectivesArgumentHolder> getEntityKeyDirectives() {
+        return entityKeyDirectives;
+    }
+
+    private final Map<String, KeyDirectivesArgumentHolder> entityKeyDirectives;
     private static final String REPRESENTATIONS_ARGUMENT = "representations";
     private static final String SDL_FIELD = "sdl";
 
@@ -49,12 +57,14 @@ public class Schema implements Serializable {
      *
      * @param description - The description of the schema
      */
-    public Schema(String description, boolean isSubgraph) {
+    public Schema(String description, boolean isSubgraph,
+                  Map<String, KeyDirectivesArgumentHolder>  entityKeyDirectives) {
         this.description = description;
         this.types = new LinkedHashMap<>();
         this.directives = new ArrayList<>();
         this.entities = new ArrayList<>();
         this.isSubgraph = isSubgraph;
+        this.entityKeyDirectives = entityKeyDirectives;
     }
 
     /**

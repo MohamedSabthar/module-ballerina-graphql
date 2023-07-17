@@ -49,6 +49,7 @@ import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -303,8 +304,9 @@ public final class Utils {
 
         InterfaceEntityFinder interfaceFinder = new InterfaceEntityFinder();
         interfaceFinder.populateInterfacesAndEntities(semanticModel);
+        // TODO: fix this
         SchemaGenerator schemaGenerator = new SchemaGenerator(serviceNode, interfaceFinder, semanticModel, project,
-                                                              description, isSubgraph);
+                                                              description, isSubgraph, new HashMap<>());
 
         return schemaGenerator.generate();
     }

@@ -9,6 +9,7 @@ import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
 import io.ballerina.projects.ModuleId;
 import io.ballerina.projects.Project;
+import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -22,13 +23,15 @@ public class EntityAnnotationFinder {
     private final SemanticModel semanticModel;
     private final Project project;
     private final ModuleId moduleId;
+    private final String entityName;
 
-    public EntityAnnotationFinder(SemanticModel semanticModel, AnnotationSymbol annotationSymbol, Project project,
-                                  ModuleId moduleID) {
-        this.semanticModel = semanticModel;
+    public EntityAnnotationFinder(SyntaxNodeAnalysisContext context, AnnotationSymbol annotationSymbol,
+                                  String entityName) {
+        this.semanticModel = context.semanticModel();
         this.annotationSymbol = annotationSymbol;
-        this.project = project;
-        this.moduleId = moduleID;
+        this.project = context.currentPackage().project();
+        this.moduleId = context.moduleId();
+        this.entityName = entityName;
     }
 
     public Optional<AnnotationNode> find() {
@@ -41,7 +44,9 @@ public class EntityAnnotationFinder {
     private Optional<AnnotationNode> getAnnotationNodeFromModule() {
         Module currentModule = this.project.currentPackage().module(this.moduleId);
         Collection<DocumentId> documentIds = currentModule.documentIds();
-        AnnotationNodeVisitor directiveVisitor = new AnnotationNodeVisitor(this.semanticModel, this.annotationSymbol);
+        EntityAnnotationNodeVisitor directiveVisitor = new EntityAnnotationNodeVisitor(this.semanticModel,
+                                                                                       this.annotationSymbol,
+                                                                                       this.entityName);
         for (DocumentId documentId : documentIds) {
             Node rootNode = currentModule.document(documentId).syntaxTree().rootNode();
             rootNode.accept(directiveVisitor);
