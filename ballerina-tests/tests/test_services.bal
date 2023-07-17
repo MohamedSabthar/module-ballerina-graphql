@@ -2351,7 +2351,7 @@ service /dataloader on wrappedListener {
     @dataloader:Loader {
         batchFunctions: {[AUTHOR_LOADER] : authorLoaderFunction}
     }
-    resource function get loadAuthors(map<dataloader:DataLoader> loaders, int[] ids) {
+    function loadAuthors(map<dataloader:DataLoader> loaders, int[] ids) {
         addAuthorIdsToAuthorLoader(loaders, ids);
     }
 
@@ -2365,7 +2365,7 @@ service /dataloader on wrappedListener {
     @dataloader:Loader {
         batchFunctions: {[AUTHOR_UPDATE_LOADER] : authorUpdateLoaderFunction}
     }
-    remote function loadUpdateAuthorName(map<dataloader:DataLoader> loaders, int id, string name) {
+    function loadUpdateAuthorName(map<dataloader:DataLoader> loaders, int id, string name) {
         [int, string] key = [id, name];
         dataloader:DataLoader authorUpdateLoader = loaders.get(AUTHOR_UPDATE_LOADER);
         authorUpdateLoader.load(key);
@@ -2393,7 +2393,7 @@ service /dataloader_with_interceptor on wrappedListener {
     @dataloader:Loader {
         batchFunctions: {[AUTHOR_LOADER] : authorLoaderFunction}
     }
-    resource function get loadAuthors(map<dataloader:DataLoader> loaders, int[] ids) {
+    function loadAuthors(map<dataloader:DataLoader> loaders, int[] ids) {
         addAuthorIdsToAuthorLoader(loaders, ids);
     }
 }
@@ -2409,7 +2409,7 @@ service /dataloader_with_faulty_batch_function on wrappedListener {
     @dataloader:Loader {
         batchFunctions: {[AUTHOR_LOADER] : faultyAuthorLoaderFunction}
     }
-    resource function get loadAuthors(map<dataloader:DataLoader> loaders, int[] ids) {
+    function loadAuthors(map<dataloader:DataLoader> loaders, int[] ids) {
         addAuthorIdsToAuthorLoader(loaders, ids);
     }
 }

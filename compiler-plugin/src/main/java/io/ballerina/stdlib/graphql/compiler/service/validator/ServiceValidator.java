@@ -131,8 +131,8 @@ public class ServiceValidator {
 
     private void validateServiceObject() {
         ObjectConstructorExpressionNode objectConstructorExpNode = (ObjectConstructorExpressionNode) serviceNode;
-        List<Node> remoteOrResourceMethodNodes = getRemoteOrResourceMethodNodes(objectConstructorExpNode.members());
-        validateRootServiceRemoteOrResourceMethods(remoteOrResourceMethodNodes);
+        List<Node> serviceMethodNodes = getServiceMethodNodes(objectConstructorExpNode.members());
+        validateRootServiceMethods(serviceMethodNodes);
         if (!this.hasQueryType) {
             addDiagnostic(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS, objectConstructorExpNode.location());
         }
@@ -157,42 +157,41 @@ public class ServiceValidator {
 
     private void validateService() {
         ServiceDeclarationNode serviceDeclarationNode = (ServiceDeclarationNode) this.context.node();
-        List<Node> remoteOrResourceMethodNodes = getRemoteOrResourceMethodNodes(serviceDeclarationNode.members());
-        validateRootServiceRemoteOrResourceMethods(remoteOrResourceMethodNodes);
+        List<Node> serviceMethodNodes = getServiceMethodNodes(serviceDeclarationNode.members());
+        validateRootServiceMethods(serviceMethodNodes);
         if (!this.hasQueryType) {
             addDiagnostic(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS, serviceDeclarationNode.location());
         }
         validateEntitiesResolverReturnTypes();
     }
 
-    private List<Node> getRemoteOrResourceMethodNodes(NodeList<Node> serviceMembers) {
-        return serviceMembers.stream().filter(this::isServiceRemoteOrResourceMethod).collect(Collectors.toList());
+    private List<Node> getServiceMethodNodes(NodeList<Node> serviceMembers) {
+        return serviceMembers.stream().filter(this::isServiceMethod).collect(Collectors.toList());
     }
 
-    private boolean isServiceRemoteOrResourceMethod(Node node) {
+    private boolean isServiceMethod(Node node) {
         if (this.context.semanticModel().symbol(node).isEmpty()) {
             return false;
         }
         Symbol symbol = this.context.semanticModel().symbol(node).get();
-        return symbol.kind() == SymbolKind.RESOURCE_METHOD || symbol.kind() == SymbolKind.METHOD
-                && isRemoteMethod((MethodSymbol) symbol);
+        return symbol.kind() == SymbolKind.RESOURCE_METHOD || symbol.kind() == SymbolKind.METHOD;
     }
 
-    private void validateRootServiceRemoteOrResourceMethods(List<Node> remoteOrResourceMethods) {
-        List<MethodSymbol> resourceOrRemoteMethodSymbols = getRemoteOrResourceMethodSymbols(remoteOrResourceMethods);
-        for (Node methodNode : remoteOrResourceMethods) {
+    private void validateRootServiceMethods(List<Node> serviceMethods) {
+        List<MethodSymbol> methodSymbols = getMethodSymbols(serviceMethods);
+        for (Node methodNode : serviceMethods) {
             // No need to check fo isEmpty(), already validated in getRemoteOrResourceMethodSymbols
             MethodSymbol methodSymbol = (MethodSymbol) this.context.semanticModel().symbol(methodNode).get();
             Location location = methodNode.location();
             if (hasLoaderAnnotation(methodSymbol)) {
-                validateLoadMethod(methodSymbol, location, resourceOrRemoteMethodSymbols);
+                validateLoadMethod(methodSymbol, location, methodSymbols);
             } else if (isRemoteMethod(methodSymbol)) {
                 this.currentFieldPath.add(TypeName.MUTATION.getName());
-                validateRemoteMethod(methodSymbol, location, resourceOrRemoteMethodSymbols);
+                validateRemoteMethod(methodSymbol, location, methodSymbols);
                 this.currentFieldPath.remove(TypeName.MUTATION.getName());
             } else if (isResourceMethod(methodSymbol)) {
                 validateRootServiceResourceMethod((ResourceMethodSymbol) methodSymbol, location,
-                                                  resourceOrRemoteMethodSymbols);
+                                                  methodSymbols);
             }
         }
     }
@@ -222,7 +221,7 @@ public class ServiceValidator {
     }
 
     private void validateRootServiceResourceMethod(ResourceMethodSymbol methodSymbol, Location location,
-                                                   List<MethodSymbol> resourceOrRemoteMethodSymbols) {
+                                                   List<MethodSymbol> serviceMethodSymbols) {
         String resourceMethodName = getFieldPath(methodSymbol);
         Location accessorLocation = getLocation(methodSymbol, location);
         if (isReservedFederatedResolverName(resourceMethodName)) {
@@ -232,12 +231,12 @@ public class ServiceValidator {
         String accessor = getAccessor(methodSymbol);
         if (RESOURCE_FUNCTION_SUBSCRIBE.equals(accessor)) {
             this.currentFieldPath.add(TypeName.SUBSCRIPTION.getName());
-            validateSubscribeResource(methodSymbol, location, resourceOrRemoteMethodSymbols);
+            validateSubscribeResource(methodSymbol, location, serviceMethodSymbols);
             this.currentFieldPath.remove(TypeName.SUBSCRIPTION.getName());
         } else if (RESOURCE_FUNCTION_GET.equals(accessor)) {
             this.currentFieldPath.add(TypeName.QUERY.getName());
             this.hasQueryType = true;
-            validateGetResource(methodSymbol, location, resourceOrRemoteMethodSymbols);
+            validateGetResource(methodSymbol, location, serviceMethodSymbols);
             this.currentFieldPath.remove(TypeName.QUERY.getName());
         } else {
             addDiagnostic(CompilationDiagnostic.INVALID_ROOT_RESOURCE_ACCESSOR, accessorLocation, accessor,
@@ -245,8 +244,8 @@ public class ServiceValidator {
         }
     }
 
-    private List<MethodSymbol> getRemoteOrResourceMethodSymbols(List<Node> serviceMembers) {
-        return serviceMembers.stream().filter(this::isServiceRemoteOrResourceMethod)
+    private List<MethodSymbol> getMethodSymbols(List<Node> serviceMembers) {
+        return serviceMembers.stream().filter(this::isServiceMethod)
                 .map(methodNode -> (MethodSymbol) this.context.semanticModel().symbol(methodNode).get())
                 .collect(Collectors.toList());
     }
@@ -263,16 +262,16 @@ public class ServiceValidator {
     }
 
     private void validateGetResource(ResourceMethodSymbol methodSymbol, Location location,
-                                     List<MethodSymbol> remoteOrResourceMethodSymbols) {
+                                     List<MethodSymbol> serviceMethodSymbols) {
         String path = getFieldPath(methodSymbol);
         this.currentFieldPath.add(path);
         validateResourcePath(methodSymbol, location);
-        validateMethod(methodSymbol, location, remoteOrResourceMethodSymbols);
+        validateMethod(methodSymbol, location, serviceMethodSymbols);
         this.currentFieldPath.remove(path);
     }
 
     private void validateSubscribeResource(ResourceMethodSymbol methodSymbol, Location location,
-                                           List<MethodSymbol> resourceOrRemoteMethodSymbols) {
+                                           List<MethodSymbol> serviceMethodSymbols) {
         ResourcePath resourcePath = methodSymbol.resourcePath();
         String resourcePathSignature = resourcePath.signature();
         if (resourcePath.kind() == ResourcePath.Kind.PATH_SEGMENT_LIST) {
@@ -289,22 +288,22 @@ public class ServiceValidator {
             addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_PATH, location, resourcePathSignature);
         }
         validateSubscriptionMethod(methodSymbol, location);
-        validateInputParameters(methodSymbol, location, resourceOrRemoteMethodSymbols);
+        validateInputParameters(methodSymbol, location, serviceMethodSymbols);
     }
 
     private void validateLoadMethod(MethodSymbol loadMethodSymbol, Location location,
                                     List<MethodSymbol> serviceMethods) {
-        String loadMethodName = getMethodName(loadMethodSymbol);
-        Location loadMethodLocation = getLocation(loadMethodSymbol, location);
-        if (isResourceMethod(loadMethodSymbol) && RESOURCE_FUNCTION_SUBSCRIBE.equals(
-                getAccessor((ResourceMethodSymbol) loadMethodSymbol))) {
-            addDiagnostic(CompilationDiagnostic.INVALID_USAGE_OF_LOADER_ANNOTATION_IN_SUBSCRIBE_RESOURCE,
-                          loadMethodLocation, loadMethodName);
+        if (isResourceMethod(loadMethodSymbol) || isRemoteMethod(loadMethodSymbol)) {
+            addDiagnostic(CompilationDiagnostic.INVALID_USAGE_OF_LOADER_ANNOTATION,
+                          getLocation(loadMethodSymbol, location),
+                          isResourceMethod(loadMethodSymbol) ? getFieldPath((ResourceMethodSymbol) loadMethodSymbol) :
+                                  loadMethodSymbol.getName().orElse(loadMethodSymbol.signature()));
             return;
         }
-
+        Location loadMethodLocation = getLocation(loadMethodSymbol, location);
+        String loadMethodName = getLoadMethodName(loadMethodSymbol);
         if (!loadMethodName.startsWith(LOAD_METHOD_PREFIX)) {
-            addDiagnostic(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, loadMethodLocation,
+            addDiagnostic(CompilationDiagnostic.INVALID_FUNCTION_NAME_FOR_DATA_LOADER, loadMethodLocation,
                           loadMethodName, LOAD_METHOD_PREFIX, loadMethodName);
             return;
         }
@@ -322,7 +321,7 @@ public class ServiceValidator {
     private MethodSymbol findCorrespondingMethodMappingForLoadMethod(MethodSymbol loadMethodSymbol,
                                                                      Location loadMethodLocation,
                                                                      List<MethodSymbol> serviceMethods) {
-        String loadMethodName = getMethodName(loadMethodSymbol);
+        String loadMethodName = getLoadMethodName(loadMethodSymbol);
         // field name starting with a capital letter
         String expectedFieldName = loadMethodName.substring(LOAD_METHOD_PREFIX.length());
         MethodSymbol field = findRemoteOrGetResourceMethodSymbolExceptLoadMethods(serviceMethods, expectedFieldName);
@@ -331,27 +330,21 @@ public class ServiceValidator {
             expectedFieldName = lowerCaseFirstChar(expectedFieldName);
             field = findRemoteOrGetResourceMethodSymbolExceptLoadMethods(serviceMethods, expectedFieldName);
         }
-        if (isRemoteMethod(loadMethodSymbol) && (field == null || !isRemoteMethod(field))) {
-            addDiagnostic(CompilationDiagnostic.NO_MATCHING_REMOTE_METHOD_FOUND_FOR_LOAD_METHOD,
-                          loadMethodLocation, expectedFieldName, loadMethodName);
-            return null;
-        }
-        if (isResourceMethod(loadMethodSymbol) && (field == null || !isResourceMethod(field))) {
-            addDiagnostic(CompilationDiagnostic.NO_MATCHING_RESOURCE_METHOD_FOUND_FOR_LOAD_METHOD,
+        if (field == null) {
+            addDiagnostic(CompilationDiagnostic.NO_MATCHING_METHOD_FOUND_FOR_LOAD_METHOD,
                           loadMethodLocation, expectedFieldName, loadMethodName);
             return null;
         }
         return field;
     }
 
-    private String getMethodName(MethodSymbol methodSymbol) {
-        return isResourceMethod(methodSymbol) ? getFieldPath((ResourceMethodSymbol) methodSymbol) :
-                methodSymbol.getName().orElse(EMPTY_STRING);
+    private String getLoadMethodName(MethodSymbol methodSymbol) {
+        return methodSymbol.getName().orElse("");
     }
 
     private void validateLoadMethodParams(MethodSymbol loadMethodSymbol, Location loadMethodLocation,
                                           MethodSymbol correspondingGraphqlFieldMethod) {
-        String loadMethodName = getMethodName(loadMethodSymbol);
+        String loadMethodName = getLoadMethodName(loadMethodSymbol);
         Set<String> fieldMethodParamSignatures = correspondingGraphqlFieldMethod.typeDescriptor().params().isPresent() ?
                 correspondingGraphqlFieldMethod.typeDescriptor().params().get().stream().map(ParameterSymbol::signature)
                         .collect(Collectors.toSet()) : new HashSet<>();
@@ -363,7 +356,10 @@ public class ServiceValidator {
                 hasDataLoaderMapParameter = true;
             } else if (!fieldMethodParamSignatures.contains(symbol.signature())) {
                 addDiagnostic(CompilationDiagnostic.INVALID_PARAMETER_IN_LOAD_METHOD, loadMethodLocation,
-                              symbol.signature(), loadMethodName, getMethodName(correspondingGraphqlFieldMethod));
+                              symbol.signature(), loadMethodName, isResourceMethod(correspondingGraphqlFieldMethod) ?
+                                      getFieldPath((ResourceMethodSymbol) correspondingGraphqlFieldMethod) :
+                                      correspondingGraphqlFieldMethod.getName().orElse(
+                                              correspondingGraphqlFieldMethod.signature()));
             }
         }
         if (!hasDataLoaderMapParameter) {
@@ -381,22 +377,14 @@ public class ServiceValidator {
         }
         addDiagnostic(CompilationDiagnostic.INVALID_RETURN_TYPE_IN_LOADER_METHOD,
                       getLocation(returnType, loadMethodLocation), returnType.signature(),
-                      getMethodName(loadMethodSymbol));
+                      getLoadMethodName(loadMethodSymbol));
     }
 
     private MethodSymbol findRemoteOrGetResourceMethodSymbolExceptLoadMethods(List<MethodSymbol> serviceMethods,
                                                                               String expectedFieldName) {
         return serviceMethods.stream()
-                .filter(method -> !hasLoaderAnnotation(method)
-                        && hasExpectedRemoteOrGetResourceMethodName(method, expectedFieldName))
-                .findFirst().orElse(null);
-    }
-
-    private boolean hasExpectedRemoteOrGetResourceMethodName(MethodSymbol methodSymbol, String expectedMethodName) {
-        return isResourceMethod(methodSymbol) && RESOURCE_FUNCTION_GET.equals(
-                getAccessor((ResourceMethodSymbol) methodSymbol)) && getFieldPath(
-                (ResourceMethodSymbol) methodSymbol).equals(expectedMethodName) || (isRemoteMethod(methodSymbol)
-                && methodSymbol.getName().orElse(EMPTY_STRING).equals(expectedMethodName));
+                .filter(method -> (isResourceMethod(method) ? getFieldPath((ResourceMethodSymbol) method) :
+                        method.getName().orElse(EMPTY_STRING)).equals(expectedFieldName)).findFirst().orElse(null);
     }
 
     private void validateSubscriptionMethod(ResourceMethodSymbol methodSymbol, Location location) {
@@ -430,7 +418,7 @@ public class ServiceValidator {
     }
 
     private void validateRemoteMethod(MethodSymbol methodSymbol, Location location,
-                                      List<MethodSymbol> serviceRemoteOrResourceMethods) {
+                                      List<MethodSymbol> serviceMethodSymbols) {
         if (methodSymbol.getName().isEmpty()) {
             return;
         }
@@ -442,17 +430,17 @@ public class ServiceValidator {
             Location methodLocation = getLocation(methodSymbol, location);
             addDiagnostic(CompilationDiagnostic.INVALID_USE_OF_RESERVED_REMOTE_METHOD_NAME, methodLocation, fieldName);
         }
-        validateMethod(methodSymbol, location, serviceRemoteOrResourceMethods);
+        validateMethod(methodSymbol, location, serviceMethodSymbols);
         this.currentFieldPath.remove(fieldName);
     }
 
     private void validateMethod(MethodSymbol methodSymbol, Location location,
-                                List<MethodSymbol> remoteOrResourceMethods) {
+                                List<MethodSymbol> serviceMethodSymbols) {
         if (methodSymbol.typeDescriptor().returnTypeDescriptor().isPresent()) {
             TypeSymbol returnTypeSymbol = methodSymbol.typeDescriptor().returnTypeDescriptor().get();
             validateReturnType(returnTypeSymbol, location);
         }
-        validateInputParameters(methodSymbol, location, remoteOrResourceMethods);
+        validateInputParameters(methodSymbol, location, serviceMethodSymbols);
     }
 
     private void validateResourcePath(ResourceMethodSymbol resourceMethodSymbol, Location location) {
@@ -726,8 +714,9 @@ public class ServiceValidator {
 
     private void checkForCorrespondingLoadMethod(MethodSymbol methodSymbol, List<MethodSymbol> remoteOrResourceMethods,
                                                  Location location) {
-        String methodName = getMethodName(methodSymbol);
-        String expectedLoadMethodName = getLoadMethodName(methodName);
+        String graphqlFieldName = isResourceMethod(methodSymbol) ? getFieldPath((ResourceMethodSymbol) methodSymbol) :
+                methodSymbol.getName().orElse(EMPTY_STRING);
+        String expectedLoadMethodName = getExpectedLoadMethodName(graphqlFieldName);
         boolean hasMatchingLoadMethod = remoteOrResourceMethods.stream().anyMatch(method -> isResourceMethod(method) ?
                 expectedLoadMethodName.equals(getFieldPath((ResourceMethodSymbol) method))
                         && RESOURCE_FUNCTION_GET.equals(getAccessor((ResourceMethodSymbol) method)) :
@@ -735,12 +724,13 @@ public class ServiceValidator {
         if (!hasMatchingLoadMethod) {
             addDiagnostic(CompilationDiagnostic.NO_MATCHING_LOAD_FUNCTION_FOUND, getLocation(methodSymbol, location),
                           isResourceMethod(methodSymbol) ? RESOURCE_FUNCTION_GET : REMOTE_KEY_WORD,
-                          expectedLoadMethodName, methodName);
+                          expectedLoadMethodName, graphqlFieldName);
         }
     }
 
-    private String getLoadMethodName(String methodName) {
-        return LOAD_METHOD_PREFIX + methodName.substring(0, 1).toUpperCase(ENGLISH) + methodName.substring(1);
+    private String getExpectedLoadMethodName(String graphqlFieldName) {
+        return LOAD_METHOD_PREFIX + graphqlFieldName.substring(0, 1).toUpperCase(ENGLISH)
+                + graphqlFieldName.substring(1);
     }
 
     private void validateInputParameterType(TypeSymbol typeSymbol, Location location, boolean isResourceMethod) {

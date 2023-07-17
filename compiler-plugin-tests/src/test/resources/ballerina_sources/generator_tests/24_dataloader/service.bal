@@ -25,7 +25,7 @@ service on new graphql:Listener(9090) {
     @dataloader:Loader {
         batchFunctions: {"authorLoader": authorLoaderFunction}
     }
-    resource function get loadAuthors(map<dataloader:DataLoader> loaders, int[] ids) {
+    function loadAuthors(map<dataloader:DataLoader> loaders, int[] ids) {
     }
 
     remote function updateAuthorName(map<dataloader:DataLoader> loaders, int id, string name) returns Author|error {
@@ -35,7 +35,7 @@ service on new graphql:Listener(9090) {
     @dataloader:Loader {
         batchFunctions: {"authorUpdateLoader": authorUpdateLoaderFunction}
     }
-    remote function loadUpdateAuthorName(map<dataloader:DataLoader> loaders, int id, string name) {
+    function loadUpdateAuthorName(map<dataloader:DataLoader> loaders, int id, string name) {
     }
 }
 
@@ -57,7 +57,7 @@ isolated distinct service class Author {
     @dataloader:Loader {
         batchFunctions: {"bookLoader": bookLoaderFunction}
     }
-    isolated resource function get loadBooks(map<dataloader:DataLoader> loaders) {
+    isolated function loadBooks(map<dataloader:DataLoader> loaders) {
     }
 }
 

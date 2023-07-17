@@ -31,7 +31,7 @@ isolated distinct service class Author {
     @dataloader:Loader {
         batchFunctions: {"bookLoader": bookLoaderFunction}
     }
-    isolated resource function get loadBooks() {
+    isolated function loadBooks() {
     }
 }
 
