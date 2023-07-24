@@ -257,13 +257,22 @@ public class Engine {
         return result;
     }
 
-    public static Object getRemoteMethod(BObject service, BString methodName) {
+    public static Object getMethod(BObject service, BString methodName) {
         ServiceType serviceType = (ServiceType) TypeUtils.getType(service);
-        return getRemoteMethod(serviceType, methodName.getValue());
+        return getMethod(serviceType, methodName.getValue());
     }
 
     private static RemoteMethodType getRemoteMethod(ServiceType serviceType, String methodName) {
         for (RemoteMethodType remoteMethod : serviceType.getRemoteMethods()) {
+            if (remoteMethod.getName().equals(methodName)) {
+                return remoteMethod;
+            }
+        }
+        return null;
+    }
+
+    private static MethodType getMethod(ServiceType serviceType, String methodName) {
+        for (MethodType remoteMethod : serviceType.getMethods()) {
             if (remoteMethod.getName().equals(methodName)) {
                 return remoteMethod;
             }
@@ -303,16 +312,11 @@ public class Engine {
         return null;
     }
 
-    public static boolean hasLoadMethod(BObject serviceObject, BString resourceMethodName, boolean isRemoteMethod) {
+    public static boolean hasLoadMethod(BObject serviceObject, BString resourceMethodName) {
         ServiceType serviceType = (ServiceType) serviceObject.getOriginalType();
-        if (isRemoteMethod) {
-            return Arrays.stream(serviceType.getRemoteMethods()).anyMatch(
+        return Arrays.stream(serviceType.getMethods()).anyMatch(
                     methodType -> methodType.getName().equals(resourceMethodName.getValue())
                             && getLoadAnnotation(methodType) != null);
-        }
-        return Arrays.stream(serviceType.getResourceMethods()).anyMatch(
-                methodType -> methodType.getResourcePath()[0].equals(resourceMethodName.getValue())
-                        && getLoadAnnotation(methodType) != null);
     }
 
     private static BMap<BString, Object> getLoadAnnotation(MethodType methodType) {
@@ -331,11 +335,9 @@ public class Engine {
         return dataLoaderModuleName;
     }
 
-    public static BMap<BString, BFunctionPointer> getBatchFunctionsMap(BObject serviceObject, BString loadMethodName,
-                                                                       boolean loadMethodIsRemote) {
+    public static BMap<BString, BFunctionPointer> getBatchFunctionsMap(BObject serviceObject, BString loadMethodName) {
         ServiceType serviceType = (ServiceType) serviceObject.getOriginalType();
-        MethodType loadMethodType = loadMethodIsRemote ? getRemoteMethod(serviceType, loadMethodName.getValue()) :
-                getResourceMethod(serviceType, List.of(loadMethodName.getValue()), GET_ACCESSOR);
+        MethodType loadMethodType = getMethod(serviceType, loadMethodName.getValue());
         // loadMethodType will never be null since we have validated it with the compiler plugin.
         BMap<BString, Object> loadAnnotation = getLoadAnnotation(Objects.requireNonNull(loadMethodType));
         return (BMap<BString, BFunctionPointer>) loadAnnotation.get(BATCH_FUNCTIONS_FIELD);

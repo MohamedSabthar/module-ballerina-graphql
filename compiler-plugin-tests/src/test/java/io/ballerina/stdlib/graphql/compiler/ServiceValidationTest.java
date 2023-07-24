@@ -1138,7 +1138,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.MISSING_DATA_LOADER_PARAMETER, "loadBooks");
-        assertErrorMessage(diagnostic, message, 34, 32);
+        assertErrorMessage(diagnostic, message, 34, 23);
     }
 
     @Test(groups = "invalid")
@@ -1151,7 +1151,7 @@ public class ServiceValidationTest {
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.INVALID_PARAMETER_IN_LOAD_METHOD, "int id", "loadBooks",
                                          "books");
-        assertErrorMessage(diagnostic, message, 34, 32);
+        assertErrorMessage(diagnostic, message, 34, 23);
     }
 
     @Test(groups = "invalid")
@@ -1164,7 +1164,7 @@ public class ServiceValidationTest {
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.INVALID_RETURN_TYPE_IN_LOADER_METHOD, "int",
                                          "loadBooks");
-        assertErrorMessage(diagnostic, message, 34, 32);
+        assertErrorMessage(diagnostic, message, 34, 23);
     }
 
     @Test(groups = "invalid")
@@ -1212,8 +1212,7 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_USAGE_OF_LOADER_ANNOTATION_IN_SUBSCRIBE_RESOURCE,
-                                         "data");
+        String message = getErrorMessage(CompilationDiagnostic.INVALID_USAGE_OF_LOADER_ANNOTATION, "data");
         assertErrorMessage(diagnostic, message, 28, 23);
     }
 
@@ -1226,36 +1225,30 @@ public class ServiceValidationTest {
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, "books",
+        String message = getErrorMessage(CompilationDiagnostic.INVALID_FUNCTION_NAME_FOR_DATA_LOADER, "books",
                                          "load");
-        assertErrorMessage(diagnostic, message, 40, 32);
+        assertErrorMessage(diagnostic, message, 40, 23);
 
         diagnostic = diagnosticIterator.next();
-        message = getErrorMessage(CompilationDiagnostic.INVALID_RESOURCE_FUNCTION_NAME_FOR_DATA_LOADER, "author",
+        message = getErrorMessage(CompilationDiagnostic.INVALID_FUNCTION_NAME_FOR_DATA_LOADER, "author",
                                   "load");
-        assertErrorMessage(diagnostic, message, 28, 32);
+        assertErrorMessage(diagnostic, message, 28, 23);
     }
 
     @Test(groups = "invalid")
     public void testLoaderMethodWithoutGraphqlFieldMapping() {
         String packagePath = "72_loader_method_without_graphql_field_mapping";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
-        Assert.assertEquals(diagnosticResult.errorCount(), 3);
+        Assert.assertEquals(diagnosticResult.errorCount(), 2);
         Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
 
         Diagnostic diagnostic = diagnosticIterator.next();
-        String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_RESOURCE_METHOD_FOUND_FOR_LOAD_METHOD,
-                                         "books", "loadBooks");
-        assertErrorMessage(diagnostic, message, 46, 32);
+        String message = getErrorMessage(CompilationDiagnostic.NO_MATCHING_METHOD_FOUND_FOR_LOAD_METHOD, "books",
+                                         "loadBooks");
+        assertErrorMessage(diagnostic, message, 46, 23);
 
         diagnostic = diagnosticIterator.next();
-        String message2 = getErrorMessage(CompilationDiagnostic.NO_MATCHING_REMOTE_METHOD_FOUND_FOR_LOAD_METHOD,
-                                          "authors", "loadAuthors");
-        assertErrorMessage(diagnostic, message2, 28, 21);
-
-
-        diagnostic = diagnosticIterator.next();
-        assertErrorMessage(diagnostic, message, 34, 32);
+        assertErrorMessage(diagnostic, message, 34, 23);
     }
 
     @Test(groups = "invalid")

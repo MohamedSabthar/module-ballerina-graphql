@@ -418,7 +418,7 @@ public isolated distinct service class AuthorData {
     @dataloader:Loader {
         batchFunctions: {[BOOK_LOADER] : bookLoaderFunction}
     }
-    isolated resource function get loadBooks(map<dataloader:DataLoader> loaders) {
+    isolated function loadBooks(map<dataloader:DataLoader> loaders) {
         dataloader:DataLoader bookLoader = loaders.get(BOOK_LOADER);
         bookLoader.load(self.author.id);
     }
@@ -448,7 +448,7 @@ public isolated distinct service class AuthorDetail {
     @dataloader:Loader {
         batchFunctions: {[BOOK_LOADER] : bookLoaderFunction}
     }
-    isolated resource function get loadBooks(map<dataloader:DataLoader> loaders) {
+    isolated function loadBooks(map<dataloader:DataLoader> loaders) {
         dataloader:DataLoader bookLoader = loaders.get(BOOK_LOADER);
         bookLoader.load(self.author.id);
     }

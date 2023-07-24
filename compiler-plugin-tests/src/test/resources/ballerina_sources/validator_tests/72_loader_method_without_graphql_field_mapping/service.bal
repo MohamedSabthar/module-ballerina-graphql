@@ -25,13 +25,13 @@ service on new graphql:Listener(9090) {
     @dataloader:Loader {
         batchFunctions: {"bookLoader": bookLoaderFunction}
     }
-    remote function loadAuthors(map<dataloader:DataLoader> loaders) {
+    function loadAuthors(map<dataloader:DataLoader> loaders) {
     }
 
     @dataloader:Loader {
         batchFunctions: {"bookLoader": bookLoaderFunction}
     }
-    isolated resource function get loadBooks(map<dataloader:DataLoader> loaders) {
+    isolated function loadBooks(map<dataloader:DataLoader> loaders) {
     }
 }
 
@@ -43,7 +43,7 @@ isolated distinct service class Author {
     @dataloader:Loader {
         batchFunctions: {"bookLoader": bookLoaderFunction}
     }
-    isolated resource function get loadBooks(map<dataloader:DataLoader> loaders) {
+    isolated function loadBooks(map<dataloader:DataLoader> loaders) {
     }
 }
 
