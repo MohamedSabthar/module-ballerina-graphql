@@ -99,6 +99,26 @@ public isolated class Context {
         }
     }
 
+    # Register a given DataLoader instance for a given key in the GraphQL context.
+    # 
+    # + key - The key for the DataLoader to be registered
+    # + dataloader - The DataLoader instance to be registered
+    public isolated function registerDataLoader(string key, dataloader:DataLoader dataloader) {
+        lock {
+            self.idDataLoaderMap[key] = dataloader;
+        }
+    }
+
+    # Retrieves a DataLoader instance using the given key from the GraphQL context.
+    # 
+    # + key - The key corresponding to the required DataLoader instance
+    # + return - The DataLoader instance if the key is present in the context otherwise panics
+    public isolated function getDataLoader(string key) returns dataloader:DataLoader {
+        lock {
+            return self.idDataLoaderMap.get(key);
+        }
+    }
+
     isolated function addError(ErrorDetail err) {
         lock {
             self.errors.push(err.clone());
@@ -194,6 +214,7 @@ public isolated class Context {
         }
     }
 
+    // TODO: move this logic to registerDataLoader method and remove
     isolated function addDataLoader(string id, dataloader:BatchLoadFunction batchFunction) {
         lock {
             if self.idDataLoaderMap.hasKey(id) {
