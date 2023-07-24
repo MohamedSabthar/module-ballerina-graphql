@@ -29,7 +29,6 @@ public isolated class Context {
     private boolean hasFileInfo = false; // This field value changed by setFileInfo method
     private map<dataloader:DataLoader> idDataLoaderMap = {}; // Provides mapping between user defined id and DataLoader
     private map<PlaceHolder> uuidPlaceHolderMap = {};
-    private map<()> nonDispatchedDataLoaderIds = {};
     private PlaceHolder[] unResolvedPlaceHolders = [];
     private boolean containPlaceHolders = false;
     private int unResolvedPlaceHolderCount = 0; // Tracks the number of PlaceHolders needs to be resolved
@@ -214,18 +213,6 @@ public isolated class Context {
         }
     }
 
-    // TODO: move this logic to registerDataLoader method and remove
-    isolated function addDataLoader(string id, dataloader:BatchLoadFunction batchFunction) {
-        lock {
-            if self.idDataLoaderMap.hasKey(id) {
-                return;
-            }
-            DefaultDataLoader dataloader = new (batchFunction);
-            self.idDataLoaderMap[id] = dataloader;
-            return;
-        }
-    }
-
     isolated function addUnResolvedPlaceHolder(string uuid, PlaceHolder placeHolder) {
         lock {
             self.containPlaceHolders = true;
@@ -236,19 +223,9 @@ public isolated class Context {
         }
     }
 
-     isolated function addNonDispatchedDataLoaderIds(string[] dataLoaderIds) {
-        final readonly & string[] loaderIds = dataLoaderIds.cloneReadOnly();
-        lock {
-            foreach string id in loaderIds {
-                self.nonDispatchedDataLoaderIds[id] = ();
-            }
-        }
-    }
-
     isolated function resolvePlaceHolders() {
         lock {
-            string[] nonDispatchedDataLoaderIds = self.nonDispatchedDataLoaderIds.keys();
-            self.nonDispatchedDataLoaderIds = {};
+            string[] nonDispatchedDataLoaderIds = self.idDataLoaderMap.keys();
             PlaceHolder[] unResolvedPlaceHolders = self.unResolvedPlaceHolders;
             self.unResolvedPlaceHolders = [];
             foreach string dataLoaderId in nonDispatchedDataLoaderIds {
@@ -300,10 +277,10 @@ public isolated class Context {
         // This function is called at the end of each subscription loop execution.
         // This avoid using the same data loader in the next loop itteration and avoid filling up the idPlaceHolderMap.
         lock {
-            self.idDataLoaderMap.removeAll();
+            // TODO: should nowtremove idDataLoaderMap now find a way to clear the data loader cache
+            // self.idDataLoaderMap.removeAll();
             self.unResolvedPlaceHolders.removeAll();
             self.uuidPlaceHolderMap.removeAll();
-            self.nonDispatchedDataLoaderIds.removeAll();
             self.containPlaceHolders = false;
         }
     }
