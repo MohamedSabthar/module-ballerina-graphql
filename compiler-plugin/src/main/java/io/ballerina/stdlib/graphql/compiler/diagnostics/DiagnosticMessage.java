@@ -85,19 +85,12 @@ public enum DiagnosticMessage {
     ERROR_139("failed to generate schema for type ''{0}''. Type alias for type ''{1}'' is not supported"),
     ERROR_140("invalid usage of @graphql:ID annotation. @graphql:ID annotation can only be used with string, "
                       + "int, float, decimal and uuid:Uuid types"),
-    ERROR_141("no corresponding method with name ''{0}'' found for data loader method ''{1}''"),
-    ERROR_142("invalid method signature found in resource method ''{0}''. The method requires a parameter of type "
-                      + "''map<dataloader:DataLoader>''"),
-    ERROR_143("invalid parameter ''{0}'' found in data loader resource method ''{1}''. No matching parameter found in"
+    ERROR_141("invalid method signature found in ''{0}'' prefetch method. The method requires a parameter of type "
+                      + "''graphql:Context''"),
+    ERROR_142("invalid parameter ''{0}'' found in prefetch method ''{1}''. No matching parameter found in"
                       + " the GraphQL field ''{2}''"),
-    ERROR_144("invalid return type ''{0}'' found in data loader method ''{1}''. The data loader "
+    ERROR_143("invalid return type ''{0}'' found in prefetch method ''{1}''. The data loader "
                       + "method must not return any value"),
-    ERROR_145("no matching {0} method ''{1}'' found for the GraphQL field ''{2}''. A data loader {0} "
-                      + "method with the name ''{1}'' must be present in the service to use the data loader"),
-    ERROR_146("invalid usage of map<dataloader:DataLoader> in subscribe resource ''{0}''"),
-    ERROR_147("invalid usage of @dataloader:Loader annotation found in ''{0}''"),
-    ERROR_148("invalid name ''{0}'' found for data loader method. A data loader method name must be in the format of "
-                      + "''{1}'' followed by the GraphQL field name where the data loader is used"),
 
     WARNING_201("invalid usage of @deprecated directive found in ''{0}''. Input object field(s) deprecation "
                     + "is not supported by the current GraphQL spec.");
