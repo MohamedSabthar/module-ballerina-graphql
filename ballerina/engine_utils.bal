@@ -114,7 +114,7 @@ returns string|error = @java:Method {
     'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
 } external;
 
-isolated function getPrefetchMethodName(string fieldName) returns string {
+isolated function getDefaultPrefetchMethodName(string fieldName) returns string {
     return re `^[a-z]`.replace(fieldName, isolated function(regexp:Groups groups) returns string {
         return string `pre${groups[0].substring().toUpperAscii()}`;
     });

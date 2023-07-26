@@ -247,10 +247,10 @@ isolated class Engine {
         parser:FieldNode fieldNode = 'field.getInternalNode();
 
         if executePrefetchMethod {
-            // TODO: get prefetch method from field
-            string prefetchMethodName = getPrefetchMethodName(fieldNode.getName());
             service object {}? serviceObject = 'field.getServiceObject();
             if serviceObject is service object {} { 
+                string prefetchMethodName = getPrefetchMethodName(serviceObject, 'field) 
+                    ?: getDefaultPrefetchMethodName(fieldNode.getName());
                 if self.hasPrefetchMethod(serviceObject, prefetchMethodName) {
                     return self.getResultFromPrefetchMethodExecution(context, 'field, serviceObject, prefetchMethodName);
                 }

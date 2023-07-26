@@ -44,10 +44,17 @@ import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
 import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.ResourcePath;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
@@ -62,6 +69,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -105,6 +113,7 @@ public class ServiceValidator {
 
     private static final String FIELD_PATH_SEPARATOR = ".";
     private static final String PREFETCH_METHOD_PREFIX = "pre";
+    private static final String PREFETCH_METHOD_NAME_CONFIG = "prefetchMethodName";
 
     public ServiceValidator(SyntaxNodeAnalysisContext context, Node serviceNode,
                             InterfaceEntityFinder interfaceEntityFinder, boolean isSubgraph) {
@@ -197,21 +206,29 @@ public class ServiceValidator {
         if (!isGraphqlField(methodSymbol)) {
             return;
         }
-        boolean isSubscription = isResourceMethod(methodSymbol) && getAccessor((ResourceMethodSymbol) methodSymbol).equals(RESOURCE_FUNCTION_SUBSCRIBE);
-        boolean foundPrefetchMethodNameConfig = false;
+        boolean isSubscription = isResourceMethod(methodSymbol) && getAccessor(
+                (ResourceMethodSymbol) methodSymbol).equals(RESOURCE_FUNCTION_SUBSCRIBE);
+        boolean hasPrefetchMethodConfig = false;
         String prefetchMethodName = null;
         if (hasResourceConfigAnnotation(methodSymbol)) {
-            // TODO: get prefetch method name from annotation
-            // prefetchMethodName = "";
-            // foundPrefetchMethodNameConfig = true;
-            if (prefetchMethodName!= null && isSubscription) {
-                // TODO: add warning
-                // invalid usage of prefetch method config
-                return;
+            ResourceConfigAnnotationFinder resourceConfigAnnotationFinder = new ResourceConfigAnnotationFinder(
+                    this.context, methodSymbol);
+            Optional<AnnotationNode> annotation = resourceConfigAnnotationFinder.find();
+            hasPrefetchMethodConfig = annotation.isPresent() && hasPrefetchMethodNameConfig(annotation.get());
+            if (hasPrefetchMethodConfig) {
+                prefetchMethodName = getPrefetchMethodName(annotation.get());
+                if (prefetchMethodName == null) {
+                    // TODO: add warning can't validate prefetch at compile time
+                    return;
+                }
+                if (isSubscription) {
+                    // TODO: add warning
+                    // invalid usage of prefetch method config
+                }
             }
         }
         if (isSubscription) {
-           return;
+            return;
         }
         if (prefetchMethodName == null) {
             String graphqlFieldName = getGraphqlFieldName(methodSymbol);
@@ -219,12 +236,61 @@ public class ServiceValidator {
         }
         MethodSymbol prefetchMethod = findPrefetchMethod(prefetchMethodName, serviceMethods);
         if (prefetchMethod == null) {
-            if (foundPrefetchMethodNameConfig) {
+            if (hasPrefetchMethodConfig) {
                 // TODO: add error
             }
             return;
         }
         validatePrefetchMethodSignature(prefetchMethod, methodSymbol);
+    }
+
+    private String getPrefetchMethodName(AnnotationNode annotation) {
+        // noinspection OptionalGetWithoutIsPresent
+        MappingConstructorExpressionNode mappingConstructorExpressionNode = annotation.annotValue().get();
+        for (MappingFieldNode field : mappingConstructorExpressionNode.fields()) {
+            if (field.kind() == SyntaxKind.SPECIFIC_FIELD) {
+                SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+                Node fieldName = specificFieldNode.fieldName();
+                if (fieldName.kind() == SyntaxKind.IDENTIFIER_TOKEN) {
+                    IdentifierToken identifierToken = (IdentifierToken) fieldName;
+                    String identifierName = identifierToken.text().trim();
+                    if (identifierName.equals(PREFETCH_METHOD_NAME_CONFIG)) {
+                        if (specificFieldNode.valueExpr().isEmpty()) {
+                            return null;
+                        } else {
+                            ExpressionNode valueExpression = specificFieldNode.valueExpr().get();
+                            if (valueExpression.kind() == SyntaxKind.STRING_LITERAL) {
+                                BasicLiteralNode stringLiteralNode = (BasicLiteralNode) valueExpression;
+                                String stringLiteral = stringLiteralNode.toSourceCode();
+                                return stringLiteral.substring(1, stringLiteral.length() - 2);
+                            } else {
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean hasPrefetchMethodNameConfig(AnnotationNode annotation) {
+        if (annotation.annotValue().isEmpty()) {
+            return false;
+        }
+        MappingConstructorExpressionNode mappingConstructorExpressionNode = annotation.annotValue().get();
+        for (MappingFieldNode field : mappingConstructorExpressionNode.fields()) {
+            if (field.kind() == SyntaxKind.SPECIFIC_FIELD) {
+                SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+                Node fieldName = specificFieldNode.fieldName();
+                if (fieldName.kind() == SyntaxKind.IDENTIFIER_TOKEN) {
+                    IdentifierToken identifierToken = (IdentifierToken) fieldName;
+                    String identifierName = identifierToken.text().trim();
+                    return identifierName.equals(PREFETCH_METHOD_NAME_CONFIG);
+                }
+            }
+        }
+        return false;
     }
 
     private boolean isGraphqlField(MethodSymbol methodSymbol) {
