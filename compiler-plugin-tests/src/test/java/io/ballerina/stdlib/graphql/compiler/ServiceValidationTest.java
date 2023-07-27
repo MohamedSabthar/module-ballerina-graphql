@@ -1175,6 +1175,22 @@ public class ServiceValidationTest {
     }
 
     @Test(groups = "invalid")
+    public void testServiceWithInvalidPrefetchMethodNameConfig() {
+        String packagePath = "68_service_with_invalid_prefetch_method_name_config";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 2);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.UNABLE_TO_FIND_PREFETCH_METHOD,  "loadBooks", "books");
+        assertErrorMessage(diagnostic, message, 46, 32);
+
+        diagnostic = diagnosticIterator.next();
+        message = getErrorMessage(CompilationDiagnostic.UNABLE_TO_FIND_PREFETCH_METHOD,  "prefetchUpdateAuthor", "updateAuthor");
+        assertErrorMessage(diagnostic, message, 37, 21);
+    }
+
+    @Test(groups = "invalid")
     public void testInvalidUsageDeprecatedDirective() {
         String packagePath = "68_invalid_usages_of_deprecated_directive";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);

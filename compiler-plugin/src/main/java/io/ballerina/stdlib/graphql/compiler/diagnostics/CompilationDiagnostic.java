@@ -81,6 +81,7 @@ public enum CompilationDiagnostic {
     INVALID_PARAMETER_IN_PREFETCH_METHOD(DiagnosticMessage.ERROR_142, DiagnosticCode.GRAPHQL_142, DiagnosticSeverity.ERROR),
     INVALID_RETURN_TYPE_IN_PREFETCH_METHOD(DiagnosticMessage.ERROR_143, DiagnosticCode.GRAPHQL_143,
                                            DiagnosticSeverity.ERROR),
+    UNABLE_TO_FIND_PREFETCH_METHOD(DiagnosticMessage.ERROR_144, DiagnosticCode.GRAPHQL_144, DiagnosticSeverity.ERROR),
 
     // Warnings
     UNSUPPORTED_INPUT_FIELD_DEPRECATION(DiagnosticMessage.WARNING_201, DiagnosticCode.GRAPHQL_201,

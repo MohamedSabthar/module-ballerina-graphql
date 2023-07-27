@@ -37,6 +37,7 @@ isolated function executeOperation(Engine engine, Context context, readonly & __
                 }
                 any|error resultValue = next is error ? next : next.value;
                 OutputObject outputObject = engine.getResult(node, context, resultValue);
+                // TODO: clear the caches of dataloader
                 context.clearDataLoadersAndPlaceHolders();
                 if outputObject.hasKey(DATA_FIELD) || outputObject.hasKey(ERRORS_FIELD) {
                     NextMessage response = {'type: 'WS_NEXT, id: handler.getId(), payload: outputObject.toJson()};

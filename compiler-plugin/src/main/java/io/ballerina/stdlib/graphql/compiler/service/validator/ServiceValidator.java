@@ -137,7 +137,7 @@ public class ServiceValidator {
     private void validateServiceObject() {
         ObjectConstructorExpressionNode objectConstructorExpNode = (ObjectConstructorExpressionNode) serviceNode;
         List<Node> serviceMethodNodes = getServiceMethodNodes(objectConstructorExpNode.members());
-        validateRootServiceMethods(serviceMethodNodes);
+        validateRootServiceMethods(serviceMethodNodes, objectConstructorExpNode.location());
         if (!this.hasQueryType) {
             addDiagnostic(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS, objectConstructorExpNode.location());
         }
@@ -163,7 +163,7 @@ public class ServiceValidator {
     private void validateService() {
         ServiceDeclarationNode serviceDeclarationNode = (ServiceDeclarationNode) this.context.node();
         List<Node> serviceMethodNodes = getServiceMethodNodes(serviceDeclarationNode.members());
-        validateRootServiceMethods(serviceMethodNodes);
+        validateRootServiceMethods(serviceMethodNodes, serviceDeclarationNode.location());
         if (!this.hasQueryType) {
             addDiagnostic(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS, serviceDeclarationNode.location());
         }
@@ -182,27 +182,28 @@ public class ServiceValidator {
         return symbol.kind() == SymbolKind.RESOURCE_METHOD || symbol.kind() == SymbolKind.METHOD;
     }
 
-    private void validateRootServiceMethods(List<Node> serviceMethods) {
+    private void validateRootServiceMethods(List<Node> serviceMethods, Location location) {
         List<MethodSymbol> methodSymbols = getMethodSymbols(serviceMethods);
         for (Node methodNode : serviceMethods) {
             // No need to check fo isEmpty(), already validated in getRemoteOrResourceMethodSymbols
             // noinspection OptionalGetWithoutIsPresent
             MethodSymbol methodSymbol = (MethodSymbol) this.context.semanticModel().symbol(methodNode).get();
-            Location location = methodNode.location();
+            Location methodLocation = methodNode.location();
 
             if (isRemoteMethod(methodSymbol)) {
                 this.currentFieldPath.add(TypeName.MUTATION.getName());
-                validateRemoteMethod(methodSymbol, location);
+                validateRemoteMethod(methodSymbol, methodLocation);
                 this.currentFieldPath.remove(TypeName.MUTATION.getName());
             } else if (isResourceMethod(methodSymbol)) {
-                validateRootServiceResourceMethod((ResourceMethodSymbol) methodSymbol, location,
+                validateRootServiceResourceMethod((ResourceMethodSymbol) methodSymbol, methodLocation,
                                                   methodSymbols);
             }
-            validatePrefetchMethodMapping(methodSymbol, methodSymbols);
+            validatePrefetchMethodMapping(methodSymbol, methodSymbols, location);
         }
     }
 
-    private void validatePrefetchMethodMapping(MethodSymbol methodSymbol, List<MethodSymbol> serviceMethods) {
+    private void validatePrefetchMethodMapping(MethodSymbol methodSymbol, List<MethodSymbol> serviceMethods,
+                                               Location location) {
         if (!isGraphqlField(methodSymbol)) {
             return;
         }
@@ -210,6 +211,7 @@ public class ServiceValidator {
                 (ResourceMethodSymbol) methodSymbol).equals(RESOURCE_FUNCTION_SUBSCRIBE);
         boolean hasPrefetchMethodConfig = false;
         String prefetchMethodName = null;
+        Location methodLocation = getLocation(methodSymbol, location);
         if (hasResourceConfigAnnotation(methodSymbol)) {
             ResourceConfigAnnotationFinder resourceConfigAnnotationFinder = new ResourceConfigAnnotationFinder(
                     this.context, methodSymbol);
@@ -230,18 +232,18 @@ public class ServiceValidator {
         if (isSubscription) {
             return;
         }
+        String graphqlFieldName = getGraphqlFieldName(methodSymbol);
         if (prefetchMethodName == null) {
-            String graphqlFieldName = getGraphqlFieldName(methodSymbol);
             prefetchMethodName = getDefaultPrefetchMethodName(graphqlFieldName);
         }
         MethodSymbol prefetchMethod = findPrefetchMethod(prefetchMethodName, serviceMethods);
         if (prefetchMethod == null) {
             if (hasPrefetchMethodConfig) {
-                // TODO: add error
+                addDiagnostic(CompilationDiagnostic.UNABLE_TO_FIND_PREFETCH_METHOD, methodLocation, prefetchMethodName, graphqlFieldName);
             }
             return;
         }
-        validatePrefetchMethodSignature(prefetchMethod, methodSymbol);
+        validatePrefetchMethodSignature(prefetchMethod, methodSymbol, location);
     }
 
     private String getPrefetchMethodName(AnnotationNode annotation) {
@@ -400,8 +402,9 @@ public class ServiceValidator {
         validateInputParameters(methodSymbol, location);
     }
 
-    private void validatePrefetchMethodSignature(MethodSymbol prefetchMethodSymbol, MethodSymbol fieldMethod) {
-        Location prefetchMethodLocation = prefetchMethodSymbol.getLocation().get();
+    private void validatePrefetchMethodSignature(MethodSymbol prefetchMethodSymbol, MethodSymbol fieldMethod,
+                                                 Location location) {
+        Location prefetchMethodLocation = getLocation(prefetchMethodSymbol, location);
         validatePrefetchMethodParams(prefetchMethodSymbol, prefetchMethodLocation, fieldMethod);
         validatePrefetchMethodReturnType(prefetchMethodSymbol, prefetchMethodLocation);
     }
@@ -700,7 +703,7 @@ public class ServiceValidator {
                 addDiagnostic(CompilationDiagnostic.INVALID_FUNCTION, getLocation(methodSymbol, location),
                               interfaceName, remoteMethodName);
             }
-            validatePrefetchMethodMapping(methodSymbol, methodSymbols);
+            validatePrefetchMethodMapping(methodSymbol, methodSymbols, location);
         }
         if (!resourceMethodFound) {
             addDiagnostic(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS, location);
@@ -957,7 +960,7 @@ public class ServiceValidator {
                 addDiagnostic(CompilationDiagnostic.INVALID_FUNCTION, getLocation(methodSymbol, location), className,
                               methodSymbol.getName().get());
             }
-            validatePrefetchMethodMapping(methodSymbol, methodSymbols);
+            validatePrefetchMethodMapping(methodSymbol, methodSymbols, location);
         }
         if (!resourceMethodFound) {
             addDiagnostic(CompilationDiagnostic.MISSING_RESOURCE_FUNCTIONS, location);

@@ -91,9 +91,11 @@ public enum DiagnosticMessage {
                       + " the GraphQL field ''{2}''"),
     ERROR_143("invalid return type ''{0}'' found in prefetch method ''{1}''. The data loader "
                       + "method must not return any value"),
+    ERROR_144("no prefetch method with name ''{0}'' found for the GraphQL field ''{1}''"),
 
     WARNING_201("invalid usage of @deprecated directive found in ''{0}''. Input object field(s) deprecation "
                     + "is not supported by the current GraphQL spec.");
+
     private final String message;
 
     DiagnosticMessage(String message) {
