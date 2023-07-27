@@ -1191,6 +1191,19 @@ public class ServiceValidationTest {
     }
 
     @Test(groups = "invalid")
+    public void testSubscriptionWithInvalidPrefetchMethodNameConfig() {
+        String packagePath = "69_subscription_with_invalid_prefetch_method_name_config";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.errorCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.errors().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.INVALID_USAGE_OF_PREFETCH_METHOD_NAME_CONFIG,
+                                         "prefetchMethodName", "authors");
+        assertErrorMessage(diagnostic, message, 24, 5);
+    }
+
+    @Test(groups = "invalid")
     public void testInvalidUsageDeprecatedDirective() {
         String packagePath = "68_invalid_usages_of_deprecated_directive";
         DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);

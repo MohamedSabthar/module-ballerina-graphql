@@ -92,6 +92,8 @@ public enum DiagnosticMessage {
     ERROR_143("invalid return type ''{0}'' found in prefetch method ''{1}''. The data loader "
                       + "method must not return any value"),
     ERROR_144("no prefetch method with name ''{0}'' found for the GraphQL field ''{1}''"),
+    ERROR_145("invalid usage of ''{0}'' configuration found in subscription resource ''{1}''. ''{0}'' method "
+                      + "configuration is only supported for 'remote' methods and 'get' resource methods"),
 
     WARNING_201("invalid usage of @deprecated directive found in ''{0}''. Input object field(s) deprecation "
                     + "is not supported by the current GraphQL spec.");

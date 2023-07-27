@@ -207,6 +207,7 @@ public class ServiceValidator {
         if (!isGraphqlField(methodSymbol)) {
             return;
         }
+        String graphqlFieldName = getGraphqlFieldName(methodSymbol);
         boolean isSubscription = isResourceMethod(methodSymbol) && getAccessor(
                 (ResourceMethodSymbol) methodSymbol).equals(RESOURCE_FUNCTION_SUBSCRIBE);
         boolean hasPrefetchMethodConfig = false;
@@ -224,15 +225,16 @@ public class ServiceValidator {
                     return;
                 }
                 if (isSubscription) {
-                    // TODO: add warning
-                    // invalid usage of prefetch method config
+                    addDiagnostic(CompilationDiagnostic.INVALID_USAGE_OF_PREFETCH_METHOD_NAME_CONFIG,
+                                  annotation.get().location(),
+                                  PREFETCH_METHOD_NAME_CONFIG,
+                                  graphqlFieldName);
                 }
             }
         }
         if (isSubscription) {
             return;
         }
-        String graphqlFieldName = getGraphqlFieldName(methodSymbol);
         if (prefetchMethodName == null) {
             prefetchMethodName = getDefaultPrefetchMethodName(graphqlFieldName);
         }
