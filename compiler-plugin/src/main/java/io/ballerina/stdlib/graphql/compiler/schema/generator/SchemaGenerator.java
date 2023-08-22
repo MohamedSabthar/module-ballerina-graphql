@@ -48,11 +48,13 @@ import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
 import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
 import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ListConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.Project;
 import io.ballerina.stdlib.graphql.commons.types.DefaultDirective;
@@ -78,6 +80,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
@@ -107,6 +110,12 @@ public class SchemaGenerator {
     private static final String ID_ANNOT_NAME = "ID";
     private static final String REASON_ARG_NAME = "reason";
     private static final String DEFAULT_VALUE = "\"\"";
+    private static final String LIST_OPEN_BRACKET = "[";
+    private static final String LIST_CLOSE_BRACKET = "]";
+    private static final String INPUT_OBJECT_OPEN_BRACKET = "{";
+    private static final String INPUT_OBJECT_CLOSE_BRACKET = "}";
+    private static final String COMMA_SEPARATOR = ",";
+    private static final String COLON_SEPARATOR = ":";
 
     private final Node serviceNode;
     private final InterfaceEntityFinder interfaceEntityFinder;
@@ -195,16 +204,15 @@ public class SchemaGenerator {
             ObjectConstructorExpressionNode objectConstructorExpressionNode) {
         // noinspection OptionalGetWithoutIsPresent
         return objectConstructorExpressionNode.members().stream()
-                .filter(member -> isFunctionDefinition(member) && semanticModel.symbol(member)
-                        .isPresent()).map(methodNode -> (MethodSymbol) semanticModel.symbol(methodNode).get())
-                .collect(Collectors.toList());
+                .filter(member -> isFunctionDefinition(member) && semanticModel.symbol(member).isPresent())
+                .map(methodNode -> (MethodSymbol) semanticModel.symbol(methodNode).get()).collect(Collectors.toList());
     }
 
     private Collection<? extends MethodSymbol> getMethods(ServiceDeclarationNode serviceDeclarationNode) {
         // ServiceDeclarationSymbol already validated. Therefore, no need to check isEmpty().
         // noinspection OptionalGetWithoutIsPresent
-        ServiceDeclarationSymbol serviceDeclarationSymbol = (ServiceDeclarationSymbol) semanticModel
-                .symbol(serviceDeclarationNode).get();
+        ServiceDeclarationSymbol serviceDeclarationSymbol = (ServiceDeclarationSymbol) semanticModel.symbol(
+                serviceDeclarationNode).get();
         return serviceDeclarationSymbol.methods().values();
     }
 
@@ -292,8 +300,8 @@ public class SchemaGenerator {
             return null;
         }
         TypeSymbol typeSymbol = methodSymbol.typeDescriptor().returnTypeDescriptor().get();
-        if (methodSymbol.typeDescriptor().returnTypeAnnotations().isPresent() &&
-                isIdAnnotation(methodSymbol.typeDescriptor().returnTypeAnnotations().get())) {
+        if (methodSymbol.typeDescriptor().returnTypeAnnotations().isPresent() && isIdAnnotation(
+                methodSymbol.typeDescriptor().returnTypeAnnotations().get())) {
             return getTypeForID(methodSymbol.typeDescriptor().returnTypeDescriptor().get());
         }
         return getFieldType(typeSymbol);
@@ -303,8 +311,8 @@ public class SchemaGenerator {
         List<AnnotationSymbol> annotationSymbols = annotatable.annotations();
         for (AnnotationSymbol annotationSymbol : annotationSymbols) {
             if (annotationSymbol.getName().isPresent() && annotationSymbol.getName().get().equals(ID_ANNOT_NAME)
-            && annotationSymbol.getModule().isPresent()
-            && Utils.isGraphqlModuleSymbol(annotationSymbol.getModule().get())) {
+                    && annotationSymbol.getModule().isPresent() && Utils.isGraphqlModuleSymbol(
+                    annotationSymbol.getModule().get())) {
                 return true;
             }
         }
@@ -495,7 +503,7 @@ public class SchemaGenerator {
                 String description = getDescription(typeDefinitionSymbol);
                 ObjectTypeSymbol objectTypeSymbol = (ObjectTypeSymbol) typeDefinitionSymbol.typeDescriptor();
                 Position position = getTypePosition(typeDefinitionSymbol.getLocation(), typeDefinitionSymbol,
-                        this.project);
+                                                    this.project);
                 implementedType = getType(implementationName, description, position, objectTypeSymbol);
             }
 
@@ -562,8 +570,8 @@ public class SchemaGenerator {
         } else if (!recordFieldSymbol.annotations().isEmpty()) {
             for (AnnotationSymbol annotationSymbol : recordFieldSymbol.annotations()) {
                 if (annotationSymbol.getName().isPresent() && annotationSymbol.getName().get().equals(ID_ANNOT_NAME)
-                        && annotationSymbol.getModule().isPresent()
-                        && Utils.isGraphqlModuleSymbol(annotationSymbol.getModule().get())) {
+                        && annotationSymbol.getModule().isPresent() && Utils.isGraphqlModuleSymbol(
+                        annotationSymbol.getModule().get())) {
                     type = getTypeForID(recordFieldSymbol.typeDescriptor());
                     isId = true;
                     break;
@@ -731,8 +739,8 @@ public class SchemaGenerator {
         Type type = null;
         for (AnnotationSymbol annotationSymbol : recordFieldSymbol.annotations()) {
             if (annotationSymbol.getName().isPresent() && annotationSymbol.getName().get().equals(ID_ANNOT_NAME)
-                    && annotationSymbol.getModule().isPresent()
-                    && Utils.isGraphqlModuleSymbol(annotationSymbol.getModule().get())) {
+                    && annotationSymbol.getModule().isPresent() && Utils.isGraphqlModuleSymbol(
+                    annotationSymbol.getModule().get())) {
                 type = getTypeForID(recordFieldSymbol.typeDescriptor());
                 isId = true;
                 break;
@@ -806,9 +814,13 @@ public class SchemaGenerator {
 
     private String getDefaultValue(MethodSymbol methodSymbol, ParameterSymbol parameterSymbol) {
         if (parameterSymbol.paramKind() == ParameterKind.DEFAULTABLE) {
-            DefaultableParameterNodeFinder parameterNodeFinder = new DefaultableParameterNodeFinder(
-                    this.semanticModel, this.project, this.project.currentPackage().getDefaultModule().moduleId(), methodSymbol
-                    , parameterSymbol);
+            DefaultableParameterNodeFinder parameterNodeFinder = new DefaultableParameterNodeFinder(this.semanticModel,
+                                                                                                    this.project,
+                                                                                                    this.project.currentPackage()
+                                                                                                            .getDefaultModule()
+                                                                                                            .moduleId(),
+                                                                                                    methodSymbol,
+                                                                                                    parameterSymbol);
             Optional<DefaultableParameterNode> parameterNode = parameterNodeFinder.getDeflatableParameterNode();
             if (parameterNode.isEmpty()) {
                 return DEFAULT_VALUE;
@@ -822,22 +834,45 @@ public class SchemaGenerator {
     private String getDefaultValue(Node expression) {
         switch (expression.kind()) {
             case NIL_LITERAL:
-                return "null"; // TODO: check this value is correct
+                return null;
             case NUMERIC_LITERAL:
             case STRING_LITERAL:
             case BOOLEAN_LITERAL:
-                return ((BasicLiteralNode)expression).literalToken().text();
-
-            case MAPPING_CONSTRUCTOR: {
-                // TODO: impelemt
-                return DEFAULT_VALUE;
-            }
-            case LIST_CONSTRUCTOR: {
-                // TODO: impelemt
-                return DEFAULT_VALUE;
-            }
+                return getDefaultValue(((BasicLiteralNode) expression));
+            case MAPPING_CONSTRUCTOR:
+                return getDefaultValue((MappingConstructorExpressionNode) expression);
+            case LIST_CONSTRUCTOR:
+                return getDefaultValue((ListConstructorExpressionNode) expression);
             default:
                 return DEFAULT_VALUE;
         }
+    }
+
+    private String getDefaultValue(BasicLiteralNode expressionNode) {
+        return expressionNode.literalToken().text();
+    }
+
+    private String getDefaultValue(MappingConstructorExpressionNode expressionNode) {
+        StringJoiner joiner = new StringJoiner(COMMA_SEPARATOR, INPUT_OBJECT_OPEN_BRACKET, INPUT_OBJECT_CLOSE_BRACKET);
+        for (Node field : expressionNode.fields()) {
+            if (field.kind() == SyntaxKind.SPECIFIC_FIELD) {
+                SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+                if (specificFieldNode.fieldName().kind() == SyntaxKind.IDENTIFIER_TOKEN) {
+                    IdentifierToken identifierToken = (IdentifierToken) specificFieldNode.fieldName();
+                    String value = specificFieldNode.valueExpr().isEmpty() ? DEFAULT_VALUE :
+                            getDefaultValue(specificFieldNode.valueExpr().get());
+                    joiner.add(identifierToken.text().trim() + COLON_SEPARATOR + value);
+                }
+            }
+        }
+        return joiner.toString();
+    }
+
+    private String getDefaultValue(ListConstructorExpressionNode expressionNode) {
+        StringJoiner joiner = new StringJoiner(COMMA_SEPARATOR, LIST_OPEN_BRACKET, LIST_CLOSE_BRACKET);
+        for (Node member : expressionNode.expressions()) {
+            joiner.add(getDefaultValue(member));
+        }
+        return joiner.toString();
     }
 }
