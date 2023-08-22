@@ -46,6 +46,10 @@ import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.api.symbols.UnionTypeSymbol;
 import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
+import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
+import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
+import io.ballerina.compiler.syntax.tree.ListConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
@@ -66,12 +70,14 @@ import io.ballerina.stdlib.graphql.commons.types.TypeKind;
 import io.ballerina.stdlib.graphql.commons.types.TypeName;
 import io.ballerina.stdlib.graphql.commons.utils.Utils;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
+import io.ballerina.stdlib.graphql.compiler.service.validator.DefaultableParameterNodeFinder;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
@@ -254,16 +260,17 @@ public class SchemaGenerator {
             }
             String parameterName = parameterSymbol.getName().get();
             String description = getParameterDescription(parameterName, methodSymbol);
-            field.addArg(getArg(parameterName, description, parameterSymbol));
+            field.addArg(getArg(parameterName, description, parameterSymbol, methodSymbol));
         }
     }
 
-    private InputValue getArg(String parameterName, String description, ParameterSymbol parameterSymbol) {
+    private InputValue getArg(String parameterName, String description, ParameterSymbol parameterSymbol,
+                              MethodSymbol methodSymbol) {
         Type type = getInputTypeForID(parameterSymbol);
         if (type == null) {
             type = getInputFieldType(parameterSymbol.typeDescriptor());
         }
-        String defaultValue = getDefaultValue(parameterSymbol);
+        String defaultValue = getDefaultValue(methodSymbol, parameterSymbol);
         return new InputValue(parameterName, type, description, defaultValue);
     }
 
@@ -797,10 +804,40 @@ public class SchemaGenerator {
         return null;
     }
 
-    private String getDefaultValue(ParameterSymbol parameterSymbol) {
+    private String getDefaultValue(MethodSymbol methodSymbol, ParameterSymbol parameterSymbol) {
         if (parameterSymbol.paramKind() == ParameterKind.DEFAULTABLE) {
-            return DEFAULT_VALUE;
+            DefaultableParameterNodeFinder parameterNodeFinder = new DefaultableParameterNodeFinder(
+                    this.semanticModel, this.project, this.project.currentPackage().getDefaultModule().moduleId(), methodSymbol
+                    , parameterSymbol);
+            Optional<DefaultableParameterNode> parameterNode = parameterNodeFinder.getDeflatableParameterNode();
+            if (parameterNode.isEmpty()) {
+                return DEFAULT_VALUE;
+            }
+            // TODO: obtain value
+            return getDefaultValue(parameterNode.get().expression());
         }
         return null;
+    }
+
+    private String getDefaultValue(Node expression) {
+        switch (expression.kind()) {
+            case NIL_LITERAL:
+                return "null"; // TODO: check this value is correct
+            case NUMERIC_LITERAL:
+            case STRING_LITERAL:
+            case BOOLEAN_LITERAL:
+                return ((BasicLiteralNode)expression).literalToken().text();
+
+            case MAPPING_CONSTRUCTOR: {
+                // TODO: impelemt
+                return DEFAULT_VALUE;
+            }
+            case LIST_CONSTRUCTOR: {
+                // TODO: impelemt
+                return DEFAULT_VALUE;
+            }
+            default:
+                return DEFAULT_VALUE;
+        }
     }
 }

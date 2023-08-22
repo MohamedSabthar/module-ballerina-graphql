@@ -26,6 +26,7 @@ import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
 import io.ballerina.compiler.api.symbols.MapTypeSymbol;
 import io.ballerina.compiler.api.symbols.MethodSymbol;
 import io.ballerina.compiler.api.symbols.ObjectTypeSymbol;
+import io.ballerina.compiler.api.symbols.ParameterKind;
 import io.ballerina.compiler.api.symbols.ParameterSymbol;
 import io.ballerina.compiler.api.symbols.Qualifier;
 import io.ballerina.compiler.api.symbols.RecordFieldSymbol;
@@ -46,8 +47,10 @@ import io.ballerina.compiler.api.symbols.resourcepath.ResourcePath;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
+import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.ListConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
@@ -751,7 +754,58 @@ public class ServiceValidator {
                     validateInputParameterType(parameter.typeDescriptor(), inputLocation,
                                                isResourceMethod(methodSymbol));
                 }
+                if (parameter.paramKind() == ParameterKind.DEFAULTABLE) {
+                    DefaultableParameterNodeFinder parameterNodeFinder = new DefaultableParameterNodeFinder(
+                            this.context.semanticModel(), this.context.currentPackage().project(), this.context.moduleId(),
+                            methodSymbol,
+                            parameter);
+                    Optional<DefaultableParameterNode> parameterNode = parameterNodeFinder.getDeflatableParameterNode();
+                    if (parameterNode.isEmpty()) {
+                        // TODO: add warning unable generate default value at compile time
+                        continue;
+                    }
+                    validateDefaultValue(parameterNode.get().expression());
+                }
             }
+        }
+    }
+
+    private void validateDefaultValue(Node expression) {
+        switch (expression.kind()) {
+            case NIL_LITERAL:
+            case NUMERIC_LITERAL:
+            case STRING_LITERAL:
+            case BOOLEAN_LITERAL:
+                return;
+
+            case MAPPING_CONSTRUCTOR: {
+                validateDefaultRecordValue((MappingConstructorExpressionNode) expression);
+                return;
+            }
+            case LIST_CONSTRUCTOR: {
+                validateDefaultListValue((ListConstructorExpressionNode) expression);
+                return;
+            }
+            default:
+                // TODO: add warning saying can't validate/generate default value at compile time
+        }
+    }
+
+    private void validateDefaultRecordValue(MappingConstructorExpressionNode mappingConstructorExpressionNode) {
+        for (MappingFieldNode field : mappingConstructorExpressionNode.fields()) {
+            if (field.kind() != SyntaxKind.SPECIFIC_FIELD) {
+                // TODO: add warning saying can't validate/generate default value at compile time
+            }
+            SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+            if (specificFieldNode.valueExpr().isPresent()) {
+                validateDefaultValue(specificFieldNode.valueExpr().get());
+            }
+        }
+    }
+
+    private void validateDefaultListValue(ListConstructorExpressionNode listConstructorExpressionNode) {
+        for (Node element : listConstructorExpressionNode.expressions()) {
+            validateDefaultValue(element);
         }
     }
 
