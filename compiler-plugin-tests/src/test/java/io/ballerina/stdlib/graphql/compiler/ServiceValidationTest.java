@@ -1306,6 +1306,84 @@ public class ServiceValidationTest {
         assertErrorMessage(diagnostic, message, 45, 44);
     }
 
+    @Test(groups = "invalid")
+    public void testInvalidVariableUsageForDefaultParam() {
+        String packagePath = "77_invalid_variable_usage_for_default_param";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(
+                CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM, "a");
+        assertWarningMessage(diagnostic, message, 22, 44);
+    }
+
+    @Test(groups = "invalid")
+    public void testInvalidFunctionCallExpressionForDefaultParam() {
+        String packagePath = "78_invalid_function_call_expression_for_default_param";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(
+                CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM, "a");
+        assertWarningMessage(diagnostic, message, 24, 44);
+    }
+
+    @Test(groups = "invalid")
+    public void testInvalidShortHandFieldUsageInDefaultParam() {
+        String packagePath = "79_invalid_short_hand_field_usage_in_default_param";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_PROVIDE_KEY_VALUE_PAIR,
+                                         "obj");
+        assertWarningMessage(diagnostic, message, 26, 52);
+    }
+
+    @Test(groups = "invalid")
+    public void testInvalidSpreadFieldUsageInDefaultParam() {
+        String packagePath = "80_invalid_spread_field_usage_in_default_param";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_PROVIDE_KEY_VALUE_PAIR,
+                                         "obj");
+        assertWarningMessage(diagnostic, message, 26, 52);
+    }
+
+    @Test(groups = "invalid")
+    public void testInvalidSpreadMemberUsageInDefaultParam() {
+        String packagePath = "81_invalid_spread_member_usage_in_default_param";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(
+                CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AVOID_USING_SPREAD_OPERATION, "obj");
+        assertWarningMessage(diagnostic, message, 22, 51);
+    }
+
+    @Test(groups = "invalid")
+    public void testInvalidExpressionProvidedForDefaultParam() {
+        String packagePath = "82_invalid_expression_provided_for_default_param";
+        DiagnosticResult diagnosticResult = getDiagnosticResult(packagePath);
+        Assert.assertEquals(diagnosticResult.warningCount(), 1);
+        Iterator<Diagnostic> diagnosticIterator = diagnosticResult.warnings().iterator();
+
+        Diagnostic diagnostic = diagnosticIterator.next();
+        String message = getErrorMessage(
+                CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AVOID_USING_SPREAD_OPERATION, "profile");
+        assertWarningMessage(diagnostic, message, 35, 61);
+    }
+
     private DiagnosticResult getDiagnosticResult(String packagePath) {
         Path projectDirPath = RESOURCE_DIRECTORY.resolve(packagePath);
         BuildProject project = BuildProject.load(getEnvironmentBuilder(), projectDirPath);

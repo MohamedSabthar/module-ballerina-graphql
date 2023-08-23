@@ -27,6 +27,7 @@ import io.ballerina.compiler.api.symbols.IntersectionTypeSymbol;
 import io.ballerina.compiler.api.symbols.MapTypeSymbol;
 import io.ballerina.compiler.api.symbols.MethodSymbol;
 import io.ballerina.compiler.api.symbols.ObjectTypeSymbol;
+import io.ballerina.compiler.api.symbols.ParameterKind;
 import io.ballerina.compiler.api.symbols.ParameterSymbol;
 import io.ballerina.compiler.api.symbols.Qualifier;
 import io.ballerina.compiler.api.symbols.RecordFieldSymbol;
@@ -46,6 +47,7 @@ import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.ResourcePath;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
+import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ListConstructorExpressionNode;
@@ -55,6 +57,7 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.Project;
@@ -76,6 +79,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.ballerina.compiler.syntax.tree.SyntaxKind.SPECIFIC_FIELD;
+import static io.ballerina.compiler.syntax.tree.SyntaxKind.SPREAD_MEMBER;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
@@ -820,7 +824,86 @@ public class ServiceValidator {
                     validateInputParameterType(parameter.typeDescriptor(), inputLocation,
                                                isResourceMethod(methodSymbol));
                 }
+                String parameterName = parameter.getName().orElse(parameter.signature());
+                if (parameter.paramKind() == ParameterKind.DEFAULTABLE) {
+                    DefaultableParameterNodeFinder parameterNodeFinder = new DefaultableParameterNodeFinder(
+                            this.context.semanticModel(), this.context.currentPackage().project(),
+                            this.context.moduleId(), methodSymbol, parameter);
+                    Optional<DefaultableParameterNode> parameterNode = parameterNodeFinder.getDeflatableParameterNode();
+                    if (parameterNode.isEmpty()) {
+                        addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AT_COMPILE_TIME,
+                                      inputLocation, parameterName);
+                        continue;
+                    }
+                    validateDefaultValue(parameterNode.get().expression(), parameterName);
+                }
             }
+        }
+    }
+
+    private void validateDefaultValue(Node expression, String parameterName) {
+        switch (expression.kind()) {
+            case NIL_LITERAL:
+            case NUMERIC_LITERAL:
+            case STRING_LITERAL:
+            case BOOLEAN_LITERAL:
+                return;
+            case SIMPLE_NAME_REFERENCE: {
+                validateDefaultValue((SimpleNameReferenceNode) expression, parameterName);
+                return;
+            }
+
+            case MAPPING_CONSTRUCTOR: {
+                validateDefaultRecordValue((MappingConstructorExpressionNode) expression, parameterName);
+                return;
+            }
+            case LIST_CONSTRUCTOR: {
+                validateDefaultListValue((ListConstructorExpressionNode) expression, parameterName);
+                return;
+            }
+            default:
+                addDiagnostic(CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM,
+                              expression.location(), parameterName);
+        }
+    }
+
+    private void validateDefaultValue(SimpleNameReferenceNode nameReferenceNode, String parameterName) {
+        if (this.context.semanticModel().symbol(nameReferenceNode).isEmpty()) {
+            addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AT_COMPILE_TIME,
+                          nameReferenceNode.location(), parameterName);
+        }
+        Symbol defaultValueSymbol = this.context.semanticModel().symbol(nameReferenceNode).get();
+        if (defaultValueSymbol.kind() != SymbolKind.CONSTANT && defaultValueSymbol.kind() != SymbolKind.ENUM_MEMBER) {
+            addDiagnostic(CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM,
+                          nameReferenceNode.location(), parameterName);
+        }
+    }
+
+    private void validateDefaultRecordValue(MappingConstructorExpressionNode mappingConstructor, String parameterName) {
+        for (MappingFieldNode field : mappingConstructor.fields()) {
+            if (field.kind() != SyntaxKind.SPECIFIC_FIELD) {
+                addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_PROVIDE_KEY_VALUE_PAIR,
+                              field.location(), parameterName);
+                continue;
+            }
+            SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+            if (specificFieldNode.valueExpr().isEmpty()) {
+                addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_PROVIDE_KEY_VALUE_PAIR,
+                              field.location(), parameterName);
+                continue;
+            }
+            validateDefaultValue(specificFieldNode.valueExpr().get(), parameterName);
+        }
+    }
+
+    private void validateDefaultListValue(ListConstructorExpressionNode listConstructor, String parameterName) {
+        for (Node element : listConstructor.expressions()) {
+            if (element.kind() == SPREAD_MEMBER) {
+                addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AVOID_USING_SPREAD_OPERATION,
+                              element.location(), parameterName);
+                continue;
+            }
+            validateDefaultValue(element, parameterName);
         }
     }
 

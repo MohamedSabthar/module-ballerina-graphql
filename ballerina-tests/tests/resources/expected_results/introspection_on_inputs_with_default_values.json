@@ -23,7 +23,7 @@
                         "name": "name",
                         "args": [
                             {
-                                "defaultValue": "\"\"",
+                                "defaultValue": "\"Walter\"",
                                 "type": {
                                     "kind": "NON_NULL",
                                     "name": null,
@@ -55,7 +55,7 @@
                         "name": "quoteById",
                         "args": [
                             {
-                                "defaultValue": "\"\"",
+                                "defaultValue": "0",
                                 "type": {
                                     "kind": "NON_NULL",
                                     "name": null,

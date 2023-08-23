@@ -98,14 +98,25 @@ public enum DiagnosticMessage {
     ERROR_147("invalid empty record type ''{0}'' found for GraphQL input object type at field ''{1}''"),
 
     WARNING_201("invalid usage of @deprecated directive found in ''{0}''. Input object field(s) deprecation "
-                        + "is not supported by the current GraphQL spec."),
+                        + "is not supported by the current GraphQL spec"),
     WARNING_202("unable to validate ''{0}'' configuration of the GraphQL field ''{1}''. Pass a string literal to "
                         + "the ''{0}'' configuration to resolve this warning"),
     WARNING_203("unable to validate the @subgraph:Entity annotation. This could lead to an invalid generated subgraph"
-                        + " schema. Pass key-value pairs in the @subgraph:Entity annotation to resolve this warning."),
+                        + " schema. Pass key-value pairs in the @subgraph:Entity annotation to resolve this warning"),
     WARNING_204("unable to validate the @subgraph:Entity annotation. This could lead to an invalid generated subgraph"
                         + " schema. Provide a string literal or an array of string literal values for the ''{0}'' field"
-                        + " in the @subgraph:Entity annotation to resolve this warning.");
+                        + " in the @subgraph:Entity annotation to resolve this warning"),
+    WARNING_205("unable to infer default value of parameter ''{0}'' at compile time. "
+                        + "This could potentially lead to the generation of an incorrect GraphQL schema"),
+    WARNING_206("unable to infer default value of parameter ''{0}'' at compile time. This could potentially lead to the"
+                        + " generation of an incorrect GraphQL schema. Provide key-value pairs to resolve this "
+                        + "warning"),
+    WARNING_207("unable to infer default value of parameter ''{0}'' at compile time. This could potentially lead to the"
+                        + " generation of an incorrect GraphQL schema. Provide a literal, list, or mapping constructor "
+                        + "expression as the default value to resolve this warning"),
+    WARNING_208("unable to infer default value of parameter ''{0}'' at compile time. This could potentially lead to the"
+                        + " generation of an incorrect GraphQL schema. Avoid using spread operation to resolve this "
+                        + "warning");
 
     private final String message;
 

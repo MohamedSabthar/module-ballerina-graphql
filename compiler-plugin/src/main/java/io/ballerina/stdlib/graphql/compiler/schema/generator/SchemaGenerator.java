@@ -48,13 +48,16 @@ import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
+import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ListConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.ModuleId;
@@ -75,6 +78,7 @@ import io.ballerina.stdlib.graphql.commons.types.TypeName;
 import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
 import io.ballerina.stdlib.graphql.commons.utils.Utils;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
+import io.ballerina.stdlib.graphql.compiler.service.validator.DefaultableParameterNodeFinder;
 import io.ballerina.stdlib.graphql.compiler.service.validator.EntityAnnotationFinder;
 
 import java.util.ArrayList;
@@ -82,6 +86,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
@@ -115,6 +121,12 @@ public class SchemaGenerator {
     private static final String DEFAULT_VALUE = "\"\"";
     private static final String RESOLVE_REFERENCE = "resolveReference";
     private static final String KEY = "key";
+    private static final String LIST_OPEN_BRACKET = "[";
+    private static final String LIST_CLOSE_BRACKET = "]";
+    private static final String INPUT_OBJECT_OPEN_BRACKET = "{";
+    private static final String INPUT_OBJECT_CLOSE_BRACKET = "}";
+    private static final String COMMA_SEPARATOR = ",";
+    private static final String COLON_SEPARATOR = ":";
 
     private final Node serviceNode;
     private final InterfaceEntityFinder interfaceEntityFinder;
@@ -344,16 +356,17 @@ public class SchemaGenerator {
             }
             String parameterName = parameterSymbol.getName().get();
             String description = getParameterDescription(parameterName, methodSymbol);
-            field.addArg(getArg(parameterName, description, parameterSymbol));
+            field.addArg(getArg(parameterName, description, parameterSymbol, methodSymbol));
         }
     }
 
-    private InputValue getArg(String parameterName, String description, ParameterSymbol parameterSymbol) {
+    private InputValue getArg(String parameterName, String description, ParameterSymbol parameterSymbol,
+                              MethodSymbol methodSymbol) {
         Type type = getInputTypeForID(parameterSymbol);
         if (type == null) {
             type = getInputFieldType(parameterSymbol.typeDescriptor());
         }
-        String defaultValue = getDefaultValue(parameterSymbol);
+        String defaultValue = getDefaultValue(methodSymbol, parameterSymbol);
         return new InputValue(parameterName, type, description, defaultValue);
     }
 
@@ -882,15 +895,79 @@ public class SchemaGenerator {
 
     private String getDefaultValue(RecordFieldSymbol recordFieldSymbol) {
         if (recordFieldSymbol.hasDefaultValue()) {
+            // TODO: record node finder implementation
             return DEFAULT_VALUE;
         }
         return null;
     }
 
-    private String getDefaultValue(ParameterSymbol parameterSymbol) {
+    private String getDefaultValue(MethodSymbol methodSymbol, ParameterSymbol parameterSymbol) {
         if (parameterSymbol.paramKind() == ParameterKind.DEFAULTABLE) {
-            return DEFAULT_VALUE;
+            ModuleId moduleId = this.project.currentPackage().getDefaultModule().moduleId();
+            DefaultableParameterNodeFinder finder = new DefaultableParameterNodeFinder(this.semanticModel, this.project,
+                                                                                       moduleId, methodSymbol,
+                                                                                       parameterSymbol);
+            Optional<DefaultableParameterNode> parameterNode = finder.getDeflatableParameterNode();
+            return parameterNode.isEmpty() ? DEFAULT_VALUE : getDefaultValue(parameterNode.get().expression());
         }
         return null;
+    }
+
+    private String getDefaultValue(Node expression) {
+        switch (expression.kind()) {
+            case NIL_LITERAL:
+                return null;
+            case NUMERIC_LITERAL:
+            case STRING_LITERAL:
+            case BOOLEAN_LITERAL:
+                return getDefaultValue(((BasicLiteralNode) expression));
+            case MAPPING_CONSTRUCTOR:
+                return getDefaultValue((MappingConstructorExpressionNode) expression);
+            case LIST_CONSTRUCTOR:
+                return getDefaultValue((ListConstructorExpressionNode) expression);
+            case SIMPLE_NAME_REFERENCE:
+                return getDefaultValue((SimpleNameReferenceNode) expression);
+            default:
+                return DEFAULT_VALUE;
+        }
+    }
+
+    private String getDefaultValue(BasicLiteralNode expressionNode) {
+        return expressionNode.literalToken().text();
+    }
+
+    private String getDefaultValue(MappingConstructorExpressionNode expressionNode) {
+        StringJoiner joiner = new StringJoiner(COMMA_SEPARATOR, INPUT_OBJECT_OPEN_BRACKET, INPUT_OBJECT_CLOSE_BRACKET);
+        for (Node field : expressionNode.fields()) {
+            if (field.kind() == SyntaxKind.SPECIFIC_FIELD) {
+                SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+                if (specificFieldNode.fieldName().kind() == SyntaxKind.IDENTIFIER_TOKEN) {
+                    IdentifierToken identifierToken = (IdentifierToken) specificFieldNode.fieldName();
+                    String value = specificFieldNode.valueExpr().isEmpty() ? DEFAULT_VALUE :
+                            getDefaultValue(specificFieldNode.valueExpr().get());
+                    joiner.add(identifierToken.text().trim() + COLON_SEPARATOR + value);
+                }
+            }
+        }
+        return joiner.toString();
+    }
+
+    private String getDefaultValue(ListConstructorExpressionNode expressionNode) {
+        StringJoiner joiner = new StringJoiner(COMMA_SEPARATOR, LIST_OPEN_BRACKET, LIST_CLOSE_BRACKET);
+        for (Node member : expressionNode.expressions()) {
+            joiner.add(getDefaultValue(member));
+        }
+        return joiner.toString();
+    }
+
+    private String getDefaultValue(SimpleNameReferenceNode expressionNode) {
+        if (this.semanticModel.symbol(expressionNode).isEmpty()) {
+            return DEFAULT_VALUE;
+        }
+        Symbol defaultValueSymbol = this.semanticModel.symbol(expressionNode).get();
+        if (defaultValueSymbol.kind() == SymbolKind.CONSTANT || defaultValueSymbol.kind() == SymbolKind.ENUM_MEMBER) {
+            return ((ConstantSymbol) this.semanticModel.symbol(expressionNode).get()).constValue().toString();
+        }
+        return DEFAULT_VALUE;
     }
 }
