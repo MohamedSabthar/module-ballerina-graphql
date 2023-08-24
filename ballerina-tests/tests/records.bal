@@ -362,3 +362,8 @@ type AuthorRow record {|
     readonly int id;
     string name;
 |};
+
+type InputObject record {|
+    string name;
+    decimal[] measurement?;
+|};
