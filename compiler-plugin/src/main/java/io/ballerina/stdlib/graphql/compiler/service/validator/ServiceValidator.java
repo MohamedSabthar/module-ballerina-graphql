@@ -56,10 +56,12 @@ import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.RecordFieldWithDefaultValueNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.projects.Project;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 import io.ballerina.stdlib.graphql.commons.types.Schema;
@@ -1082,7 +1084,76 @@ public class ServiceValidator {
                 }
                 validateInputType(recordFieldSymbol.typeDescriptor(), location, isResourceMethod);
             }
+            RecordTypeDefinitionNodeFinder recordTypeDefFinder = new RecordTypeDefinitionNodeFinder(
+                    this.context.semanticModel(), this.context.currentPackage().project(), this.context.moduleId(),
+                    recordTypeSymbol, recordTypeName);
+            Optional<TypeDefinitionNode> recordTypeDefNode = recordTypeDefFinder.find();
+            if (recordTypeDefNode.isEmpty()) {
+                // TODO: unable to validate warning
+                return;
+            }
+            validateDefaultValuesOfInputObject(recordTypeDefNode.get(), recordTypeSymbol, recordTypeName);
         }
+    }
+
+    private void validateDefaultValuesOfInputObject(TypeDefinitionNode typeDefinitionNode,
+                                                    RecordTypeSymbol recordTypeSymbol, String inputObjectTypeName) {
+        for (RecordFieldSymbol recordFieldSymbol : recordTypeSymbol.fieldDescriptors().values()) {
+            if (recordFieldSymbol.hasDefaultValue()) {
+                validateInputObjectDefaultFields(typeDefinitionNode, recordTypeSymbol, recordFieldSymbol);
+            }
+        }
+    }
+
+    private void validateInputObjectDefaultFields(TypeDefinitionNode typeDefinitionNode,
+                                                RecordTypeSymbol recordTypeSymbol,
+                              RecordFieldSymbol recordFieldSymbol) {
+        if (recordFieldSymbol.getName().isEmpty()) {
+            // TODO: add warning
+            return;
+        }
+        RecordFieldWithDefaultValueVisitor defaultFieldValueVisitor = new RecordFieldWithDefaultValueVisitor(
+                this.context.semanticModel(), recordFieldSymbol.getName().get());
+        typeDefinitionNode.accept(defaultFieldValueVisitor);
+        Optional<RecordFieldWithDefaultValueNode> defaultField = defaultFieldValueVisitor.getRecordFieldNode();
+        if (defaultField.isEmpty()) {
+            ArrayList<TypeSymbol> recordTypeSymbols = new ArrayList<>(recordTypeSymbol.typeInclusions());
+            while (!recordTypeSymbols.isEmpty()){
+                TypeSymbol symbol = recordTypeSymbols.remove(0);
+               if (symbol.getName().isEmpty()) {
+                   continue;
+               }
+                if (symbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
+                    TypeReferenceTypeSymbol typeReferenceTypeSymbol = (TypeReferenceTypeSymbol) symbol;
+                    var descriptor = typeReferenceTypeSymbol.typeDescriptor();
+                    if (descriptor.typeKind() == TypeDescKind.RECORD) {
+                        RecordTypeDefinitionNodeFinder recordTypeDefFinder = new RecordTypeDefinitionNodeFinder(
+                                this.context.semanticModel(), this.context.currentPackage().project(), this.context.moduleId(),
+                                (RecordTypeSymbol) descriptor, symbol.getName().get());
+                        Optional<TypeDefinitionNode> recordTypeDefNode = recordTypeDefFinder.find();
+                        if (recordTypeDefNode.isEmpty()) {
+                            // TODO: unable to validate warning
+                            continue;
+                        }
+                        var vis = new RecordFieldWithDefaultValueVisitor(this.context.semanticModel(),
+                                                                         recordFieldSymbol.getName().get());
+                        recordTypeDefNode.get().accept(vis);
+                        if (vis.getRecordFieldNode().isEmpty()) {
+                            recordTypeSymbols.addAll(((RecordTypeSymbol) descriptor).typeInclusions());
+                            continue;
+                        }
+                        defaultField = vis.getRecordFieldNode();
+                        break;
+                    }
+                }
+            }
+        }
+        if (defaultField.isEmpty()) {
+            // TODO: unable to validate (find)
+            return;
+        }
+        Node expression = defaultField.get().expression();
+        validateDefaultValue(expression, defaultField.get().fieldName().text());
     }
 
     private void validateServiceClassDefinition(ClassSymbol classSymbol, Location location) {

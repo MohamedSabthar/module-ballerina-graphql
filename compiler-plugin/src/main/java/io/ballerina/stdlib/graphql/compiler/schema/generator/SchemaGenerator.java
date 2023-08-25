@@ -56,10 +56,12 @@ import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.RecordFieldWithDefaultValueNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.projects.ModuleId;
 import io.ballerina.projects.Project;
 import io.ballerina.stdlib.graphql.commons.types.DefaultDirective;
@@ -80,6 +82,8 @@ import io.ballerina.stdlib.graphql.commons.utils.Utils;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
 import io.ballerina.stdlib.graphql.compiler.service.validator.DefaultableParameterNodeFinder;
 import io.ballerina.stdlib.graphql.compiler.service.validator.EntityAnnotationFinder;
+import io.ballerina.stdlib.graphql.compiler.service.validator.RecordFieldWithDefaultValueVisitor;
+import io.ballerina.stdlib.graphql.compiler.service.validator.RecordTypeDefinitionNodeFinder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -794,7 +798,7 @@ public class SchemaGenerator {
     private Type getInputType(String name, String description, RecordTypeSymbol recordTypeSymbol, Position position) {
         Type objectType = addType(name, TypeKind.INPUT_OBJECT, description, position);
         for (RecordFieldSymbol recordFieldSymbol : recordTypeSymbol.fieldDescriptors().values()) {
-            objectType.addInputField(getInputField(recordFieldSymbol));
+            objectType.addInputField(getInputField(recordFieldSymbol, recordTypeSymbol, name));
         }
         return objectType;
     }
@@ -817,7 +821,8 @@ public class SchemaGenerator {
         }
     }
 
-    private InputValue getInputField(RecordFieldSymbol recordFieldSymbol) {
+    private InputValue getInputField(RecordFieldSymbol recordFieldSymbol, RecordTypeSymbol recordTypeSymbol,
+                                     String typeName) {
         boolean isId = false;
         if (recordFieldSymbol.getName().isEmpty()) {
             return null;
@@ -840,7 +845,7 @@ public class SchemaGenerator {
         if (!isNilable(recordFieldSymbol.typeDescriptor()) && !recordFieldSymbol.isOptional() && !isId) {
             type = getWrapperType(type, TypeKind.NON_NULL);
         }
-        String defaultValue = getDefaultValue(recordFieldSymbol);
+        String defaultValue = getDefaultValue(recordFieldSymbol, recordTypeSymbol, typeName);
         return new InputValue(name, type, description, defaultValue);
     }
 
@@ -893,13 +898,81 @@ public class SchemaGenerator {
         return new InputValue(IF_ARG_NAME, type, description.getDescription(), null);
     }
 
-    private String getDefaultValue(RecordFieldSymbol recordFieldSymbol) {
-        if (recordFieldSymbol.hasDefaultValue()) {
-            // TODO: record node finder implementation
+    private String getDefaultValue(RecordFieldSymbol recordFieldSymbol, RecordTypeSymbol recordTypeSymbol,
+                                   String typeName) {
+        if (recordFieldSymbol.getName().isEmpty()) {
             return DEFAULT_VALUE;
+        }
+        if (recordFieldSymbol.hasDefaultValue()) {
+            RecordTypeDefinitionNodeFinder finder = new RecordTypeDefinitionNodeFinder(this.semanticModel, this.project, this.moduleId, recordTypeSymbol, typeName);
+            Optional<TypeDefinitionNode> recordTypeDefNode = finder.find();
+            if (recordTypeDefNode.isEmpty()) {
+               return DEFAULT_VALUE;
+            }
+            var visitor = new RecordFieldWithDefaultValueVisitor(this.semanticModel, recordFieldSymbol.getName().get());
+            recordTypeDefNode.get().accept(visitor);
+            Optional<RecordFieldWithDefaultValueNode> node = visitor.getRecordFieldNode();
+            if (node.isEmpty()) {
+                // TODO: unable to validate
+                return getInputObjectDefaultFields(recordTypeDefNode.get(), recordTypeSymbol, recordFieldSymbol);
+            }
+            Node expression = node.get().expression();
+            return getDefaultValue(expression);
         }
         return null;
     }
+
+    private String getInputObjectDefaultFields(TypeDefinitionNode typeDefinitionNode,
+                                                  RecordTypeSymbol recordTypeSymbol,
+                                                  RecordFieldSymbol recordFieldSymbol) {
+        if (recordFieldSymbol.getName().isEmpty()) {
+            // TODO: add warning
+            return DEFAULT_VALUE;
+        }
+        RecordFieldWithDefaultValueVisitor defaultFieldValueVisitor = new RecordFieldWithDefaultValueVisitor(
+                this.semanticModel, recordFieldSymbol.getName().get());
+        typeDefinitionNode.accept(defaultFieldValueVisitor);
+        Optional<RecordFieldWithDefaultValueNode> defaultField = defaultFieldValueVisitor.getRecordFieldNode();
+        if (defaultField.isEmpty()) {
+            ArrayList<TypeSymbol> recordTypeSymbols = new ArrayList<>(recordTypeSymbol.typeInclusions());
+            while (!recordTypeSymbols.isEmpty()){
+                TypeSymbol symbol = recordTypeSymbols.remove(0);
+                if (symbol.getName().isEmpty()) {
+                    continue;
+                }
+                if (symbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
+                    TypeReferenceTypeSymbol typeReferenceTypeSymbol = (TypeReferenceTypeSymbol) symbol;
+                    var descriptor = typeReferenceTypeSymbol.typeDescriptor();
+                    if (descriptor.typeKind() == TypeDescKind.RECORD) {
+                        RecordTypeDefinitionNodeFinder recordTypeDefFinder = new RecordTypeDefinitionNodeFinder(
+                                this.semanticModel, this.project, this.moduleId,
+                                (RecordTypeSymbol) descriptor, symbol.getName().get());
+                        Optional<TypeDefinitionNode> recordTypeDefNode = recordTypeDefFinder.find();
+                        if (recordTypeDefNode.isEmpty()) {
+                            // TODO: unable to validate warning
+                            continue;
+                        }
+                        var vis = new RecordFieldWithDefaultValueVisitor(this.semanticModel,
+                                                                         recordFieldSymbol.getName().get());
+                        recordTypeDefNode.get().accept(vis);
+                        if (vis.getRecordFieldNode().isEmpty()) {
+                            recordTypeSymbols.addAll(((RecordTypeSymbol) descriptor).typeInclusions());
+                            continue;
+                        }
+                        defaultField = vis.getRecordFieldNode();
+                        break;
+                    }
+                }
+            }
+        }
+        if (defaultField.isEmpty()) {
+            // TODO: unable to validate (find)
+            return DEFAULT_VALUE;
+        }
+        Node expression = defaultField.get().expression();
+       return getDefaultValue(expression);
+    }
+
 
     private String getDefaultValue(MethodSymbol methodSymbol, ParameterSymbol parameterSymbol) {
         if (parameterSymbol.paramKind() == ParameterKind.DEFAULTABLE) {
