@@ -1315,7 +1315,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(
-                CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM, "a");
+                CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM, "parameter", "a");
         assertWarningMessage(diagnostic, message, 22, 44);
     }
 
@@ -1328,7 +1328,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(
-                CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM, "a");
+                CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM, "parameter", "a");
         assertWarningMessage(diagnostic, message, 24, 44);
     }
 
@@ -1341,6 +1341,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_PROVIDE_KEY_VALUE_PAIR,
+                                         "parameter",
                                          "obj");
         assertWarningMessage(diagnostic, message, 26, 52);
     }
@@ -1354,6 +1355,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_PROVIDE_KEY_VALUE_PAIR,
+                                         "parameter",
                                          "obj");
         assertWarningMessage(diagnostic, message, 26, 52);
     }
@@ -1367,7 +1369,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(
-                CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AVOID_USING_SPREAD_OPERATION, "obj");
+                CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AVOID_USING_SPREAD_OPERATION, "parameter", "obj");
         assertWarningMessage(diagnostic, message, 22, 51);
     }
 
@@ -1380,7 +1382,7 @@ public class ServiceValidationTest {
 
         Diagnostic diagnostic = diagnosticIterator.next();
         String message = getErrorMessage(
-                CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AVOID_USING_SPREAD_OPERATION, "profile");
+                CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AVOID_USING_SPREAD_OPERATION, "parameter", "profile");
         assertWarningMessage(diagnostic, message, 35, 61);
     }
 

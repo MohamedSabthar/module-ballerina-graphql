@@ -913,7 +913,6 @@ public class SchemaGenerator {
             recordTypeDefNode.get().accept(visitor);
             Optional<RecordFieldWithDefaultValueNode> node = visitor.getRecordFieldNode();
             if (node.isEmpty()) {
-                // TODO: unable to validate
                 return getInputObjectDefaultFields(recordTypeDefNode.get(), recordTypeSymbol, recordFieldSymbol);
             }
             Node expression = node.get().expression();
@@ -926,7 +925,6 @@ public class SchemaGenerator {
                                                   RecordTypeSymbol recordTypeSymbol,
                                                   RecordFieldSymbol recordFieldSymbol) {
         if (recordFieldSymbol.getName().isEmpty()) {
-            // TODO: add warning
             return DEFAULT_VALUE;
         }
         RecordFieldWithDefaultValueVisitor defaultFieldValueVisitor = new RecordFieldWithDefaultValueVisitor(
@@ -949,7 +947,6 @@ public class SchemaGenerator {
                                 (RecordTypeSymbol) descriptor, symbol.getName().get());
                         Optional<TypeDefinitionNode> recordTypeDefNode = recordTypeDefFinder.find();
                         if (recordTypeDefNode.isEmpty()) {
-                            // TODO: unable to validate warning
                             continue;
                         }
                         var vis = new RecordFieldWithDefaultValueVisitor(this.semanticModel,
@@ -966,7 +963,6 @@ public class SchemaGenerator {
             }
         }
         if (defaultField.isEmpty()) {
-            // TODO: unable to validate (find)
             return DEFAULT_VALUE;
         }
         Node expression = defaultField.get().expression();

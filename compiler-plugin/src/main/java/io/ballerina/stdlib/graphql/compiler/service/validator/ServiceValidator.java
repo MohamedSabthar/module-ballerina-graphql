@@ -110,6 +110,7 @@ import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUt
  */
 public class ServiceValidator {
     private final Set<Symbol> visitedClassesAndObjectTypeDefinitions = new HashSet<>();
+    private final Set<String> validatedInputObjectTypesWithDefaultValues = new HashSet<>();
     private final List<TypeSymbol> existingInputObjectTypes = new ArrayList<>();
     private final List<TypeSymbol> existingReturnTypes = new ArrayList<>();
     private final InterfaceEntityFinder interfaceEntityFinder;
@@ -834,16 +835,20 @@ public class ServiceValidator {
                     Optional<DefaultableParameterNode> parameterNode = parameterNodeFinder.getDeflatableParameterNode();
                     if (parameterNode.isEmpty()) {
                         addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AT_COMPILE_TIME,
-                                      inputLocation, parameterName);
+                                      inputLocation, getFieldOrParamString(false), parameterName);
                         continue;
                     }
-                    validateDefaultValue(parameterNode.get().expression(), parameterName);
+                    validateDefaultValue(parameterNode.get().expression(), parameterName, false);
                 }
             }
         }
     }
 
-    private void validateDefaultValue(Node expression, String parameterName) {
+    private String getFieldOrParamString(boolean isObjectField) {
+        return  isObjectField ? "input object field" : "parameter";
+    }
+
+    private void validateDefaultValue(Node expression, String parameterOrFieldName, boolean isObjectField) {
         switch (expression.kind()) {
             case NIL_LITERAL:
             case NUMERIC_LITERAL:
@@ -851,61 +856,63 @@ public class ServiceValidator {
             case BOOLEAN_LITERAL:
                 return;
             case SIMPLE_NAME_REFERENCE: {
-                validateDefaultValue((SimpleNameReferenceNode) expression, parameterName);
+                validateDefaultValue((SimpleNameReferenceNode) expression, parameterOrFieldName, isObjectField);
                 return;
             }
 
             case MAPPING_CONSTRUCTOR: {
-                validateDefaultRecordValue((MappingConstructorExpressionNode) expression, parameterName);
+                validateDefaultRecordValue((MappingConstructorExpressionNode) expression, parameterOrFieldName, isObjectField);
                 return;
             }
             case LIST_CONSTRUCTOR: {
-                validateDefaultListValue((ListConstructorExpressionNode) expression, parameterName);
+                validateDefaultListValue((ListConstructorExpressionNode) expression, parameterOrFieldName, isObjectField);
                 return;
             }
             default:
                 addDiagnostic(CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM,
-                              expression.location(), parameterName);
+                              expression.location(), getFieldOrParamString(isObjectField), parameterOrFieldName);
         }
     }
 
-    private void validateDefaultValue(SimpleNameReferenceNode nameReferenceNode, String parameterName) {
+    private void validateDefaultValue(SimpleNameReferenceNode nameReferenceNode, String parameterOrFieldName,
+                                      boolean isObjectField) {
         if (this.context.semanticModel().symbol(nameReferenceNode).isEmpty()) {
             addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AT_COMPILE_TIME,
-                          nameReferenceNode.location(), parameterName);
+                          nameReferenceNode.location(), getFieldOrParamString(isObjectField), parameterOrFieldName);
         }
         Symbol defaultValueSymbol = this.context.semanticModel().symbol(nameReferenceNode).get();
         if (defaultValueSymbol.kind() != SymbolKind.CONSTANT && defaultValueSymbol.kind() != SymbolKind.ENUM_MEMBER) {
             addDiagnostic(CompilationDiagnostic.PROVIDE_LITERAL_OR_CONSTRUCTOR_EXPRESSION_FOR_DEFAULT_PARAM,
-                          nameReferenceNode.location(), parameterName);
+                          nameReferenceNode.location(), getFieldOrParamString(isObjectField), parameterOrFieldName);
         }
     }
 
-    private void validateDefaultRecordValue(MappingConstructorExpressionNode mappingConstructor, String parameterName) {
+    private void validateDefaultRecordValue(MappingConstructorExpressionNode mappingConstructor, String parameterOrFieldName
+            , boolean isObjectField) {
         for (MappingFieldNode field : mappingConstructor.fields()) {
             if (field.kind() != SyntaxKind.SPECIFIC_FIELD) {
                 addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_PROVIDE_KEY_VALUE_PAIR,
-                              field.location(), parameterName);
+                              field.location(), getFieldOrParamString(isObjectField), parameterOrFieldName);
                 continue;
             }
             SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
             if (specificFieldNode.valueExpr().isEmpty()) {
                 addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_PROVIDE_KEY_VALUE_PAIR,
-                              field.location(), parameterName);
+                              field.location(), getFieldOrParamString(isObjectField), parameterOrFieldName);
                 continue;
             }
-            validateDefaultValue(specificFieldNode.valueExpr().get(), parameterName);
+            validateDefaultValue(specificFieldNode.valueExpr().get(), parameterOrFieldName, isObjectField);
         }
     }
 
-    private void validateDefaultListValue(ListConstructorExpressionNode listConstructor, String parameterName) {
+    private void validateDefaultListValue(ListConstructorExpressionNode listConstructor, String parameterOrFieldName, boolean isObjectField) {
         for (Node element : listConstructor.expressions()) {
             if (element.kind() == SPREAD_MEMBER) {
                 addDiagnostic(CompilationDiagnostic.UNABLE_TO_INFER_DEFAULT_VALUE_AVOID_USING_SPREAD_OPERATION,
-                              element.location(), parameterName);
+                              element.location(), getFieldOrParamString(isObjectField), parameterOrFieldName);
                 continue;
             }
-            validateDefaultValue(element, parameterName);
+            validateDefaultValue(element, parameterOrFieldName, isObjectField);
         }
     }
 
@@ -1084,32 +1091,46 @@ public class ServiceValidator {
                 }
                 validateInputType(recordFieldSymbol.typeDescriptor(), location, isResourceMethod);
             }
+            if (!hasDefaultValues(recordTypeSymbol)) {
+                return;
+            }
             RecordTypeDefinitionNodeFinder recordTypeDefFinder = new RecordTypeDefinitionNodeFinder(
                     this.context.semanticModel(), this.context.currentPackage().project(), this.context.moduleId(),
                     recordTypeSymbol, recordTypeName);
             Optional<TypeDefinitionNode> recordTypeDefNode = recordTypeDefFinder.find();
             if (recordTypeDefNode.isEmpty()) {
-                // TODO: unable to validate warning
+                addDiagnostic(CompilationDiagnostic.UNABLE_TO_VALIDATE_DEFAULT_VALUES_OF_INPUT_OBJECT_AT_COMPILE_TIME,
+                              recordTypeSymbol.getLocation().orElse(location), recordTypeName);
                 return;
             }
-            validateDefaultValuesOfInputObject(recordTypeDefNode.get(), recordTypeSymbol, recordTypeName);
+            validateDefaultValuesOfInputObject(recordTypeDefNode.get(), recordTypeSymbol, recordTypeName,
+                                               recordTypeDefNode.get().location());
         }
     }
 
+    boolean hasDefaultValues(RecordTypeSymbol recordTypeSymbol) {
+        return recordTypeSymbol.fieldDescriptors().values().stream().anyMatch(RecordFieldSymbol::hasDefaultValue);
+    }
+
     private void validateDefaultValuesOfInputObject(TypeDefinitionNode typeDefinitionNode,
-                                                    RecordTypeSymbol recordTypeSymbol, String inputObjectTypeName) {
+                                                    RecordTypeSymbol recordTypeSymbol, String inputObjectTypeName,
+                                                    Location location) {
+        if (this.validatedInputObjectTypesWithDefaultValues.contains(inputObjectTypeName)) {
+            return;
+        }
         for (RecordFieldSymbol recordFieldSymbol : recordTypeSymbol.fieldDescriptors().values()) {
             if (recordFieldSymbol.hasDefaultValue()) {
-                validateInputObjectDefaultFields(typeDefinitionNode, recordTypeSymbol, recordFieldSymbol);
+                validateInputObjectDefaultFields(typeDefinitionNode, recordTypeSymbol, recordFieldSymbol,
+                                                 getLocation(recordFieldSymbol, location), inputObjectTypeName);
             }
         }
+        this.validatedInputObjectTypesWithDefaultValues.add(inputObjectTypeName);
     }
 
     private void validateInputObjectDefaultFields(TypeDefinitionNode typeDefinitionNode,
                                                 RecordTypeSymbol recordTypeSymbol,
-                              RecordFieldSymbol recordFieldSymbol) {
+                              RecordFieldSymbol recordFieldSymbol, Location location, String inputObjectName) {
         if (recordFieldSymbol.getName().isEmpty()) {
-            // TODO: add warning
             return;
         }
         RecordFieldWithDefaultValueVisitor defaultFieldValueVisitor = new RecordFieldWithDefaultValueVisitor(
@@ -1132,7 +1153,6 @@ public class ServiceValidator {
                                 (RecordTypeSymbol) descriptor, symbol.getName().get());
                         Optional<TypeDefinitionNode> recordTypeDefNode = recordTypeDefFinder.find();
                         if (recordTypeDefNode.isEmpty()) {
-                            // TODO: unable to validate warning
                             continue;
                         }
                         var vis = new RecordFieldWithDefaultValueVisitor(this.context.semanticModel(),
@@ -1149,11 +1169,13 @@ public class ServiceValidator {
             }
         }
         if (defaultField.isEmpty()) {
-            // TODO: unable to validate (find)
+            addDiagnostic(CompilationDiagnostic.UNABLE_TO_VALIDATE_DEFAULT_VALUES_OF_INPUT_FIELD_AT_COMPILE_TIME,
+                          getLocation(recordFieldSymbol, location), recordFieldSymbol.getName().get(),
+                          inputObjectName);
             return;
         }
         Node expression = defaultField.get().expression();
-        validateDefaultValue(expression, defaultField.get().fieldName().text());
+        validateDefaultValue(expression, defaultField.get().fieldName().text(), true);
     }
 
     private void validateServiceClassDefinition(ClassSymbol classSymbol, Location location) {

@@ -106,17 +106,24 @@ public enum DiagnosticMessage {
     WARNING_204("unable to validate the @subgraph:Entity annotation. This could lead to an invalid generated subgraph"
                         + " schema. Provide a string literal or an array of string literal values for the ''{0}'' field"
                         + " in the @subgraph:Entity annotation to resolve this warning"),
-    WARNING_205("unable to infer default value of parameter ''{0}'' at compile time. "
+    WARNING_205("unable to infer default value of {0} ''{1}'' at compile time. "
                         + "This could potentially lead to the generation of an incorrect GraphQL schema"),
-    WARNING_206("unable to infer default value of parameter ''{0}'' at compile time. This could potentially lead to the"
+    WARNING_206("unable to infer default value of {0} ''{1}'' at compile time. This could potentially lead to the"
                         + " generation of an incorrect GraphQL schema. Provide key-value pairs to resolve this "
                         + "warning"),
-    WARNING_207("unable to infer default value of parameter ''{0}'' at compile time. This could potentially lead to the"
+    WARNING_207("unable to infer default value of {0} ''{1}'' at compile time. This could potentially lead to the"
                         + " generation of an incorrect GraphQL schema. Provide a literal, list, or mapping constructor "
                         + "expression as the default value to resolve this warning"),
-    WARNING_208("unable to infer default value of parameter ''{0}'' at compile time. This could potentially lead to the"
+    WARNING_208("unable to infer default value of {0} ''{1}'' at compile time. This could potentially lead to the"
                         + " generation of an incorrect GraphQL schema. Avoid using spread operation to resolve this "
-                        + "warning");
+                        + "warning"),
+    WARNING_209("unable to validate the default value of field ''{0}'' of input type ''{1}''. This could potentially "
+                        + "lead to the generation of an incorrect GraphQL schema. Try defining the included types of"
+                        + " this type in the same module where the graphql:Service is defined to resolve "
+                        + "this warning"),
+    WARNING_210("unable to validate the default values of input type ''{0}''. This could potentially "
+                        + "lead to the generation of an incorrect GraphQL schema. Try defining this type in the same "
+                        + "module where the graphql:Service is defined to resolve this warning");
 
     private final String message;
 
