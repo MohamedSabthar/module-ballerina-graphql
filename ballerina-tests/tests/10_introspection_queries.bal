@@ -73,7 +73,8 @@ function dataProviderIntrospection() returns map<[string, string, json]> {
         "31": [url2, "typename_introspection_on_type_record"],
         "32": [url2, "typename_introspection_on_schema_introspection"],
         "33": [url2, "typename_introspection_on_field"],
-        "34": [url9, "id_introspection_query"]
+        "34": [url9, "id_introspection_query"],
+        "35": [url10, "introspection_on_input_object_having_defaultable_fields"]
     };
     return dataSet;
 }

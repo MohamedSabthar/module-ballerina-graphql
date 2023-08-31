@@ -294,3 +294,11 @@ final isolated table<BookRow> key(id) bookTable = table [
 isolated int dispatchCountOfBookLoader = 0;
 isolated int dispatchCountOfAuthorLoader = 0;
 isolated int dispatchCountOfUpdateAuthorLoader = 0;
+
+const int DEFAULT_INT_VALUE = 20;
+
+enum State {
+    A = "a",
+    B,
+    C
+};

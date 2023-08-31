@@ -1,0 +1,25 @@
+{
+  "data": {
+    "__type": {
+      "name": "InputObject",
+      "inputFields": [
+        {
+          "name": "name",
+          "defaultValue": "\"name1\""
+        },
+        {
+          "name": "measurement",
+          "defaultValue": "[1.0, 3]"
+        },
+        {
+          "name": "state",
+          "defaultValue": "a"
+        },
+        {
+          "name": "val",
+          "defaultValue": "3"
+        }
+      ]
+    }
+  }
+}

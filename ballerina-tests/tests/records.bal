@@ -362,3 +362,18 @@ type AuthorRow record {|
     readonly int id;
     string name;
 |};
+
+type InputObject record {|
+    string name = "name1";
+    decimal[]? measurement = [1.0, 3];
+    *InputObject2;
+|};
+
+type InputObject2 record {|
+    State state = A;
+    *InputObject3;
+|};
+
+type InputObject3 record {|
+    int val = 3;
+|};

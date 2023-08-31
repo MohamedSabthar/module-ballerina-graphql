@@ -48,15 +48,20 @@ import io.ballerina.compiler.api.symbols.resourcepath.PathSegmentList;
 import io.ballerina.compiler.api.symbols.resourcepath.util.PathSegment;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.BasicLiteralNode;
+import io.ballerina.compiler.syntax.tree.DefaultableParameterNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ListConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MappingFieldNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.RecordFieldWithDefaultValueNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.projects.ModuleId;
 import io.ballerina.projects.Project;
 import io.ballerina.stdlib.graphql.commons.types.DefaultDirective;
@@ -75,13 +80,16 @@ import io.ballerina.stdlib.graphql.commons.types.TypeName;
 import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
 import io.ballerina.stdlib.graphql.commons.utils.Utils;
 import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
+import io.ballerina.stdlib.graphql.compiler.service.validator.DefaultableParameterNodeFinder;
 import io.ballerina.stdlib.graphql.compiler.service.validator.EntityAnnotationFinder;
+import io.ballerina.stdlib.graphql.compiler.service.validator.RecordTypeDefinitionNodeFinder;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
@@ -89,7 +97,9 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEntityAnnotationSymbol;
+import static io.ballerina.stdlib.graphql.compiler.Utils.getRecordFieldWithDefaultValueNode;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getStringValue;
+import static io.ballerina.stdlib.graphql.compiler.Utils.getTypeInclusions;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isFileUploadParameter;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isFunctionDefinition;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
@@ -115,6 +125,12 @@ public class SchemaGenerator {
     private static final String DEFAULT_VALUE = "\"\"";
     private static final String RESOLVE_REFERENCE = "resolveReference";
     private static final String KEY = "key";
+    private static final String LIST_OPEN_BRACKET = "[";
+    private static final String LIST_CLOSE_BRACKET = "]";
+    private static final String INPUT_OBJECT_OPEN_BRACKET = "{";
+    private static final String INPUT_OBJECT_CLOSE_BRACKET = "}";
+    private static final String COMMA_SEPARATOR = ", ";
+    private static final String COLON_SEPARATOR = " : ";
 
     private final Node serviceNode;
     private final InterfaceEntityFinder interfaceEntityFinder;
@@ -344,16 +360,17 @@ public class SchemaGenerator {
             }
             String parameterName = parameterSymbol.getName().get();
             String description = getParameterDescription(parameterName, methodSymbol);
-            field.addArg(getArg(parameterName, description, parameterSymbol));
+            field.addArg(getArg(parameterName, description, parameterSymbol, methodSymbol));
         }
     }
 
-    private InputValue getArg(String parameterName, String description, ParameterSymbol parameterSymbol) {
+    private InputValue getArg(String parameterName, String description, ParameterSymbol parameterSymbol,
+                              MethodSymbol methodSymbol) {
         Type type = getInputTypeForID(parameterSymbol);
         if (type == null) {
             type = getInputFieldType(parameterSymbol.typeDescriptor());
         }
-        String defaultValue = getDefaultValue(parameterSymbol);
+        String defaultValue = getDefaultValue(methodSymbol, parameterSymbol);
         return new InputValue(parameterName, type, description, defaultValue);
     }
 
@@ -781,7 +798,7 @@ public class SchemaGenerator {
     private Type getInputType(String name, String description, RecordTypeSymbol recordTypeSymbol, Position position) {
         Type objectType = addType(name, TypeKind.INPUT_OBJECT, description, position);
         for (RecordFieldSymbol recordFieldSymbol : recordTypeSymbol.fieldDescriptors().values()) {
-            objectType.addInputField(getInputField(recordFieldSymbol));
+            objectType.addInputField(getInputField(recordFieldSymbol, recordTypeSymbol, name));
         }
         return objectType;
     }
@@ -804,7 +821,8 @@ public class SchemaGenerator {
         }
     }
 
-    private InputValue getInputField(RecordFieldSymbol recordFieldSymbol) {
+    private InputValue getInputField(RecordFieldSymbol recordFieldSymbol, RecordTypeSymbol recordTypeSymbol,
+                                     String typeName) {
         boolean isId = false;
         if (recordFieldSymbol.getName().isEmpty()) {
             return null;
@@ -827,7 +845,7 @@ public class SchemaGenerator {
         if (!isNilable(recordFieldSymbol.typeDescriptor()) && !recordFieldSymbol.isOptional() && !isId) {
             type = getWrapperType(type, TypeKind.NON_NULL);
         }
-        String defaultValue = getDefaultValue(recordFieldSymbol);
+        String defaultValue = getDefaultValue(recordFieldSymbol, recordTypeSymbol, typeName);
         return new InputValue(name, type, description, defaultValue);
     }
 
@@ -880,17 +898,138 @@ public class SchemaGenerator {
         return new InputValue(IF_ARG_NAME, type, description.getDescription(), null);
     }
 
-    private String getDefaultValue(RecordFieldSymbol recordFieldSymbol) {
+    private String getDefaultValue(RecordFieldSymbol recordFieldSymbol, RecordTypeSymbol recordTypeSymbol,
+                                   String typeName) {
         if (recordFieldSymbol.hasDefaultValue()) {
-            return DEFAULT_VALUE;
+            TypeDefinitionNode recordTypeDefNode = getRecordTypeDefinitionNode(recordTypeSymbol, typeName);
+            if (recordTypeDefNode == null) {
+                return DEFAULT_VALUE;
+            }
+            // noinspection OptionalGetWithoutIsPresent
+            RecordFieldWithDefaultValueNode defaultField = getRecordFieldWithDefaultValueNode(
+                    recordFieldSymbol.getName().get(), recordTypeDefNode, this.semanticModel);
+            if (defaultField == null) {
+                return getDefaultValueFromTypeInclusions(getTypeInclusions(recordTypeSymbol), recordFieldSymbol);
+            }
+            return getDefaultValue(defaultField.expression());
         }
         return null;
     }
 
-    private String getDefaultValue(ParameterSymbol parameterSymbol) {
-        if (parameterSymbol.paramKind() == ParameterKind.DEFAULTABLE) {
-            return DEFAULT_VALUE;
+    private String getDefaultValueFromTypeInclusions(List<TypeSymbol> typeInclusions,
+                                                     RecordFieldSymbol recordFieldSymbol) {
+        ArrayList<TypeSymbol> recordTypeSymbols = new ArrayList<>(typeInclusions);
+        while (!recordTypeSymbols.isEmpty()) {
+            TypeSymbol includedTypeSymbol = recordTypeSymbols.remove(0);
+            if (includedTypeSymbol.getName().isEmpty()) {
+                continue;
+            }
+            RecordFieldWithDefaultValueNode defaultField = getRecordFieldFromIncludedType(recordFieldSymbol,
+                                                                                          includedTypeSymbol);
+            if (defaultField != null) {
+                return getDefaultValue(defaultField.expression());
+            }
+            recordTypeSymbols.addAll(getTypeInclusions(includedTypeSymbol));
+        }
+        return DEFAULT_VALUE;
+    }
+
+    private RecordFieldWithDefaultValueNode getRecordFieldFromIncludedType(RecordFieldSymbol recordFieldSymbol,
+                                                                           TypeSymbol includedTypeSymbol) {
+        if (includedTypeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
+            TypeSymbol descriptor = ((TypeReferenceTypeSymbol) includedTypeSymbol).typeDescriptor();
+            if (descriptor.typeKind() == TypeDescKind.RECORD) {
+                // noinspection OptionalGetWithoutIsPresent
+                TypeDefinitionNode recordTypeDefNode = getRecordTypeDefinitionNode((RecordTypeSymbol) descriptor,
+                                                                                   includedTypeSymbol.getName().get());
+                if (recordTypeDefNode != null && recordFieldSymbol.getName().isPresent()) {
+                    return getRecordFieldWithDefaultValueNode(recordFieldSymbol.getName().get(), recordTypeDefNode,
+                                                              this.semanticModel);
+                }
+            }
         }
         return null;
+    }
+
+    private TypeDefinitionNode getRecordTypeDefinitionNode(RecordTypeSymbol recordTypeSymbol, String typeName) {
+        RecordTypeDefinitionNodeFinder finder = new RecordTypeDefinitionNodeFinder(this.semanticModel, this.project,
+                                                                                   this.moduleId, recordTypeSymbol,
+                                                                                   typeName);
+        return finder.find().orElse(null);
+    }
+
+    private String getDefaultValue(MethodSymbol methodSymbol, ParameterSymbol parameterSymbol) {
+        if (parameterSymbol.paramKind() == ParameterKind.DEFAULTABLE) {
+            DefaultableParameterNode parameterNode = getDefaultableParameterNode(methodSymbol, parameterSymbol);
+            return parameterNode == null ? DEFAULT_VALUE : getDefaultValue(parameterNode.expression());
+        }
+        return null;
+    }
+
+    private DefaultableParameterNode getDefaultableParameterNode(MethodSymbol methodSymbol,
+                                                                 ParameterSymbol parameterSymbol) {
+        ModuleId moduleId = this.project.currentPackage().getDefaultModule().moduleId();
+        DefaultableParameterNodeFinder finder = new DefaultableParameterNodeFinder(this.semanticModel, this.project,
+                                                                                   moduleId, methodSymbol,
+                                                                                   parameterSymbol);
+        return finder.getDeflatableParameterNode().orElse(null);
+    }
+
+    private String getDefaultValue(Node expression) {
+        switch (expression.kind()) {
+            case NIL_LITERAL:
+                return null;
+            case NUMERIC_LITERAL:
+            case STRING_LITERAL:
+            case BOOLEAN_LITERAL:
+                return getDefaultValue(((BasicLiteralNode) expression));
+            case MAPPING_CONSTRUCTOR:
+                return getDefaultValue((MappingConstructorExpressionNode) expression);
+            case LIST_CONSTRUCTOR:
+                return getDefaultValue((ListConstructorExpressionNode) expression);
+            case SIMPLE_NAME_REFERENCE:
+                return getDefaultValue((SimpleNameReferenceNode) expression);
+            default:
+                return DEFAULT_VALUE;
+        }
+    }
+
+    private String getDefaultValue(BasicLiteralNode expressionNode) {
+        return expressionNode.literalToken().text();
+    }
+
+    private String getDefaultValue(MappingConstructorExpressionNode expressionNode) {
+        StringJoiner joiner = new StringJoiner(COMMA_SEPARATOR, INPUT_OBJECT_OPEN_BRACKET, INPUT_OBJECT_CLOSE_BRACKET);
+        for (Node field : expressionNode.fields()) {
+            if (field.kind() == SyntaxKind.SPECIFIC_FIELD) {
+                SpecificFieldNode specificFieldNode = (SpecificFieldNode) field;
+                if (specificFieldNode.fieldName().kind() == SyntaxKind.IDENTIFIER_TOKEN) {
+                    IdentifierToken identifierToken = (IdentifierToken) specificFieldNode.fieldName();
+                    String value = specificFieldNode.valueExpr().isEmpty() ? DEFAULT_VALUE :
+                            getDefaultValue(specificFieldNode.valueExpr().get());
+                    joiner.add(identifierToken.text().trim() + COLON_SEPARATOR + value);
+                }
+            }
+        }
+        return joiner.toString();
+    }
+
+    private String getDefaultValue(ListConstructorExpressionNode expressionNode) {
+        StringJoiner joiner = new StringJoiner(COMMA_SEPARATOR, LIST_OPEN_BRACKET, LIST_CLOSE_BRACKET);
+        for (Node member : expressionNode.expressions()) {
+            joiner.add(getDefaultValue(member));
+        }
+        return joiner.toString();
+    }
+
+    private String getDefaultValue(SimpleNameReferenceNode expressionNode) {
+        if (this.semanticModel.symbol(expressionNode).isEmpty()) {
+            return DEFAULT_VALUE;
+        }
+        Symbol defaultValueSymbol = this.semanticModel.symbol(expressionNode).get();
+        if (defaultValueSymbol.kind() == SymbolKind.CONSTANT || defaultValueSymbol.kind() == SymbolKind.ENUM_MEMBER) {
+            return ((ConstantSymbol) this.semanticModel.symbol(expressionNode).get()).constValue().toString();
+        }
+        return DEFAULT_VALUE;
     }
 }

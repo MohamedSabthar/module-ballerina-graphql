@@ -44,7 +44,7 @@ public class RecordFieldWithDefaultValueVisitor extends NodeVisitor {
             return;
         }
         Optional<Symbol> symbol = this.semanticModel.symbol(recordFieldNode);
-        if (symbol.isPresent() && symbol.get().getName().orElse("").equals(fieldName)) {
+        if (symbol.isPresent() && this.fieldName.equals(symbol.get().getName().orElse(null))) {
             this.recordFieldNode = recordFieldNode;
         }
     }

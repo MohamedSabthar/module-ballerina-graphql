@@ -462,3 +462,20 @@ public isolated distinct service class BookData {
         return self.book.title;
     }
 }
+
+distinct service class Data {
+    resource function get complexParams(
+            int a = 1,
+            float b = 2.0,
+            decimal c = 1e-10,
+            string d = "value",
+            boolean e = true,
+            int? f = DEFAULT_INT_VALUE,
+            State g = A,
+            InputObject h = {name: "name2", measurement: [1.0, 2.0]},
+            InputObject[] i = [
+                {name: "name3", measurement: [1.0, 2.0]},
+                {name: "name4", measurement: [1e-7, 2.0]}
+            ],
+            @graphql:ID string[] j = ["id1"]) returns string? => ();
+}

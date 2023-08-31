@@ -86,7 +86,9 @@ import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getEntityAnnotationSymbol;
+import static io.ballerina.stdlib.graphql.compiler.Utils.getRecordFieldWithDefaultValueNode;
 import static io.ballerina.stdlib.graphql.compiler.Utils.getStringValue;
+import static io.ballerina.stdlib.graphql.compiler.Utils.getTypeInclusions;
 import static io.ballerina.stdlib.graphql.compiler.Utils.hasResourceConfigAnnotation;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isContextParameter;
 import static io.ballerina.stdlib.graphql.compiler.Utils.isDistinctServiceClass;
@@ -1153,9 +1155,9 @@ public class ServiceValidator {
             return;
         }
         RecordFieldWithDefaultValueNode defaultField = getRecordFieldWithDefaultValueNode(
-                recordFieldSymbol.getName().get(), typeDefinitionNode);
+                recordFieldSymbol.getName().get(), typeDefinitionNode, this.context.semanticModel());
         if (defaultField == null) {
-            ArrayList<TypeSymbol> typeInclusions = new ArrayList<>(recordTypeSymbol.typeInclusions());
+            ArrayList<TypeSymbol> typeInclusions = new ArrayList<>(getTypeInclusions(recordTypeSymbol));
             while (!typeInclusions.isEmpty()) {
                 TypeSymbol includedTypeSymbol = typeInclusions.remove(0);
                 defaultField = getRecordFieldFromIncludedRecordType(recordFieldSymbol, includedTypeSymbol);
@@ -1186,28 +1188,11 @@ public class ServiceValidator {
                 if (recordTypeDefNode == null) {
                     return null;
                 }
-                return getRecordFieldWithDefaultValueNode(recordFieldSymbol.getName().get(), recordTypeDefNode);
+                return getRecordFieldWithDefaultValueNode(recordFieldSymbol.getName().get(), recordTypeDefNode,
+                                                          this.context.semanticModel());
             }
         }
         return null;
-    }
-
-    private List<TypeSymbol> getTypeInclusions(TypeSymbol typeSymbol) {
-        if (typeSymbol.typeKind() == TypeDescKind.TYPE_REFERENCE) {
-            TypeSymbol typeDescriptor = ((TypeReferenceTypeSymbol) typeSymbol).typeDescriptor();
-            if (typeDescriptor.typeKind() == TypeDescKind.RECORD) {
-                return ((RecordTypeSymbol) typeDescriptor).typeInclusions();
-            }
-        }
-        return new ArrayList<>();
-    }
-
-    private RecordFieldWithDefaultValueNode getRecordFieldWithDefaultValueNode(String recordFieldName,
-                                                                               TypeDefinitionNode recordTypeDefNode) {
-        RecordFieldWithDefaultValueVisitor recordFieldWithDefaultValueVisitor = new RecordFieldWithDefaultValueVisitor(
-                this.context.semanticModel(), recordFieldName);
-        recordTypeDefNode.accept(recordFieldWithDefaultValueVisitor);
-        return recordFieldWithDefaultValueVisitor.getRecordFieldNode().orElse(null);
     }
 
     private void validateServiceClassDefinition(ClassSymbol classSymbol, Location location) {

@@ -53,7 +53,7 @@ public class RecordTypeDefinitionNodeVisitor extends NodeVisitor {
             return;
         }
         TypeDefinitionSymbol recordTypeDef = (TypeDefinitionSymbol) recordTypeDefSymbol.get();
-        if (recordTypeDef.getName().isEmpty() || !recordTypeDef.getName().get().equals(this.recordTypeName)) {
+        if (recordTypeDef.getName().isEmpty() || !this.recordTypeName.equals(recordTypeDef.getName().get())) {
             return;
         }
         if (recordTypeDef.typeDescriptor().equals(this.recordTypeSymbol)) {
