@@ -31,7 +31,7 @@ def testCommonTomlFilePlaceHolder = new File("${project.rootDir}/build-config/re
 def ballerinaDist = "${project.rootDir}/target/ballerina-runtime"
 def distributionBinPath =  "${ballerinaDist}/bin"
 def testCoverageParam = "--code-coverage --coverage-format=xml --includes=io.ballerina.stdlib.graphql.*:ballerina.graphql*"
-def testPackages = ["graphql-service-test-suite"]
+def testSuites = ["graphql-service-test-suite", "graphql-client-test-suite"]
 def testCommonPackage = "graphql-test-common"
 
 def stripBallerinaExtensionVersion(String extVersion) {
@@ -50,7 +50,7 @@ def stripBallerinaExtensionVersion(String extVersion) {
 
 task updateTomlFiles {
      doLast {
-        testPackages.each { testPackage ->
+        testSuites.each { testPackage ->
             def ballerinaTomlFile =  new File("${project.projectDir}/${testPackage}/Ballerina.toml")
             def newBallerinaToml = ballerinaTomlFilePlaceHolder.text.replace("@project.version@", project.version)
             newBallerinaToml = newBallerinaToml.replace("@toml.version@", tomlVersion)
@@ -69,7 +69,7 @@ task updateTomlFiles {
 task commitTomlFiles {
     doLast {
         def files = "${project.projectDir}/${testCommonPackage}/Ballerina.toml ${project.projectDir}/${testCommonPackage}/Dependencies.toml "
-        testPackages.each{ testPackage ->
+        testSuites.each{ testPackage ->
             files += "${project.projectDir}/${testPackage}/Ballerina.toml ${project.projectDir}/${testPackage}/Dependencies.toml "
         }
 
@@ -155,7 +155,7 @@ task ballerinaTest {
     finalizedBy(commitTomlFiles)
 
     doLast {
-        testPackages.each { testPackage ->
+        testSuites.each { testPackage ->
         if (!skipTests) {
                 exec {
                     workingDir "${project.projectDir}/${testPackage}"
@@ -178,7 +178,7 @@ test {
 clean {
     delete "${project.projectDir}/${testCommonPackage}/target"
 
-    testPackages.each { testPackage ->
+    testSuites.each { testPackage ->
         delete "${project.projectDir}/${testPackage}/target"
     }
 }
@@ -187,7 +187,7 @@ task deleteDependencyTomlFile {
     if (project.hasProperty("deleteDependencies")) {
         delete "${project.projectDir}/${testCommonPackage}/Dependencies.toml"
 
-        testPackages.each { testPackage ->
+        testSuites.each { testPackage ->
             delete "${project.projectDir}/${testPackage}/Dependencies.toml"
         }
     }

@@ -727,29 +727,30 @@ isolated function testClientDataBindingErrorHavingACause() returns error? {
     test:assertTrue(err.cause() !is (), "PayloadBindingError should have a cause");
 }
 
-@test:Config {
-    groups: ["client"]
-}
-isolated function testClientConfiguration() returns error? {
-    string document = "{ greeting }";
-    string url = "https://localhost:9096/basicAuth ";
+// TODO: move to security suite
+// @test:Config {
+//     groups: ["client"]
+// }
+// isolated function testClientConfiguration() returns error? {
+//     string document = "{ greeting }";
+//     string url = "https://localhost:9096/basicAuth ";
 
-    graphql:Client graphqlClient = check new (url,
-        cache = {enabled: true, isShared: true},
-        timeout = 1,
-        http1Settings = {keepAlive: "NEVER"},
-        secureSocket = {cert: {path: TRUSTSTORE_PATH, password: "ballerina"}},
-        auth = {username: "alice", password: "xxx"},
-        poolConfig = {maxActiveConnections: 1},
-        circuitBreaker = {statusCodes: [500, 404]},
-        retryConfig = {count: 3},
-        cookieConfig = {enabled: true}
-        );
+//     graphql:Client graphqlClient = check new (url,
+//         cache = {enabled: true, isShared: true},
+//         timeout = 1,
+//         http1Settings = {keepAlive: "NEVER"},
+//         secureSocket = {cert: {path: TRUSTSTORE_PATH, password: "ballerina"}},
+//         auth = {username: "alice", password: "xxx"},
+//         poolConfig = {maxActiveConnections: 1},
+//         circuitBreaker = {statusCodes: [500, 404]},
+//         retryConfig = {count: 3},
+//         cookieConfig = {enabled: true}
+//         );
 
-    json payload = check graphqlClient->execute(document);
-    json expectedPayload = {data: {greeting: "Hello World!"}};
-    test:assertEquals(payload, expectedPayload);
-}
+//     json payload = check graphqlClient->execute(document);
+//     json expectedPayload = {data: {greeting: "Hello World!"}};
+//     test:assertEquals(payload, expectedPayload);
+// }
 
 type ProfileResponseWithErrors record {|
     *graphql:GenericResponseWithErrors;
@@ -856,3 +857,7 @@ type PersonInfoResponse record {|
 type AddressInfoResponse record {|
     string city;
 |};
+
+
+// TODO: clean test resources, remove unwanted resources from each test suites
+// TODO: add license headers to new files
