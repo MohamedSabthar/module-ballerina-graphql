@@ -861,3 +861,4 @@ type AddressInfoResponse record {|
 
 // TODO: clean test resources, remove unwanted resources from each test suites
 // TODO: add license headers to new files
+// TODO: clean up test_services and try to have a single service for this suite
