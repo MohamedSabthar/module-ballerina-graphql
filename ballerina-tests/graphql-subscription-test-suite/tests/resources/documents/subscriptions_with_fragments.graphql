@@ -1,14 +1,14 @@
-subscription getStudents { 
-    ...personFields
+subscription getStudents {
+  ...personFields
 }
 
 fragment personFields on Subscription {
-    ...studentFields
+  ...studentFields
 }
 
 fragment studentFields on Subscription {
-    students {
-        id
-        name       
-    } 
+  students {
+    id
+    name
+  }
 }

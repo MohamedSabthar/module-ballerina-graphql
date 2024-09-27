@@ -1,21 +1,21 @@
 {
-    "data": {
-        "people": [
-            {
-                "address": {
-                    "city": "London"
-                }
-            },
-            {
-                "address": {
-                    "city": "Albuquerque"
-                }
-            },
-            {
-                "address": {
-                    "city": "Hogwarts"
-                }
-            }
-        ]
-    }
+  "data": {
+    "people": [
+      {
+        "address": {
+          "city": "London"
+        }
+      },
+      {
+        "address": {
+          "city": "Albuquerque"
+        }
+      },
+      {
+        "address": {
+          "city": "Hogwarts"
+        }
+      }
+    ]
+  }
 }

@@ -1,6 +1,6 @@
-subscription getStudents { 
-    students {
-        id
-        name       
-    } 
+subscription getStudents {
+  students {
+    id
+    name
+  }
 }

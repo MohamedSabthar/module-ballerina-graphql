@@ -1,11 +1,11 @@
 query getName {
-    name
+  name
 }
 
-subscription getMessages { 
-    messages 
+subscription getMessages {
+  messages
 }
 
-subscription getStringMessages { 
-    stringMessages 
+subscription getStringMessages {
+  stringMessages
 }

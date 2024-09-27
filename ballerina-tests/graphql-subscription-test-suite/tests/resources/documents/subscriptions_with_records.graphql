@@ -1,6 +1,6 @@
-subscription { 
-    books {
-        name 
-        author  
-    } 
+subscription {
+  books {
+    name
+    author
+  }
 }
