@@ -18,6 +18,18 @@ import ballerina/graphql_test_common as common;
 import ballerina/test;
 import ballerina/websocket;
 
+const GRAPHQL_TRANSPORT_WS = "graphql-transport-ws";
+
+// WebSocket Message types
+public const WS_INIT = "connection_init";
+public const WS_ACK = "connection_ack";
+public const WS_PING = "ping";
+public const WS_PONG = "pong";
+public const WS_SUBSCRIBE = "subscribe";
+public const WS_NEXT = "next";
+public const WS_ERROR = "error";
+public const WS_COMPLETE = "complete";
+
 @test:Config {
     groups: ["subscriptions"]
 }
@@ -492,4 +504,90 @@ isolated function testConnectionClousureWhenPongNotRecived() returns error? {
     }
     test:assertTrue(response is error, "Expected connection clousure error");
     test:assertEquals((<error>response).message(), "Request timeout: Status code: 4408");
+}
+
+@test:Config {
+    groups: ["request_validation", "websocket", "subscriptions"]
+}
+isolated function testInvalidWebSocketRequestWithEmptyQuery() returns error? {
+    string document = "";
+    string url = "ws://localhost:9099/subscriptions";
+    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
+    websocket:Client wsClient = check new (url, config);
+    check common:initiateGraphqlWsConnection(wsClient);
+    check common:sendSubscriptionMessage(wsClient, document);
+    json expectedMsgPayload = {errors: [{message: "An empty query is found"}]};
+    check common:validateErrorMessage(wsClient, expectedMsgPayload);
+}
+
+@test:Config {
+    groups: ["request_validation", "websocket", "subscriptions"]
+}
+isolated function testInvalidWebSocketRequestWithInvalidQuery() returns error? {
+    string url = "ws://localhost:9099/subscriptions";
+    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
+    websocket:Client wsClient = check new (url, config);
+    check common:initiateGraphqlWsConnection(wsClient);
+    json payload = {query: 2};
+    check wsClient->writeMessage({"type": WS_SUBSCRIBE, id: "1", payload: payload});
+    string expectedErrorMsg = "Invalid format: payload does not conform to the format required by the" +
+        " 'graphql-transport-ws' subprotocol: Status code: 1003";
+    common:validateConnectionClousureWithError(wsClient, expectedErrorMsg);
+}
+
+@test:Config {
+    groups: ["request_validation", "websocket", "subscriptions"]
+}
+isolated function testInvalidWebSocketRequestWithoutQuery() returns error? {
+    string url = "ws://localhost:9099/subscriptions";
+    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
+    websocket:Client wsClient = check new (url, config);
+    check common:initiateGraphqlWsConnection(wsClient);
+    check wsClient->writeMessage({"type": WS_SUBSCRIBE, id: "1", payload: {}});
+    string expectedErrorMsg = "Invalid format: payload does not conform to the format required by the" +
+        " 'graphql-transport-ws' subprotocol: Status code: 1003";
+    common:validateConnectionClousureWithError(wsClient, expectedErrorMsg);
+}
+
+@test:Config {
+    groups: ["request_validation", "websocket", "subscriptions"]
+}
+isolated function testInvalidVariableInWebSocketPayload() returns error? {
+    string document = check common:getGraphqlDocumentFromFile("subscriptions_with_variable_values");
+    json variables = [];
+    string url = "ws://localhost:9099/subscriptions";
+    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
+    websocket:Client wsClient = check new (url, config);
+    check common:initiateGraphqlWsConnection(wsClient);
+    check common:sendSubscriptionMessage(wsClient, document, variables = variables);
+    string expectedErrorMsg = "Invalid format: payload does not conform to the format required by the" +
+        " 'graphql-transport-ws' subprotocol: Status code: 1003";
+    common:validateConnectionClousureWithError(wsClient, expectedErrorMsg);
+}
+
+@test:Config {
+    groups: ["request_validation", "websocket", "subscriptions"]
+}
+isolated function testEmptyWebSocketPayload() returns error? {
+    string url = "ws://localhost:9099/subscriptions";
+    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
+    websocket:Client wsClient = check new (url, config);
+    string payload = "";
+    check wsClient->writeMessage(payload);
+    string expectedErrorMsg = "Invalid format: payload does not conform to the format required by the" +
+        " 'graphql-transport-ws' subprotocol: Status code: 1003";
+    common:validateConnectionClousureWithError(wsClient, expectedErrorMsg);
+}
+
+@test:Config {
+    groups: ["request_validation", "websocket", "subscriptions"]
+}
+isolated function testInvalidWebSocketPayload() returns error? {
+    string url = "ws://localhost:9099/subscriptions";
+    websocket:Client wsClient = check new (url, {subProtocols: [GRAPHQL_TRANSPORT_WS]});
+    json payload = {payload: {query: ()}};
+    check wsClient->writeMessage(payload);
+    string expectedErrorMsg = "Invalid format: payload does not conform to the format required by the"
+        + " 'graphql-transport-ws' subprotocol: Status code: 1003";
+    common:validateConnectionClousureWithError(wsClient, expectedErrorMsg);
 }

@@ -32,6 +32,7 @@ listener graphql:Listener secureListener = new (9096, secureSocket = {
     }
 });
 listener graphql:Listener authTestListener = new (9097);
+// TODO: rename this listener, not a subscription listner anymore
 listener graphql:Listener subscriptionListener = new (9099);
 
 // The mock authorization server, based with https://hub.docker.com/repository/docker/ldclakmal/ballerina-sts

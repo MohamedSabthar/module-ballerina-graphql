@@ -862,3 +862,6 @@ type AddressInfoResponse record {|
 // TODO: clean test resources, remove unwanted resources from each test suites
 // TODO: add license headers to new files
 // TODO: clean up test_services and try to have a single service for this suite
+// TODO: rename test file name ex: 35_client_test -> client_test or test.bal
+// TODO: move constants to different files in each suits
+// TODO: reorder the types and service in the file and format with ballerina

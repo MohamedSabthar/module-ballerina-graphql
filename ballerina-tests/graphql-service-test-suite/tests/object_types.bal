@@ -16,7 +16,6 @@
 
 import ballerina/graphql;
 import ballerina/graphql.dataloader;
-import ballerina/lang.runtime;
 
 public type PeopleService StudentService|TeacherService;
 
@@ -283,20 +282,6 @@ public isolated service class Vehicle {
     }
 }
 
-class EvenNumberGenerator {
-    private int i = 0;
-
-    public isolated function next() returns record {|int value;|}|error? {
-        self.i += 2;
-        if self.i == 4 {
-            return error("Runtime exception");
-        }
-        if self.i > 6 {
-            return;
-        }
-        return {value: self.i};
-    }
-}
 
 public service class Product {
     private final string id;
@@ -325,14 +310,6 @@ public service class AccountDetails {
 
     resource function get createdYear() returns int {
         return self.createdYear;
-    }
-}
-
-class RefreshData {
-    public isolated function next() returns record {|string value;|}? {
-        // emit data every one second
-        runtime:sleep(1);
-        return {value: "data"};
     }
 }
 
