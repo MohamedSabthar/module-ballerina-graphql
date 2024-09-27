@@ -31,7 +31,7 @@ def testCommonTomlFilePlaceHolder = new File("${project.rootDir}/build-config/re
 def ballerinaDist = "${project.rootDir}/target/ballerina-runtime"
 def distributionBinPath =  "${ballerinaDist}/bin"
 def testCoverageParam = "--code-coverage --coverage-format=xml --includes=io.ballerina.stdlib.graphql.*:ballerina.graphql*"
-def testPackages = ["graphql-service-tests"]
+def testPackages = ["graphql-service-test-suite"]
 def testCommonPackage = "graphql-test-common"
 
 def stripBallerinaExtensionVersion(String extVersion) {
