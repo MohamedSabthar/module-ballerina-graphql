@@ -35,7 +35,8 @@ def testSuites = [
     "graphql-service-test-suite", 
     "graphql-client-test-suite",
     "graphql-subscription-test-suite",
-    "graphql-interceptor-test-suite"]
+    "graphql-interceptor-test-suite",
+    "graphql-dataloader-test-suite"]
 def testCommonPackage = "graphql-test-common"
 
 def stripBallerinaExtensionVersion(String extVersion) {

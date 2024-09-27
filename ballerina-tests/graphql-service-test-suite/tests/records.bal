@@ -352,17 +352,6 @@ public type DeprecatedAddress record {|
     string city;
 |};
 
-type BookRow record {|
-    readonly int id;
-    string title;
-    int author;
-|};
-
-type AuthorRow record {|
-    readonly int id;
-    string name;
-|};
-
 type InputObject record {|
     string name = "name";
     decimal[]? bmiHistory = [1.0, 3];

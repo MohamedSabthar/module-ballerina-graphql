@@ -16,7 +16,6 @@
 
 import ballerina/graphql;
 import ballerina/graphql_test_common as common;
-import ballerina/graphql.dataloader;
 import ballerina/http;
 import ballerina/lang.runtime;
 import ballerina/uuid;
@@ -1692,101 +1691,6 @@ public distinct service class Student5 {
     }
 }
 
-const AUTHOR_LOADER = "authorLoader";
-const AUTHOR_UPDATE_LOADER = "authorUpdateLoader";
-const BOOK_LOADER = "bookLoader";
-
-isolated function initContext(http:RequestContext requestContext, http:Request request) returns graphql:Context|error {
-    graphql:Context ctx = new;
-    ctx.registerDataLoader(AUTHOR_LOADER, new dataloader:DefaultDataLoader(authorLoaderFunction));
-    ctx.registerDataLoader(AUTHOR_UPDATE_LOADER, new dataloader:DefaultDataLoader(authorUpdateLoaderFunction));
-    ctx.registerDataLoader(BOOK_LOADER, new dataloader:DefaultDataLoader(bookLoaderFunction));
-    return ctx;
-}
-
-@graphql:ServiceConfig {
-    contextInit: initContext
-}
-service /dataloader on wrappedListener {
-    function preAuthors(graphql:Context ctx, int[] ids) {
-        addAuthorIdsToAuthorLoader(ctx, ids);
-    }
-
-    resource function get authors(graphql:Context ctx, int[] ids) returns AuthorData[]|error {
-        dataloader:DataLoader authorLoader = ctx.getDataLoader(AUTHOR_LOADER);
-        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
-        return from AuthorRow authorRow in authorRows
-            select new (authorRow);
-    }
-
-    function preUpdateAuthorName(graphql:Context ctx, int id, string name) {
-        [int, string] key = [id, name];
-        dataloader:DataLoader authorUpdateLoader = ctx.getDataLoader(AUTHOR_UPDATE_LOADER);
-        authorUpdateLoader.add(key);
-    }
-
-    remote function updateAuthorName(graphql:Context ctx, int id, string name) returns AuthorData|error {
-        [int, string] key = [id, name];
-        dataloader:DataLoader authorUpdateLoader = ctx.getDataLoader(AUTHOR_UPDATE_LOADER);
-        AuthorRow authorRow = check authorUpdateLoader.get(key);
-        return new (authorRow);
-    }
-
-    resource function subscribe authors() returns stream<AuthorData> {
-        lock {
-            readonly & AuthorRow[] authorRows = authorTable.toArray().cloneReadOnly();
-            return authorRows.'map(authorRow => new AuthorData(authorRow)).toStream();
-        }
-    }
-}
-
-@graphql:ServiceConfig {
-    interceptors: new AuthorInterceptor(),
-    contextInit: initContext
-}
-service /dataloader_with_interceptor on wrappedListener {
-    function preAuthors(graphql:Context ctx, int[] ids) {
-        addAuthorIdsToAuthorLoader(ctx, ids);
-    }
-
-    resource function get authors(graphql:Context ctx, int[] ids) returns AuthorDetail[]|error {
-        dataloader:DataLoader authorLoader = ctx.getDataLoader(AUTHOR_LOADER);
-        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
-        return from AuthorRow authorRow in authorRows
-            select new (authorRow);
-    }
-}
-
-@graphql:ServiceConfig {
-    interceptors: new AuthorInterceptor(),
-    contextInit: isolated function(http:RequestContext requestContext, http:Request request) returns graphql:Context {
-        graphql:Context ctx = new;
-        ctx.registerDataLoader(AUTHOR_LOADER, new dataloader:DefaultDataLoader(faultyAuthorLoaderFunction));
-        ctx.registerDataLoader(AUTHOR_UPDATE_LOADER, new dataloader:DefaultDataLoader(authorUpdateLoaderFunction));
-        ctx.registerDataLoader(BOOK_LOADER, new dataloader:DefaultDataLoader(bookLoaderFunction));
-        return ctx;
-    }
-}
-service /dataloader_with_faulty_batch_function on wrappedListener {
-    function preAuthors(graphql:Context ctx, int[] ids) {
-        addAuthorIdsToAuthorLoader(ctx, ids);
-    }
-
-    resource function get authors(graphql:Context ctx, int[] ids) returns AuthorData[]|error {
-        dataloader:DataLoader authorLoader = ctx.getDataLoader(AUTHOR_LOADER);
-        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
-        return from AuthorRow authorRow in authorRows
-            select new (authorRow);
-    }
-}
-
-function addAuthorIdsToAuthorLoader(graphql:Context ctx, int[] ids) {
-    dataloader:DataLoader authorLoader = ctx.getDataLoader(AUTHOR_LOADER);
-    ids.forEach(function(int id) {
-        authorLoader.add(id);
-    });
-}
-
 service /defaultParam on wrappedListener {
     resource function get intParam(int a = 1) returns string? => ();
 
@@ -2062,8 +1966,7 @@ service /evict_server_cache on basicListener {
         enabled: true,
         maxAge: 20,
         maxSize: 15
-    },
-    contextInit: initContext
+    }
 }
 service /server_cache_operations on basicListener {
     private string name = "Walter White";
@@ -2182,85 +2085,6 @@ service /server_cache_operations on basicListener {
             return associates.map(associate => associate.status);
         }
         return;
-    }
-}
-
-const AUTHOR_LOADER_2 = "authorLoader2";
-const BOOK_LOADER_2 = "bookLoader2";
-
-isolated function initContext2(http:RequestContext requestContext, http:Request request) returns graphql:Context|error {
-    graphql:Context ctx = new;
-    ctx.registerDataLoader(AUTHOR_LOADER_2, new dataloader:DefaultDataLoader(authorLoaderFunction2));
-    ctx.registerDataLoader(BOOK_LOADER_2, new dataloader:DefaultDataLoader(bookLoaderFunction2));
-    return ctx;
-}
-
-function addAuthorIdsToAuthorLoader2(graphql:Context ctx, int[] ids) {
-    dataloader:DataLoader authorLoader = ctx.getDataLoader(AUTHOR_LOADER_2);
-    ids.forEach(function(int id) {
-        authorLoader.add(id);
-    });
-}
-
-@graphql:ServiceConfig {
-    contextInit: initContext2
-}
-service /caching_with_dataloader on wrappedListener {
-    function preAuthors(graphql:Context ctx, int[] ids) {
-        addAuthorIdsToAuthorLoader2(ctx, ids);
-    }
-
-    @graphql:ResourceConfig {
-        cacheConfig: {
-            enabled: true
-        }
-    }
-    resource function get authors(graphql:Context ctx, int[] ids) returns AuthorData2[]|error {
-        dataloader:DataLoader authorLoader = ctx.getDataLoader(AUTHOR_LOADER_2);
-        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
-        return from AuthorRow authorRow in authorRows
-            select new (authorRow);
-    }
-
-    isolated remote function updateAuthorName(graphql:Context ctx, int id, string name, boolean enableEvict = false) returns AuthorData2|error {
-        if enableEvict {
-            check ctx.invalidate("authors");
-        }
-        AuthorRow authorRow = {id: id, name};
-        lock {
-            authorTable2.put(authorRow.cloneReadOnly());
-        }
-        return new (authorRow);
-    }
-}
-
-@graphql:ServiceConfig {
-    cacheConfig: {
-        enabled: true
-    },
-    contextInit: initContext2
-}
-service /caching_with_dataloader_operational on wrappedListener {
-    function preAuthors(graphql:Context ctx, int[] ids) {
-        addAuthorIdsToAuthorLoader2(ctx, ids);
-    }
-
-    resource function get authors(graphql:Context ctx, int[] ids) returns AuthorData2[]|error {
-        dataloader:DataLoader authorLoader = ctx.getDataLoader(AUTHOR_LOADER_2);
-        AuthorRow[] authorRows = check trap ids.map(id => check authorLoader.get(id, AuthorRow));
-        return from AuthorRow authorRow in authorRows
-            select new (authorRow);
-    }
-
-    isolated remote function updateAuthorName(graphql:Context ctx, int id, string name, boolean enableEvict = false) returns AuthorData2|error {
-        if enableEvict {
-            check ctx.invalidate("authors");
-        }
-        AuthorRow authorRow = {id: id, name};
-        lock {
-            authorTable2.put(authorRow.cloneReadOnly());
-        }
-        return new (authorRow);
     }
 }
 

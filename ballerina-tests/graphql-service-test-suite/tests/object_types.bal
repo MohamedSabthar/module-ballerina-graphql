@@ -15,7 +15,6 @@
 // under the License.
 
 import ballerina/graphql;
-import ballerina/graphql.dataloader;
 
 public type PeopleService StudentService|TeacherService;
 
@@ -376,74 +375,6 @@ public distinct isolated service class CustomerAddress {
     }
 }
 
-public isolated distinct service class AuthorData {
-    private final readonly & AuthorRow author;
-
-    isolated function init(AuthorRow author) {
-        self.author = author.cloneReadOnly();
-    }
-
-    isolated resource function get name() returns string {
-        return self.author.name;
-    }
-
-    isolated function preBooks(graphql:Context ctx) {
-        dataloader:DataLoader bookLoader = ctx.getDataLoader(BOOK_LOADER);
-        bookLoader.add(self.author.id);
-    }
-
-    isolated resource function get books(graphql:Context ctx) returns BookData[]|error {
-        dataloader:DataLoader bookLoader = ctx.getDataLoader(BOOK_LOADER);
-        BookRow[] bookrows = check bookLoader.get(self.author.id);
-        return from BookRow bookRow in bookrows
-            select new BookData(bookRow);
-    }
-}
-
-public isolated distinct service class AuthorDetail {
-    private final readonly & AuthorRow author;
-
-    isolated function init(AuthorRow author) {
-        self.author = author.cloneReadOnly();
-    }
-
-    isolated resource function get name() returns string {
-        return self.author.name;
-    }
-
-    isolated function prefetchBooks(graphql:Context ctx) {
-        dataloader:DataLoader bookLoader = ctx.getDataLoader(BOOK_LOADER);
-        bookLoader.add(self.author.id);
-    }
-
-    @graphql:ResourceConfig {
-        interceptors: new BookInterceptor(),
-        prefetchMethodName: "prefetchBooks"
-    }
-    isolated resource function get books(graphql:Context ctx) returns BookData[]|error {
-        dataloader:DataLoader bookLoader = ctx.getDataLoader(BOOK_LOADER);
-        BookRow[] bookrows = check bookLoader.get(self.author.id);
-        return from BookRow bookRow in bookrows
-            select new BookData(bookRow);
-    }
-}
-
-public isolated distinct service class BookData {
-    private final readonly & BookRow book;
-
-    isolated function init(BookRow book) {
-        self.book = book.cloneReadOnly();
-    }
-
-    isolated resource function get id() returns int {
-        return self.book.id;
-    }
-
-    isolated resource function get title() returns string {
-        return self.book.title;
-    }
-}
-
 distinct service class NestedField {
     resource function get multipleParams(
             int a = 1,
@@ -541,29 +472,5 @@ public isolated distinct service class EnemyService {
 
     isolated resource function get isMarried() returns boolean {
         return self.isMarried;
-    }
-}
-
-public isolated distinct service class AuthorData2 {
-    private final readonly & AuthorRow author;
-
-    isolated function init(AuthorRow author) {
-        self.author = author.cloneReadOnly();
-    }
-
-    isolated resource function get name() returns string {
-        return self.author.name;
-    }
-
-    isolated function preBooks(graphql:Context ctx) {
-        dataloader:DataLoader bookLoader = ctx.getDataLoader(BOOK_LOADER_2);
-        bookLoader.add(self.author.id);
-    }
-
-    isolated resource function get books(graphql:Context ctx) returns BookData[]|error {
-        dataloader:DataLoader bookLoader = ctx.getDataLoader(BOOK_LOADER_2);
-        BookRow[] bookrows = check bookLoader.get(self.author.id);
-        return from BookRow bookRow in bookrows
-            select new BookData(bookRow);
     }
 }

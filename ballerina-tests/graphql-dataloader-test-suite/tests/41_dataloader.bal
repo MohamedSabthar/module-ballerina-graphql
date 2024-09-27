@@ -120,6 +120,11 @@ isolated function testBatchFunctionReturingNonMatchingNumberOfResults() returns 
     common:assertJsonValuesWithOrder(response, expectedPayload);
 }
 
+
+isolated int dispatchCountOfBookLoader = 0;
+isolated int dispatchCountOfAuthorLoader = 0;
+isolated int dispatchCountOfUpdateAuthorLoader = 0;
+
 isolated function resetDispatchCounters() {
     lock {
         dispatchCountOfAuthorLoader = 0;
