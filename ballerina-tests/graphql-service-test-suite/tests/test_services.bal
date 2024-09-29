@@ -973,15 +973,6 @@ service /context on serviceTypeListener {
             return [p1, error("You don't have permission to retrieve data"), p3];
         }
     }
-
-    isolated resource function subscribe messages(graphql:Context context) returns stream<int, error?>|error {
-        var scope = context.get("scope");
-        if scope is string && scope == "admin" {
-            int[] intArray = [1, 2, 3, 4, 5];
-            return intArray.toStream();
-        }
-        return error("You don't have permission to retrieve data");
-    }
 }
 
 service /intersection_types on basicListener {
@@ -1231,17 +1222,6 @@ service /reviews on wrappedListener {
     resource function get account() returns AccountRecords {
         return {details: {acc1: new ("James", 2022), acc2: new ("Paul", 2015)}};
     }
-
-    resource function subscribe live() returns stream<Review> {
-        return reviews.toArray().toStream();
-    }
-
-    resource function subscribe accountUpdates() returns stream<AccountRecords> {
-        map<AccountDetails> details = {acc1: new AccountDetails("James", 2022), acc2: new AccountDetails("Paul", 2015)};
-        map<AccountDetails> updatedDetails = {...details};
-        updatedDetails["acc1"] = new AccountDetails("James Deen", 2022);
-        return [{details}, {details: updatedDetails}].toStream();
-    }
 }
 
 isolated service /service_with_http2 on http2BasedListener {
@@ -1266,18 +1246,6 @@ isolated service /service_with_http2 on http2BasedListener {
     }
 }
 
-graphql:Service subscriptionService = service object {
-
-    isolated resource function get name() returns string {
-        return "Walter White";
-    }
-
-    isolated resource function subscribe messages() returns stream<int, error?> {
-        int[] intArray = [1, 2, 3, 4, 5];
-        return intArray.toStream();
-    }
-};
-
 isolated service /service_with_http1 on http1BasedListener {
     private Person p;
 
@@ -1297,11 +1265,6 @@ isolated service /service_with_http1 on http1BasedListener {
             self.p = p;
             return self.p;
         }
-    }
-
-    isolated resource function subscribe messages() returns stream<int, error?> {
-        int[] intArray = [1, 2, 3, 4, 5];
-        return intArray.toStream();
     }
 }
 
@@ -1349,10 +1312,6 @@ service /constraints on basicListener {
         string name = movie.name;
         self.movies.push(name);
         return name;
-    }
-
-    isolated resource function subscribe movie(MovieDetails movie) returns stream<Reviews?, error?> {
-        return movie.reviews.toStream();
     }
 }
 

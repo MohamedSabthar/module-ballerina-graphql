@@ -17,6 +17,7 @@
 import ballerina/graphql_test_common as common;
 import ballerina/test;
 import ballerina/websocket;
+import ballerina/graphql;
 
 const GRAPHQL_TRANSPORT_WS = "graphql-transport-ws";
 
@@ -590,4 +591,39 @@ isolated function testInvalidWebSocketPayload() returns error? {
     string expectedErrorMsg = "Invalid format: payload does not conform to the format required by the"
         + " 'graphql-transport-ws' subprotocol: Status code: 1003";
     common:validateConnectionClousureWithError(wsClient, expectedErrorMsg);
+}
+
+@test:Config {
+    groups: ["listener", "subscriptions"]
+}
+function testAttachServiceWithSubscriptionToHttp2BasedListener() returns error? {
+    graphql:Error? result = http2BasedListener.attach(subscriptionService);
+    test:assertTrue(result is graphql:Error);
+    graphql:Error err = <graphql:Error>result;
+    string expecctedMessage = string `Websocket listener initialization failed due to the incompatibility of ` +
+                            string `provided HTTP(version 2.0) listener`;
+    test:assertEquals(err.message(), expecctedMessage);
+}
+
+
+@test:Config {
+    groups: ["listener", "subscriptions"]
+}
+function testAttachServiceWithSubscriptionToHttp1BasedListener() returns error? {
+    string document = string `subscription { messages }`;
+    string url = "ws://localhost:9191/service_with_http1";
+    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
+    websocket:Client wsClient1 = check new (url, config);
+    check common:initiateGraphqlWsConnection(wsClient1);
+    check common:sendSubscriptionMessage(wsClient1, document, "1");
+
+    websocket:Client wsClient2 = check new (url, config);
+    check common:initiateGraphqlWsConnection(wsClient2);
+    check common:sendSubscriptionMessage(wsClient2, document, "2");
+
+    foreach int i in 1 ..< 4 {
+        json expectedMsgPayload = {data: {messages: i}};
+        check common:validateNextMessage(wsClient1, expectedMsgPayload, id = "1");
+        check common:validateNextMessage(wsClient2, expectedMsgPayload, id = "2");
+    }
 }

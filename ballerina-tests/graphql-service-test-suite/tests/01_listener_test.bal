@@ -18,7 +18,6 @@ import ballerina/graphql_test_common as common;
 import ballerina/graphql;
 import ballerina/http;
 import ballerina/test;
-import ballerina/websocket;
 
 @test:Config {
     groups: ["listener", "client"]
@@ -79,18 +78,6 @@ function dataProviderListener() returns string[][] {
 }
 
 @test:Config {
-    groups: ["listener"]
-}
-function testAttachServiceWithSubscriptionToHttp2BasedListener() returns error? {
-    graphql:Error? result = http2BasedListener.attach(subscriptionService);
-    test:assertTrue(result is graphql:Error);
-    graphql:Error err = <graphql:Error>result;
-    string expecctedMessage = string `Websocket listener initialization failed due to the incompatibility of ` +
-                            string `provided HTTP(version 2.0) listener`;
-    test:assertEquals(err.message(), expecctedMessage);
-}
-
-@test:Config {
     groups: ["listener", "client"]
 }
 function testAttachServiceWithQueryToHttp1BasedListenerAndClient() returns error? {
@@ -122,28 +109,6 @@ function testAttachServiceWithMutationToHttp1BasedListenerAndClient() returns er
         }
     };
     common:assertJsonValuesWithOrder(actualPayload, expectedPayload);
-}
-
-@test:Config {
-    groups: ["listener", "subscriptions"]
-}
-function testAttachServiceWithSubscriptionToHttp1BasedListener() returns error? {
-    string document = string `subscription { messages }`;
-    string url = "ws://localhost:9191/service_with_http1";
-    websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
-    websocket:Client wsClient1 = check new (url, config);
-    check common:initiateGraphqlWsConnection(wsClient1);
-    check common:sendSubscriptionMessage(wsClient1, document, "1");
-
-    websocket:Client wsClient2 = check new (url, config);
-    check common:initiateGraphqlWsConnection(wsClient2);
-    check common:sendSubscriptionMessage(wsClient2, document, "2");
-
-    foreach int i in 1 ..< 4 {
-        json expectedMsgPayload = {data: {messages: i}};
-        check common:validateNextMessage(wsClient1, expectedMsgPayload, id = "1");
-        check common:validateNextMessage(wsClient2, expectedMsgPayload, id = "2");
-    }
 }
 
 @test:Config {

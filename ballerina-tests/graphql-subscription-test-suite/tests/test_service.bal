@@ -1,8 +1,15 @@
 import ballerina/graphql;
 import ballerina/lang.runtime;
 import ballerina/http;
+import ballerina/constraint;
 
 listener graphql:Listener subscriptionListener = new (9099);
+listener http:Listener http2Listener = new http:Listener(9190);
+listener graphql:Listener http2BasedListener = new (http2Listener);
+listener http:Listener http1Listener = new http:Listener(9191, httpVersion = http:HTTP_1_0);
+listener graphql:Listener http1BasedListener = new (http1Listener);
+listener graphql:Listener serviceTypeListener = new (9092);
+listener graphql:Listener basicListener = new (9091);
 
 public string[] namesArray = ["Walter", "Skyler"];
 
@@ -274,3 +281,95 @@ public service class Product {
         return self.id;
     }
 }
+
+graphql:Service subscriptionService = service object {
+
+    isolated resource function get name() returns string {
+        return "Walter White";
+    }
+
+    isolated resource function subscribe messages() returns stream<int, error?> {
+        int[] intArray = [1, 2, 3, 4, 5];
+        return intArray.toStream();
+    }
+};
+
+isolated service /service_with_http1 on http1BasedListener {
+    isolated resource function get greet() returns string {
+        return "welcome!";
+    }
+
+    isolated resource function subscribe messages() returns stream<int, error?> {
+        int[] intArray = [1, 2, 3, 4, 5];
+        return intArray.toStream();
+    }
+}
+
+@graphql:ServiceConfig {
+    contextInit:
+    isolated function(http:RequestContext requestContext, http:Request request) returns graphql:Context|error {
+        graphql:Context context = new;
+        context.set("scope", check request.getHeader("scope"));
+        return context;
+    }
+}
+service /context on serviceTypeListener {
+    isolated resource function get greet() returns string {
+        return "welcome!";
+    }
+
+    isolated resource function subscribe messages(graphql:Context context) returns stream<int, error?>|error {
+        var scope = context.get("scope");
+        if scope is string && scope == "admin" {
+            int[] intArray = [1, 2, 3, 4, 5];
+            return intArray.toStream();
+        }
+        return error("You don't have permission to retrieve data");
+    }
+}
+
+service /constraints on basicListener {
+    isolated resource function get greet() returns string {
+        return "welcome!";
+    }
+
+    isolated resource function subscribe movie(MovieDetails movie) returns stream<Reviews?, error?> {
+        return movie.reviews.toStream();
+    }
+}
+
+public type MovieDetails record {|
+    @constraint:String {
+        minLength: 1,
+        maxLength: 10
+    }
+    string name;
+
+    @constraint:Int {
+        minValue: 18
+    }
+    int downloads;
+
+    @constraint:Float {
+        minValue: 1.5
+    }
+    float imdb;
+
+    @constraint:Array {
+        length: 1
+    }
+    Reviews?[] reviews;
+|};
+
+public type Reviews readonly & record {|
+    @constraint:Array {
+        maxLength: 2
+    }
+    string[] comments;
+
+    @constraint:Int {
+        minValueExclusive: 0,
+        maxValueExclusive: 6
+    }
+    int stars;
+|};
