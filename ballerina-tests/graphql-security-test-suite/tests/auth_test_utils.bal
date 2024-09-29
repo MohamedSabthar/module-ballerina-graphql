@@ -20,6 +20,11 @@ import ballerina/graphql_test_common as common;
 import ballerina/http;
 import ballerina/test;
 
+
+// The mock authorization server, based with https://hub.docker.com/repository/docker/ldclakmal/ballerina-sts
+listener http:Listener sts = new (9445, {secureSocket: {key: {path: KEYSTORE_PATH, password: "ballerina"}}});
+
+
 const string KEYSTORE_PATH = "tests/resources/keystore/ballerinaKeystore.p12";
 const string TRUSTSTORE_PATH = "tests/resources/keystore/ballerinaTruststore.p12";
 

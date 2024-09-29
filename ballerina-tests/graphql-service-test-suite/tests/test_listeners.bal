@@ -25,18 +25,10 @@ listener graphql:Listener serviceTypeListener = new (9092);
 listener graphql:Listener timeoutListener = new (9093, {timeout: 1.0});
 listener graphql:Listener hierarchicalPathListener = new (9094);
 listener graphql:Listener specialTypesTestListener = new (9095);
-listener graphql:Listener secureListener = new (9096, secureSocket = {
-    key: {
-        path: KEYSTORE_PATH,
-        password: "ballerina"
-    }
-});
+
 listener graphql:Listener authTestListener = new (9097);
 // TODO: rename this listener, not a subscription listner anymore
 listener graphql:Listener subscriptionListener = new (9099);
-
-// The mock authorization server, based with https://hub.docker.com/repository/docker/ldclakmal/ballerina-sts
-listener http:Listener sts = new (9445, {secureSocket: {key: {path: KEYSTORE_PATH, password: "ballerina"}}});
 
 listener http:Listener http2Listener = new http:Listener(9190);
 listener graphql:Listener http2BasedListener = new (http2Listener);
