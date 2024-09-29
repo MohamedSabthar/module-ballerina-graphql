@@ -40,6 +40,9 @@ scope = "testOnly"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
 ]
+modules = [
+	{org = "ballerina", packageName = "constraint", moduleName = "constraint"}
+]
 
 [[package]]
 org = "ballerina"
@@ -101,6 +104,7 @@ org = "ballerina"
 name = "graphql_subscription_test_suite"
 version = "1.14.1"
 dependencies = [
+	{org = "ballerina", name = "constraint"},
 	{org = "ballerina", name = "graphql"},
 	{org = "ballerina", name = "graphql_test_common"},
 	{org = "ballerina", name = "http"},
