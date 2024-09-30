@@ -14,6 +14,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+const GRAPHQL_TRANSPORT_WS = "graphql-transport-ws";
+
 table<Review> reviews = table [
     {product: new ("1"), score: 20, description: "Product 01"},
     {product: new ("2"), score: 20, description: "Product 02"},

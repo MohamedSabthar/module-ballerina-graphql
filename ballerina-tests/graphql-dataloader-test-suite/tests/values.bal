@@ -14,6 +14,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
+const GRAPHQL_TRANSPORT_WS = "graphql-transport-ws";
+
+const AUTHOR_LOADER = "authorLoader";
+const AUTHOR_UPDATE_LOADER = "authorUpdateLoader";
+const BOOK_LOADER = "bookLoader";
+
+const AUTHOR_LOADER_2 = "authorLoader2";
+const BOOK_LOADER_2 = "bookLoader2";
+
 final isolated table<AuthorRow> key(id) authorTable = table [
     {id: 1, name: "Author 1"},
     {id: 2, name: "Author 2"},
