@@ -22,7 +22,7 @@
     },
     {
       "message": "Variable \"words\" of type \"[Int]\" used in position expecting type \"[String]\".",
-      "locations": [{ "line": 2, "column": 20 }]
+      "locations": [{ "line": 2, "column": 18 }]
     }
   ]
 }

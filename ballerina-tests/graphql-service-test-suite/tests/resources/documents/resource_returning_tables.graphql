@@ -1,5 +1,5 @@
 {
-    employees {
-        name
-    }
+  employees {
+    name
+  }
 }

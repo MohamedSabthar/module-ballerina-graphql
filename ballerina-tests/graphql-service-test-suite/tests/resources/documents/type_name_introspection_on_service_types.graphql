@@ -1,6 +1,6 @@
 {
-    teacher {
-        name
-        __typename
-    }
+  teacher {
+    name
+    __typename
+  }
 }

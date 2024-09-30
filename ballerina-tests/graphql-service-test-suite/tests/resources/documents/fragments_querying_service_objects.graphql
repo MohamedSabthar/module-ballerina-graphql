@@ -1,19 +1,19 @@
 query {
-    ...greetingFragment
+  ...greetingFragment
 }
 
 fragment greetingFragment on Query {
-    profile {
-        ...nameFragment
-    }
+  profile {
+    ...nameFragment
+  }
 }
 
 fragment nameFragment on Profile {
-    name {
-        ...fullNameFragment
-    }
+  name {
+    ...fullNameFragment
+  }
 }
 
 fragment fullNameFragment on Name {
-    first
+  first
 }

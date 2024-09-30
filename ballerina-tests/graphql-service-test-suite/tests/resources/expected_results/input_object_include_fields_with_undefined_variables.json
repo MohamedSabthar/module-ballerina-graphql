@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Variable \"$bName\" is not defined.",
-      "locations": [{ "line": 2, "column": 28 }]
+      "locations": [{ "line": 4, "column": 18 }]
     }
   ]
 }

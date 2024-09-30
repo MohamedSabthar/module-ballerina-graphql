@@ -1,6 +1,6 @@
-query($tvSeries: [TvSeries!]!) {
-    getSuggestions(tvSeries: $tvSeries) {
-        movieName
-        director
-    }
+query ($tvSeries: [TvSeries!]!) {
+  getSuggestions(tvSeries: $tvSeries) {
+    movieName
+    director
+  }
 }

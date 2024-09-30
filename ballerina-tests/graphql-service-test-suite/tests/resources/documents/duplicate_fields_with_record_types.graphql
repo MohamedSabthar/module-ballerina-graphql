@@ -1,22 +1,22 @@
 query getPerson {
-    profile {
-        name {
-            first
-        }
-        name {
-            first
-        }
-        name {
-            last
-        }
-        address {
-            city
-        }
-        address {
-            street
-        }
-        address {
-            city
-        }
+  profile {
+    name {
+      first
     }
+    name {
+      first
+    }
+    name {
+      last
+    }
+    address {
+      city
+    }
+    address {
+      street
+    }
+    address {
+      city
+    }
+  }
 }

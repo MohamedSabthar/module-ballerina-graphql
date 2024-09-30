@@ -1,10 +1,10 @@
 {
-    allVehicles {
-        ...Details
-    }
+  allVehicles {
+    ...Details
+  }
 }
 
 fragment Details on Vehicle {
-    name,
-    registeredYear
+  name
+  registeredYear
 }

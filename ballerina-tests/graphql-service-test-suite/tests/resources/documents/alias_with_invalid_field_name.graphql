@@ -1,8 +1,8 @@
 query getPerson {
-    sherlock: profile(id: 0) {
-        name: firstName
-        address {
-            city
-        }
+  sherlock: profile(id: 0) {
+    name: firstName
+    address {
+      city
     }
+  }
 }

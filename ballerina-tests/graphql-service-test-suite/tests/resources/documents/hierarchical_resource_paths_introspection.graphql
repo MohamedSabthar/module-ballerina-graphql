@@ -1,10 +1,10 @@
 {
-    __schema {
-        types {
-            name
-            fields {
-                name
-            }
-        }
+  __schema {
+    types {
+      name
+      fields {
+        name
+      }
     }
+  }
 }

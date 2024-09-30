@@ -1,11 +1,11 @@
 {
-    students {
+  students {
+    name
+    courses {
+      name
+      books {
         name
-        courses {
-            name
-            books {
-                name
-            }
-        }
+      }
     }
+  }
 }

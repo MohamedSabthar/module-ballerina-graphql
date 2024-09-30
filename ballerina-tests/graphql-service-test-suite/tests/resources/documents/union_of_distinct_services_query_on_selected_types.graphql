@@ -1,7 +1,7 @@
 query {
-    profile(id: 200) {
-        ... on StudentService {
-            name
-        }
+  profile(id: 200) {
+    ... on StudentService {
+      name
     }
+  }
 }

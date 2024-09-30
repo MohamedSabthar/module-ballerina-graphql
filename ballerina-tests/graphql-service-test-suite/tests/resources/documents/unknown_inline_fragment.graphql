@@ -1,5 +1,5 @@
 query {
-    ...on on {
-        name
-    }
+  ... on on {
+    name
+  }
 }

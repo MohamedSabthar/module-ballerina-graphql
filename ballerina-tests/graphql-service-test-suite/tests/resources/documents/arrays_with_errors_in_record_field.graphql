@@ -1,8 +1,8 @@
 query {
-    project {
-        name
-        tasks {
-            subTasks
-        }
+  project {
+    name
+    tasks {
+      subTasks
     }
+  }
 }

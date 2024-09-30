@@ -1,5 +1,5 @@
 mutation {
-    profile(name: null) {
-        name
-    }
+  profile(name: null) {
+    name
+  }
 }

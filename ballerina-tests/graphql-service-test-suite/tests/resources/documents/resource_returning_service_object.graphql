@@ -1,5 +1,5 @@
 {
-    greet {
-        generalGreeting
-    }
+  greet {
+    generalGreeting
+  }
 }

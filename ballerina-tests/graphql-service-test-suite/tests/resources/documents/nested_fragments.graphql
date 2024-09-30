@@ -1,23 +1,23 @@
 query {
-    ...data
+  ...data
 }
 
 fragment data on Query {
-    people {
-        ...AddressFragment
-    }
+  people {
+    ...AddressFragment
+  }
 }
 
 fragment AddressFragment on Person {
-    address {
-        ...CityFragment
-    }
+  address {
+    ...CityFragment
+  }
 }
 
 fragment CityFragment on Address {
-    ...CityFragmentDuplicate
+  ...CityFragmentDuplicate
 }
 
 fragment CityFragmentDuplicate on Address {
-    city
+  city
 }

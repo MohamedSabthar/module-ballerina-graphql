@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "[Episode!] cannot represent non [Episode!] value: {title: \"Cancer Man\", newCharacters:[\"paul\"]}",
-      "locations": [{ "line": 2, "column": 48 }]
+      "locations": [{ "line": 5, "column": 7 }]
     }
   ]
 }

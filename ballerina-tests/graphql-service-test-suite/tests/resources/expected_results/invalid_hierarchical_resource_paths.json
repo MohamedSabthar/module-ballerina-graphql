@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Cannot query field \"middle\" on type \"name\".",
-      "locations": [{ "line": 5, "column": 13 }]
+      "locations": [{ "line": 5, "column": 7 }]
     }
   ]
 }

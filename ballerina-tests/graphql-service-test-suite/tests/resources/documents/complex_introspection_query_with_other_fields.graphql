@@ -1,11 +1,11 @@
 {
-    __schema {
-        types {
-            name
-            kind
-        }
+  __schema {
+    types {
+      name
+      kind
     }
-    allVehicles {
-        name
-    }
+  }
+  allVehicles {
+    name
+  }
 }

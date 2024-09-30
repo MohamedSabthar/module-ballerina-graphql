@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Cannot query field \"invalid\" on type \"Lift\".",
-      "locations": [{ "line": 5, "column": 9 }]
+      "locations": [{ "line": 5, "column": 5 }]
     }
   ]
 }

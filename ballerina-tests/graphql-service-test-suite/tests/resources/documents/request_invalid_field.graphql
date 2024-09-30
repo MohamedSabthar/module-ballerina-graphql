@@ -1,5 +1,5 @@
 {
-    profile(id: 4) {
-        status
-    }
+  profile(id: 4) {
+    status
+  }
 }

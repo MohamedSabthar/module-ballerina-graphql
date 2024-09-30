@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "No surname found",
-      "locations": [{ "line": 4, "column": 13 }],
+      "locations": [{ "line": 4, "column": 7 }],
       "path": ["user", "name_fields", "username"]
     }
   ],

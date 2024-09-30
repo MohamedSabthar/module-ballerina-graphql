@@ -1,7 +1,7 @@
 query {
-    company {
-        workers {
-            name
-        }
+  company {
+    workers {
+      name
     }
+  }
 }

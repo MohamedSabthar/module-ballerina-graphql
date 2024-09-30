@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "tvSeries: In element #1:[Episode!] cannot represent non [Episode!] value: true",
-      "locations": [{ "line": 2, "column": 116 }]
+      "locations": [{ "line": 5, "column": 41 }]
     }
   ]
 }

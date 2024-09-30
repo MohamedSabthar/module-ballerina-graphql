@@ -1,7 +1,7 @@
 query {
-    company {
-        workers(key: "id1") {
-            name
-        }
+  company {
+    workers(key: "id1") {
+      name
     }
+  }
 }

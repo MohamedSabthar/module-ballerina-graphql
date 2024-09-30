@@ -1,8 +1,8 @@
 query getPerson {
-    detective {
-        name,
-        address {
-            street
-        }
+  detective {
+    name
+    address {
+      street
     }
+  }
 }

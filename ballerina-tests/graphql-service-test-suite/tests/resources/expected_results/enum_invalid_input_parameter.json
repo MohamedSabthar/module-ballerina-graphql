@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Value \"FUNDAY\" does not exist in \"weekday\" enum.",
-      "locations": [{ "line": 2, "column": 24 }]
+      "locations": [{ "line": 2, "column": 22 }]
     }
   ]
 }

@@ -1,8 +1,8 @@
 {
-    profile {
-        name {
-            first
-            middle
-        }
+  profile {
+    name {
+      first
+      middle
     }
+  }
 }

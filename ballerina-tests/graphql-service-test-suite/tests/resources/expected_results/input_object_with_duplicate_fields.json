@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Syntax Error: Duplicate input object field \"bookName\", found Name \"bookName\".",
-      "locations": [{ "line": 2, "column": 35 }]
+      "locations": [{ "line": 5, "column": 7 }]
     }
   ]
 }

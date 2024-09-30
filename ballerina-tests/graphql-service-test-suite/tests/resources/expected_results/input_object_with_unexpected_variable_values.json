@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "ProfileDetail cannot represent non ProfileDetail value: [{\"name\":\"arthur\"},{\"name\":\"J.K Rowling\"}]",
-      "locations": [{ "line": 3, "column": 60 }]
+      "locations": [{ "line": 7, "column": 18 }]
     }
   ]
 }

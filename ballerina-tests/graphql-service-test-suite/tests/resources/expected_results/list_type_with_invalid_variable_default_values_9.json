@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Value \"TUSDAY\" does not exist in \"days\" enum.",
-      "locations": [{ "line": 1, "column": 44 }]
+      "locations": [{ "line": 1, "column": 45 }]
     }
   ]
 }

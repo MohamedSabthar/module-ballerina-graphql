@@ -1,15 +1,15 @@
-query getData($profileId:Int = 1){
-    ...data
+query getData($profileId: Int = 1) {
+  ...data
 }
 
 fragment data on Query {
-    profile(id:$profileId) {
-        ...people
-    }
+  profile(id: $profileId) {
+    ...people
+  }
 }
 
 fragment people on Person {
-    address {
-        city
-    }
+  address {
+    city
+  }
 }

@@ -2,15 +2,15 @@
   "errors": [
     {
       "message": "words: In element #1:String cannot represent non String value: 5",
-      "locations": [{ "line": 2, "column": 30 }]
+      "locations": [{ "line": 2, "column": 28 }]
     },
     {
       "message": "words: In element #2:String cannot represent non String value: true",
-      "locations": [{ "line": 2, "column": 33 }]
+      "locations": [{ "line": 2, "column": 31 }]
     },
     {
       "message": "words: In element #3:String cannot represent non String value: {}",
-      "locations": [{ "line": 2, "column": 39 }]
+      "locations": [{ "line": 2, "column": 37 }]
     }
   ]
 }

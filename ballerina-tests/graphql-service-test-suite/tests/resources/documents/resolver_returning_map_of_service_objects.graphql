@@ -1,7 +1,7 @@
 query {
-    account {
-        details(key: "acc1") {
-            name
-        }
+  account {
+    details(key: "acc1") {
+      name
     }
+  }
 }

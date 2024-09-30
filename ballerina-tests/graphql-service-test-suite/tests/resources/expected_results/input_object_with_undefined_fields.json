@@ -2,11 +2,11 @@
   "errors": [
     {
       "message": "Field \"address\" is not defined by type \"author\".",
-      "locations": [{ "line": 2, "column": 84 }]
+      "locations": [{ "line": 6, "column": 45 }]
     },
     {
       "message": "Field \"year\" is not defined by type \"movie\".",
-      "locations": [{ "line": 2, "column": 134 }]
+      "locations": [{ "line": 7, "column": 39 }]
     }
   ]
 }

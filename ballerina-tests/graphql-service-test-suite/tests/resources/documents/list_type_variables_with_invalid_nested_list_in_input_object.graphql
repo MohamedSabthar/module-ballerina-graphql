@@ -1,5 +1,5 @@
 query ($tvSeries: [TvSeries!]!) {
-    getSuggestions(tvSeries: $tvSeries) {
-        movieName
-    }
+  getSuggestions(tvSeries: $tvSeries) {
+    movieName
+  }
 }

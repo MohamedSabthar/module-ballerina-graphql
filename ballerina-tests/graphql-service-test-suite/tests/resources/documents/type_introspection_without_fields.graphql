@@ -1,3 +1,3 @@
 {
-    __type(name: "Person")
+  __type(name: "Person")
 }

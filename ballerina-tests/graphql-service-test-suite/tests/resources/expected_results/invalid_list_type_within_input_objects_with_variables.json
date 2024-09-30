@@ -2,11 +2,11 @@
   "errors": [
     {
       "message": "String cannot represent non String value: true",
-      "locations": [{ "line": 2, "column": 25 }]
+      "locations": [{ "line": 2, "column": 23 }]
     },
     {
       "message": "String cannot represent non String value: 44",
-      "locations": [{ "line": 2, "column": 25 }]
+      "locations": [{ "line": 2, "column": 23 }]
     }
   ]
 }

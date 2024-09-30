@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Cannot query field \"setAge\" on type \"Mutation\".",
-      "locations": [{ "line": 2, "column": 5 }]
+      "locations": [{ "line": 2, "column": 3 }]
     }
   ]
 }

@@ -1,14 +1,14 @@
-query getData($profileId:Int!){
-    ...on Query {
-        profile(id:$profileId) {
-            ...on Person {
-                name
-                address {
-                    ... on Address {
-                        city
-                    }
-                }
-            }
+query getData($profileId: Int!) {
+  ... on Query {
+    profile(id: $profileId) {
+      ... on Person {
+        name
+        address {
+          ... on Address {
+            city
+          }
         }
+      }
     }
+  }
 }

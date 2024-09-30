@@ -1,7 +1,7 @@
 query {
-    intIdReturnRecord(intId: 67) {
-        __typename
-        id
-        name
-    }
+  intIdReturnRecord(intId: 67) {
+    __typename
+    id
+    name
+  }
 }

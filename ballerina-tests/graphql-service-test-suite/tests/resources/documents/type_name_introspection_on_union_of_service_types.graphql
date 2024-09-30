@@ -1,15 +1,15 @@
 {
-    search {
-        __typename
-        ...StudentFragment
-        ...TeacherFragment
-    }
+  search {
+    __typename
+    ...StudentFragment
+    ...TeacherFragment
+  }
 }
 
 fragment StudentFragment on StudentService {
-    name
+  name
 }
 
 fragment TeacherFragment on TeacherService {
-    subject
+  subject
 }

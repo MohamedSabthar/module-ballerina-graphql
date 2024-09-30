@@ -1,8 +1,8 @@
 {
-    __schema {
-        types {
-            name
-            kind
-        }
+  __schema {
+    types {
+      name
+      kind
     }
+  }
 }

@@ -1,23 +1,23 @@
 query {
-    ...data
+  ...data
 }
 
 fragment data on Query {
-    people {
-        ...people
-    }
+  people {
+    ...people
+  }
 
-    students {
-        ...student
-    }
+  students {
+    ...student
+  }
 }
 
 fragment people on Person {
-    address {
-        city
-    }
+  address {
+    city
+  }
 }
 
 fragment student on Student {
-    name
+  name
 }

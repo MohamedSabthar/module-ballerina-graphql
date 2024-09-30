@@ -1,8 +1,8 @@
 {
-    profile {
-        name {
-            first,
-            last
-        }
+  profile {
+    name {
+      first
+      last
     }
+  }
 }

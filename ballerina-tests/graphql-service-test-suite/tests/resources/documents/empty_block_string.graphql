@@ -1,3 +1,6 @@
 {
-    sendEmail(message: """""")
+  sendEmail(
+    message: """
+    """
+  )
 }

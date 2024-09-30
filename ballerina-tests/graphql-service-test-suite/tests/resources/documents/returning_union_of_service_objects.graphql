@@ -1,14 +1,14 @@
 query {
-    search (status: OPEN) {
-        ...TrailFragment
-        ...LiftFragment
-    }
+  search(status: OPEN) {
+    ...TrailFragment
+    ...LiftFragment
+  }
 }
 
 fragment TrailFragment on Trail {
-    name
+  name
 }
 
 fragment LiftFragment on Lift {
-    name
+  name
 }

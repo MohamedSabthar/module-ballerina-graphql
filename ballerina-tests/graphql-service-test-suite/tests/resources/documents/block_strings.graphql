@@ -1,9 +1,11 @@
 {
-    sendEmail(message: """
-        Hello,
-            World!,
+  sendEmail(
+    message: """
+    Hello,
+        World!,
 
-        Yours,
-            GraphQL
-    """) 
+    Yours,
+        GraphQL
+    """
+  )
 }

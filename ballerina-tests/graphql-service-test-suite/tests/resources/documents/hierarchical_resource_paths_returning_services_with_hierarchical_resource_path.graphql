@@ -1,9 +1,9 @@
 {
-    profile {
-        personal {
-            name {
-                first
-            }
-        }
+  profile {
+    personal {
+      name {
+        first
+      }
     }
+  }
 }

@@ -1,5 +1,5 @@
 query {
-    trail(id: "blue-bird") {
-        name
-    }
+  trail(id: "blue-bird") {
+    name
+  }
 }

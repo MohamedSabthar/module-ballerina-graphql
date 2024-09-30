@@ -1,20 +1,20 @@
 {
-    characters {
-        ...CharacterFragment
-    }
+  characters {
+    ...CharacterFragment
+  }
 }
 
 fragment CharacterFragment on Character {
-    name
-    age
-    ...HumanFragment
-    ...DroidFragment
+  name
+  age
+  ...HumanFragment
+  ...DroidFragment
 }
 
 fragment HumanFragment on Human {
-    id
+  id
 }
 
 fragment DroidFragment on Droid {
-    year
+  year
 }

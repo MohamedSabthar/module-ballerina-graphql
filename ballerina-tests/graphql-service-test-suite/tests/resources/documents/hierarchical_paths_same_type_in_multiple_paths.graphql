@@ -1,9 +1,9 @@
 {
-    profile {
-        name {
-            address {
-                street
-            }
-        }
+  profile {
+    name {
+      address {
+        street
+      }
     }
+  }
 }

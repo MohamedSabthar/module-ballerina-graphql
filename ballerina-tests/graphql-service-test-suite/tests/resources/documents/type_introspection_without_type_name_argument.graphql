@@ -1,8 +1,8 @@
 {
-    __type {
-        kind
-        fields {
-            name
-        }
+  __type {
+    kind
+    fields {
+      name
     }
+  }
 }

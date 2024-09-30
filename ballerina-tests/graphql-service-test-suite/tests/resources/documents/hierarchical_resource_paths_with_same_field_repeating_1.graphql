@@ -1,9 +1,9 @@
 {
-    mountain {
-        trail {
-            getLift {
-                name
-            } 
-        }
+  mountain {
+    trail {
+      getLift {
+        name
+      }
     }
+  }
 }

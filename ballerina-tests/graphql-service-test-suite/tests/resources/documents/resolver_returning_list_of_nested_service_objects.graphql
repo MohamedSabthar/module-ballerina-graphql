@@ -1,8 +1,8 @@
 {
-    top3 {
-        product {
-            id
-        }
-    score
+  top3 {
+    product {
+      id
     }
+    score
+  }
 }

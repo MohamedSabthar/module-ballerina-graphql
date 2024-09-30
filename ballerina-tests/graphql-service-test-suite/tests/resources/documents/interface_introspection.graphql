@@ -1,12 +1,12 @@
 {
-    __schema {
-        types {
-            name
-            kind
-            possibleTypes {
-                name
-                kind
-            }
-        }
+  __schema {
+    types {
+      name
+      kind
+      possibleTypes {
+        name
+        kind
+      }
     }
+  }
 }

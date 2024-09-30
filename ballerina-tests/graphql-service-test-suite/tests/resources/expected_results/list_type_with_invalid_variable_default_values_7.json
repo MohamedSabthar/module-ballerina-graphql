@@ -6,7 +6,7 @@
     },
     {
       "message": "Variable \"profileDetail\" of type \"[ProfileDetail]\" used in position expecting type \"[ProfileDetail!]!\".",
-      "locations": [{ "line": 2, "column": 35 }]
+      "locations": [{ "line": 2, "column": 33 }]
     }
   ]
 }

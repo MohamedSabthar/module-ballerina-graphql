@@ -1,9 +1,9 @@
 query {
-    ...data
+  ...data
 }
 
 fragment data on Query {
-    people {
-        invalid
-    }
+  people {
+    invalid
+  }
 }

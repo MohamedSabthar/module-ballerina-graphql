@@ -1,5 +1,5 @@
-mutation($name: String) {
-    profile(name: $name) {
-        name
-    }
+mutation ($name: String) {
+  profile(name: $name) {
+    name
+  }
 }

@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Field \"__type\" argument \"name\" of type \"String!\" is required, but it was not provided.",
-      "locations": [{ "line": 2, "column": 5 }]
+      "locations": [{ "line": 2, "column": 3 }]
     }
   ]
 }

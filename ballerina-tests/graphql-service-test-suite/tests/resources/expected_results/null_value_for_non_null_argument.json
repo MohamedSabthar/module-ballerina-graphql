@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Expected value of type \"String!\", found null.",
-      "locations": [{ "line": 2, "column": 17 }]
+      "locations": [{ "line": 2, "column": 15 }]
     }
   ]
 }

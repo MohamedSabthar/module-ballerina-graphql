@@ -1,13 +1,13 @@
 {
-    ships {
+  ships {
+    id
+    ... on Starship {
+      enemyShips {
         id
-        ...on Starship {
-            enemyShips {
-                id
-                ...on Starship {
-                    driver
-                }
-            }
+        ... on Starship {
+          driver
         }
+      }
     }
+  }
 }

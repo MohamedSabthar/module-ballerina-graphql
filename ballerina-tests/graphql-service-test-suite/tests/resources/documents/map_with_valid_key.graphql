@@ -1,5 +1,5 @@
-query($purpose: String!) {
-    languages {
-        backend: name(key: $purpose)
-    }
+query ($purpose: String!) {
+  languages {
+    backend: name(key: $purpose)
+  }
 }

@@ -1,9 +1,9 @@
-query ($workerKey:String, $contractKey:String ) {
-    company {
-        workers(key:$workerKey) {
-            contacts(key:$contractKey) {
-                number
-            }
-        } 
+query ($workerKey: String, $contractKey: String) {
+  company {
+    workers(key: $workerKey) {
+      contacts(key: $contractKey) {
+        number
+      }
     }
+  }
 }

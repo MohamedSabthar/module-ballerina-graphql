@@ -2,11 +2,11 @@
   "errors": [
     {
       "message": "Value \"WEdnesday\" does not exist in \"days\" enum.",
-      "locations": [{ "line": 2, "column": 64 }]
+      "locations": [{ "line": 2, "column": 62 }]
     },
     {
       "message": "days: In element #5:Enum \"Weekday\" cannot represent non-enum value: \"4\"",
-      "locations": [{ "line": 2, "column": 75 }]
+      "locations": [{ "line": 2, "column": 73 }]
     }
   ]
 }

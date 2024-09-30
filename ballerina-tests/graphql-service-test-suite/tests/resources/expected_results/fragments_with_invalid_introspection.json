@@ -2,7 +2,7 @@
   "errors": [
     {
       "message": "Cannot query field \"invalid\" on type \"__Type\".",
-      "locations": [{ "line": 17, "column": 9 }]
+      "locations": [{ "line": 17, "column": 5 }]
     }
   ]
 }

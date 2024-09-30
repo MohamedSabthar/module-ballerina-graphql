@@ -1,7 +1,7 @@
 query {
-    ...data
+  ...data
 }
 
 fragment data on Person {
-    name
+  name
 }
