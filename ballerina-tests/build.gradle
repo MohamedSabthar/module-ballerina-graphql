@@ -38,7 +38,8 @@ def testSuites = [
     "graphql-interceptor-test-suite",
     "graphql-dataloader-test-suite",
     "graphql-security-test-suite",
-    "graphql-advanced-test-suite"
+    "graphql-advanced-test-suite",
+    "graphql-subgraph-test-suite"
     ]
 def testCommonPackage = "graphql-test-common"
 

@@ -25,9 +25,15 @@ public graphql:Service subgraphServivce = @subgraph:Subgraph service object {
     resource function get greeting() returns string => "welcome";
 };
 
+listener graphql:Listener graphqlListener = new (9098);
+
 @subgraph:Subgraph
 service /reviews on graphqlListener {
     resource function get reviews() returns ReviewData[] {
         return [];
     }
+}
+
+public isolated service class ReviewData {
+    isolated resource function get id() returns string => "123";
 }
