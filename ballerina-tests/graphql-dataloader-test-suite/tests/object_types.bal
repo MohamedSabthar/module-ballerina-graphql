@@ -14,6 +14,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/graphql;
+import ballerina/graphql.dataloader;
+
 public isolated distinct service class AuthorData {
     private final readonly & AuthorRow author;
 
