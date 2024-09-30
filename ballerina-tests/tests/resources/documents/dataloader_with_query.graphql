@@ -1,9 +1,0 @@
-query {
-  authors(ids: [1, 2, 3]) {
-    name
-    books {
-      id
-      title
-    }
-  }
-}

@@ -1,8 +1,0 @@
-{
-  "errors": [
-    {
-      "message": "representations: In element #0: \"_Any!\" cannot represent non _Any! value: \"__typename\" field is absent",
-      "locations": [{ "line": 2, "column": 33 }]
-    }
-  ]
-}

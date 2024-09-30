@@ -1,9 +1,0 @@
-subscription {
-  authors {
-    name
-    books {
-      id
-      title
-    }
-  }
-}

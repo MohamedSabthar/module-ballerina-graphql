@@ -1,8 +1,0 @@
-{
-  "errors": [
-    {
-      "message": "representations: In element #0:Expected value of type \"_Any!\", found null.",
-      "locations": [{ "line": 2, "column": 31 }]
-    }
-  ]
-}
