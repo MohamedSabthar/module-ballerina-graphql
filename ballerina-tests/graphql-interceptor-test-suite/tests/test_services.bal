@@ -808,3 +808,66 @@ isolated service /subscription_interceptor4 on subscriptionListener {
         return [s, t].toStream();
     }
 }
+
+service /field_caching_with_interceptors on basicListener {
+    private string enemy = "voldemort";
+    private string friend = "Harry";
+
+    @graphql:ResourceConfig {
+        interceptors: [new StringInterceptor1(), new StringInterceptor2(), new StringInterceptor3()],
+        cacheConfig: {
+            enabled: true,
+            maxAge: 15
+        }
+    }
+    resource function get enemy() returns string {
+        return self.enemy;
+    }
+
+    @graphql:ResourceConfig {
+        cacheConfig: {
+            enabled: true,
+            maxAge: 10
+        }
+    }
+    resource function get friend() returns string {
+        return self.friend;
+    }
+
+    remote function updateEnemy(graphql:Context context, string name, boolean enableEvict) returns string|error {
+        if enableEvict {
+            check context.invalidate("enemy");
+        }
+        self.enemy = name;
+        return self.enemy;
+    }
+
+    remote function updateFriend(string name) returns string|error {
+        self.friend = name;
+        return self.friend;
+    }
+}
+
+@graphql:ServiceConfig {
+    cacheConfig: {
+        enabled: true
+    }
+}
+service /caching_with_interceptor_operations on basicListener {
+    private string name = "voldemort";
+
+    @graphql:ResourceConfig {
+        interceptors: [new StringInterceptor1(), new StringInterceptor2(), new StringInterceptor3()]
+    }
+    resource function get enemy() returns string {
+        return self.name;
+    }
+
+    remote function updateEnemy(graphql:Context context, string name, boolean enableEvict) returns string|error {
+        if enableEvict {
+            check context.invalidate("enemy");
+        }
+        self.name = name;
+        return self.name;
+    }
+}

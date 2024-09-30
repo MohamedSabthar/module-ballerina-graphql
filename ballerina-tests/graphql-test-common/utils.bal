@@ -57,13 +57,19 @@ public isolated function getJsonPayloadFromRequest(string url, http:Request requ
 public isolated function getJsonContentFromFile(string fileName) returns json|error {
     string jsonFileName = string `${fileName}.json`;
     string path = check file:joinPath("tests", "resources", "expected_results", jsonFileName);
-    return io:fileReadJson(path);
+    // string path2 = check file:joinPath("tests", "resources", "expected_results1", jsonFileName);
+    json content = check io:fileReadJson(path);
+    // check io:fileWriteJson(path2, content);
+    return content;
 }
 
 public isolated function getGraphqlDocumentFromFile(string fileName) returns string|error {
     string gqlFileName = string `${fileName}.graphql`;
     string path = check file:joinPath("tests", "resources", "documents", gqlFileName);
-    return io:fileReadString(path);
+    //  string path2 = check file:joinPath("tests", "resources", "documents1", gqlFileName);
+    string content = check io:fileReadString(path);
+    // check io:fileWriteString(path2, content);
+    return content;
 }
 
 public isolated function assertResponseAndGetPayload(string url, string document, json? variables = {},
