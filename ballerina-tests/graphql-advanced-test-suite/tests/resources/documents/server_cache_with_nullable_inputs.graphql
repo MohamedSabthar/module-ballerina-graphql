@@ -1,13 +1,13 @@
 query A {
-    enemies {
-        name
-        isMarried
-    }
+  enemies {
+    name
+    isMarried
+  }
 }
 
 mutation B {
-    removeEnemy(name: "Enemy1", enableEvict: false) {
-        name
-        isMarried
-    }
+  removeEnemy(name: "Enemy1", enableEvict: false) {
+    name
+    isMarried
+  }
 }

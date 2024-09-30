@@ -1,11 +1,11 @@
 query {
-    teacher {
-        ...data
-    }
+  teacher {
+    ...data
+  }
 }
 
 fragment data on TeacherService {
-    id
-    name
-    subject
+  id
+  name
+  subject
 }

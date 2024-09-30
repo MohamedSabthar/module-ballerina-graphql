@@ -1,4 +1,4 @@
-query  A {
+query A {
   authors(ids: [1, 2, 3]) {
     name
     books {

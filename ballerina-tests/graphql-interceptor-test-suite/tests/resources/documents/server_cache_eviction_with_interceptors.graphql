@@ -1,7 +1,7 @@
 query A {
-    enemy
+  enemy
 }
 
 mutation B {
-    updateEnemy(name: "Snape", enableEvict: true)
+  updateEnemy(name: "Snape", enableEvict: true)
 }

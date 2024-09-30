@@ -1,8 +1,8 @@
 query A {
-    greet
-    name(id:1)
+  greet
+  name(id: 1)
 }
 
 mutation B {
-    updateName(name: "John", enableEvict: false)
+  updateName(name: "John", enableEvict: false)
 }

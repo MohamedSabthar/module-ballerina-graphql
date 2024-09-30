@@ -1,9 +1,9 @@
 {
-    name,
-    age,
-    address {
-        city,
-        street, 
-        number
-    }
+  name
+  age
+  address {
+    city
+    street
+    number
+  }
 }

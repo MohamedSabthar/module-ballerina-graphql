@@ -1,13 +1,13 @@
-subscription A{ 
-    books {
-        name 
-        author  
-    } 
+subscription A {
+  books {
+    name
+    author
+  }
 }
 
-subscription B{ 
-    newBooks {
-        name 
-        author  
-    } 
+subscription B {
+  newBooks {
+    name
+    author
+  }
 }

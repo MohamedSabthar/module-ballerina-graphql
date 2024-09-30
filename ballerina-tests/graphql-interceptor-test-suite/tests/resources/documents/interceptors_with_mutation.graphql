@@ -1,9 +1,9 @@
 mutation {
-    setName(name: "Heisenberg") {
-        name
-    },
-    setAge(age: 14) {
-        name
-        age
-    }
+  setName(name: "Heisenberg") {
+    name
+  }
+  setAge(age: 14) {
+    name
+    age
+  }
 }

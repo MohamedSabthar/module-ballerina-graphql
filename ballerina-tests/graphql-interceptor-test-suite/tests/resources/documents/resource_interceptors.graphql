@@ -1,14 +1,14 @@
 query {
-    customer {
-        id
-        name
-        address {
-            number
-            street
-            city
-        }
+  customer {
+    id
+    name
+    address {
+      number
+      street
+      city
     }
-    newPerson {
-        name
-    }
+  }
+  newPerson {
+    name
+  }
 }

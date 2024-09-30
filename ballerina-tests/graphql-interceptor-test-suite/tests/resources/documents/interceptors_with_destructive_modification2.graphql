@@ -1,10 +1,10 @@
 {
-    students {
-        id,
-        name
-    },
-    teachers {
-        id,
-        name
-    }
+  students {
+    id
+    name
+  }
+  teachers {
+    id
+    name
+  }
 }

@@ -1,7 +1,7 @@
 query A {
-    friend
+  friend
 }
 
 mutation B($name: String!) {
-    updateFriend(name: $name)
+  updateFriend(name: $name)
 }

@@ -1,10 +1,10 @@
-query A ($names:[String!]!){
-    isAllMarried(names: $names)
+query A($names: [String!]!) {
+  isAllMarried(names: $names)
 }
 
 mutation B {
-    updateEnemy(enemy: {name: "Enemy3", age: 44}, enableEvict: false) {
-        name
-        isMarried
-    }
+  updateEnemy(enemy: { name: "Enemy3", age: 44 }, enableEvict: false) {
+    name
+    isMarried
+  }
 }
