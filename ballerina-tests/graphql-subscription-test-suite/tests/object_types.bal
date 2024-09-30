@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerinlang.runtime;
+import ballerina/lang.runtime;
 
 public distinct isolated service class StudentService {
     private final int id;

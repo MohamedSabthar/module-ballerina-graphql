@@ -1,0 +1,105 @@
+{
+  "data": {
+    "query": {
+      "fields": [
+        { "name": "intParam", "args": [{ "name": "a", "defaultValue": "1" }] },
+        {
+          "name": "floatParam",
+          "args": [{ "name": "b", "defaultValue": "2.0" }]
+        },
+        {
+          "name": "decimalParam",
+          "args": [{ "name": "c", "defaultValue": "1e-10" }]
+        },
+        {
+          "name": "stringParam",
+          "args": [{ "name": "d", "defaultValue": "\"value\"" }]
+        },
+        {
+          "name": "booleanParam",
+          "args": [{ "name": "e", "defaultValue": "true" }]
+        },
+        {
+          "name": "nullableParam",
+          "args": [{ "name": "f", "defaultValue": "20" }]
+        },
+        {
+          "name": "multipleParams",
+          "args": [
+            { "name": "a", "defaultValue": "1" },
+            { "name": "b", "defaultValue": "2.0" },
+            { "name": "c", "defaultValue": "1e-10" },
+            { "name": "d", "defaultValue": "\"value\"" },
+            { "name": "e", "defaultValue": "true" },
+            { "name": "f", "defaultValue": "20" },
+            { "name": "g", "defaultValue": "MALE" },
+            {
+              "name": "h",
+              "defaultValue": "{name : \"name2\", bmiHistory : [30.0, 29.0, 20.0d]}"
+            },
+            {
+              "name": "i",
+              "defaultValue": "[{name : \"name3\", bmiHistory : [30.0, 29.0]}, {name : \"name4\", bmiHistory : [2.9e1, 31.0]}]"
+            },
+            { "name": "j", "defaultValue": "[\"id1\"]" }
+          ]
+        },
+        { "name": "nestedField", "args": [] }
+      ]
+    },
+    "mutation": {
+      "fields": [
+        {
+          "name": "enumParam",
+          "args": [{ "name": "g", "defaultValue": "MALE" }]
+        },
+        {
+          "name": "inputObjectParam",
+          "args": [{ "name": "h", "defaultValue": null }]
+        },
+        {
+          "name": "inputObjectArrayParam",
+          "args": [
+            {
+              "name": "i",
+              "defaultValue": "[{name : \"name2\", bmiHistory : [1.0, 2.0]}, {name : \"name3\", bmiHistory : [1e-7, 2.0]}]"
+            }
+          ]
+        }
+      ]
+    },
+    "subscription": {
+      "fields": [
+        {
+          "name": "idArrayParam",
+          "args": [{ "name": "j", "defaultValue": "[\"id1\"]" }]
+        }
+      ]
+    },
+    "nestedFieldsWithDefaultParam": {
+      "fields": [
+        {
+          "name": "multipleParams",
+          "args": [
+            { "name": "a", "defaultValue": "1" },
+            { "name": "b", "defaultValue": "2.0" },
+            { "name": "c", "defaultValue": "1e-10" },
+            { "name": "d", "defaultValue": "\"value\"" },
+            { "name": "e", "defaultValue": "true" },
+            { "name": "f", "defaultValue": "20" },
+            { "name": "g", "defaultValue": "MALE" },
+            {
+              "name": "h",
+              "defaultValue": "{name : \"name2\", bmiHistory : [30.0, 29.0, 20.0d]}"
+            },
+            {
+              "name": "i",
+              "defaultValue": "[{name : \"name3\", bmiHistory : [30.0, 29.0]}, {name : \"name4\", bmiHistory : [2.9e1, 31.0]}]"
+            },
+            { "name": "j", "defaultValue": "[\"id1\"]" }
+          ]
+        }
+      ]
+    }
+  }
+}

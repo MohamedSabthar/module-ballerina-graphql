@@ -328,9 +328,9 @@ isolated function testOnPing() returns error? {
     string url = "ws://localhost:9099/subscriptions";
     websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
     websocket:Client wsClient = check new (url, config);
-    check wsClient->writeMessage({'type: WS_PING});
+    check wsClient->writeMessage({'type: common:WS_PING});
     json response = check wsClient->readMessage();
-    test:assertEquals(response.'type, WS_PONG);
+    test:assertEquals(response.'type, common:WS_PONG);
 }
 
 @test:Config {
@@ -462,14 +462,14 @@ isolated function testSubscriptionMultiplexing() returns error? {
         }
         if subscriptionId == "1" && subscriptions.get(subscriptionId) == 3 {
             subscriptionOneDisabled = true;
-            check wsClient->writeMessage({'type: WS_COMPLETE, id: subscriptionId});
+            check wsClient->writeMessage({'type: common:WS_COMPLETE, id: subscriptionId});
         }
         if subscriptionId == "2" && subscriptions.get(subscriptionId) == 10 {
-            check wsClient->writeMessage({'type: WS_COMPLETE, id: subscriptionId});
+            check wsClient->writeMessage({'type: common:WS_COMPLETE, id: subscriptionId});
             break;
         }
         json payload = {data: {refresh: "data"}};
-        json expectedPayload = {'type: WS_NEXT, id: subscriptionId, payload: payload};
+        json expectedPayload = {'type: common:WS_NEXT, id: subscriptionId, payload: payload};
         test:assertEquals(actualPayload, expectedPayload);
     }
 }
@@ -486,7 +486,7 @@ isolated function testConnectionClousureWhenPongNotRecived() returns error? {
     while true {
         response = wsClient->readMessage();
         if response is json {
-            test:assertTrue(response.'type == WS_PING);
+            test:assertTrue(response.'type == common:WS_PING);
             continue;
         }
         break;
@@ -518,7 +518,7 @@ isolated function testInvalidWebSocketRequestWithInvalidQuery() returns error? {
     websocket:Client wsClient = check new (url, config);
     check common:initiateGraphqlWsConnection(wsClient);
     json payload = {query: 2};
-    check wsClient->writeMessage({"type": WS_SUBSCRIBE, id: "1", payload: payload});
+    check wsClient->writeMessage({"type": common:WS_SUBSCRIBE, id: "1", payload: payload});
     string expectedErrorMsg = "Invalid format: payload does not conform to the format required by the" +
         " 'graphql-transport-ws' subprotocol: Status code: 1003";
     common:validateConnectionClousureWithError(wsClient, expectedErrorMsg);
@@ -532,7 +532,7 @@ isolated function testInvalidWebSocketRequestWithoutQuery() returns error? {
     websocket:ClientConfiguration config = {subProtocols: [GRAPHQL_TRANSPORT_WS]};
     websocket:Client wsClient = check new (url, config);
     check common:initiateGraphqlWsConnection(wsClient);
-    check wsClient->writeMessage({"type": WS_SUBSCRIBE, id: "1", payload: {}});
+    check wsClient->writeMessage({"type": common:WS_SUBSCRIBE, id: "1", payload: {}});
     string expectedErrorMsg = "Invalid format: payload does not conform to the format required by the" +
         " 'graphql-transport-ws' subprotocol: Status code: 1003";
     common:validateConnectionClousureWithError(wsClient, expectedErrorMsg);
