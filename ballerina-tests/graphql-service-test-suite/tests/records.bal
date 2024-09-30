@@ -200,13 +200,6 @@ public type Episode record {
     string[] newCharacters?;
 };
 
-public type FileInfo record {
-    string fileName;
-    string mimeType;
-    string encoding;
-    string content;
-};
-
 public type Item record {
     string name;
     decimal price;

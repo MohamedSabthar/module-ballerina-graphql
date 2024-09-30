@@ -235,23 +235,6 @@ public distinct isolated service class School {
     }
 }
 
-public isolated distinct service class AnimalClass {
-    isolated resource function get call(graphql:Context context, string sound, int count) returns string {
-        var scope = context.get("scope");
-        if scope is string && scope == "admin" {
-            string call = "";
-            int i = 0;
-            while i < count {
-                call += string `${sound} `;
-                i += 1;
-            }
-            return call;
-        } else {
-            return sound;
-        }
-    }
-}
-
 public isolated service class Vehicle {
     private final string id;
     private final string name;
