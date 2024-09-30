@@ -1186,33 +1186,6 @@ service /annotations on wrappedListener {
     }
 }
 
-service /constraints on basicListener {
-
-    private string[] movies;
-
-    isolated function init() {
-        self.movies = [];
-    }
-
-    isolated resource function get movie(MovieDetails movie) returns string {
-        return movie.name;
-    }
-
-    isolated resource function get movies(MovieDetails[] & readonly movies) returns string[] {
-        return movies.map(m => m.name);
-    }
-
-    isolated resource function get reviewStars(Reviews[] reviews) returns int[] {
-        return reviews.map(r => r.stars);
-    }
-
-    isolated remote function addMovie(MovieDetails movie) returns string {
-        string name = movie.name;
-        self.movies.push(name);
-        return name;
-    }
-}
-
 service /id_annotation_1 on basicListener {
     resource function get student1(@graphql:ID int id1) returns Student1 {
         return new Student1(8);

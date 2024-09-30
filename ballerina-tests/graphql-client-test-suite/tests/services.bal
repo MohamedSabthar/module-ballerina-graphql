@@ -96,23 +96,7 @@ service /profiles on graphqlListener {
         return "Sherlock";
     }
 
-    isolated resource function get profile/name/last() returns string {
-        return "Holmes";
-    }
-
-    isolated resource function get profile/age() returns int {
-        return 40;
-    }
-
     isolated resource function get profile/address/city() returns string {
         return "London";
-    }
-
-    isolated resource function get profile/address/street() returns string {
-        return "Baker Street";
-    }
-
-    isolated resource function get profile/name/address/number() returns string {
-        return "221/B";
     }
 }

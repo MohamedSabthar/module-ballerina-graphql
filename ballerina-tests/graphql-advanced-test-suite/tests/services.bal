@@ -108,14 +108,6 @@ service /fileUpload on basicListener {
 }
 
 service /service_types on serviceTypeListener {
-    isolated resource function get greet() returns GeneralGreeting {
-        return new;
-    }
-
-    isolated resource function get profile() returns Profile {
-        return new;
-    }
-
     isolated resource function get person(graphql:Field 'field) returns Person {
         string[] subfieldNames = 'field.getSubfieldNames();
         if subfieldNames == ["name"] {
@@ -139,28 +131,6 @@ service /service_types on serviceTypeListener {
 }
 
 service /service_objects on serviceTypeListener {
-    isolated resource function get ids() returns int[] {
-        return [0, 1, 2];
-    }
-
-    isolated resource function get allVehicles() returns Vehicle[] {
-        Vehicle v1 = new ("V1", "Benz", 2005);
-        Vehicle v2 = new ("V2", "BMW", 2010);
-        Vehicle v3 = new ("V3", "Ford");
-        return [v1, v2, v3];
-    }
-
-    isolated resource function get searchVehicles(string keyword) returns Vehicle[]? {
-        Vehicle v1 = new ("V1", "Benz");
-        Vehicle v2 = new ("V2", "BMW");
-        Vehicle v3 = new ("V3", "Ford");
-        return [v1, v2, v3];
-    }
-
-    isolated resource function get teacher() returns TeacherService {
-        return new TeacherService(737, "Walter White", "Chemistry");
-    }
-
     isolated resource function get student(string name, graphql:Context context, int id,
             graphql:Field 'field) returns StudentService {
         if context.get("scope") is error {
