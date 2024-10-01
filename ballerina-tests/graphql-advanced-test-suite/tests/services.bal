@@ -287,11 +287,9 @@ service /server_cache on basicListener {
         }
     }
     isolated resource function get isAllMarried(string[] names) returns boolean {
-        if names is string[] {
-            foreach string name in names {
-                if self.enemies.hasKey(name) && !self.enemies.get(name).isMarried {
-                    return false;
-                }
+        foreach string name in names {
+            if self.enemies.hasKey(name) && !self.enemies.get(name).isMarried {
+                return false;
             }
         }
         return true;

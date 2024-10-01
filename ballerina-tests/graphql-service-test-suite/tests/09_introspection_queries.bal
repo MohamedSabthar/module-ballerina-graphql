@@ -34,7 +34,6 @@ function dataProviderIntrospection() returns map<[string, string, json]> {
     string url3 = "http://localhost:9091/mutations";
     string url4 = "http://localhost:9092/unions";
     string url5 = "http://localhost:9091/input_objects";
-    string url6 = "http://localhost:9091/inputs";
     string url7 = "http://localhost:9091/documentation";
     string url8 = "http://localhost:9090/deprecation";
     string url9 = "http://localhost:9091/id_annotation_1";
