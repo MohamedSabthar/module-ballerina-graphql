@@ -1,5 +1,5 @@
 [package]
-org = "ballerina"
+org = "sabtharm"
 name = "graphql"
 version = "1.13.2"
 authors = ["Ballerina"]
