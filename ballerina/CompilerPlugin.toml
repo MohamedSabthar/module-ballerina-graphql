@@ -6,4 +6,4 @@ class = "io.sabtharm.stdlib.graphql.compiler.GraphqlCompilerPlugin"
 path = "../compiler-plugin/build/libs/graphql-compiler-plugin-1.13.2-SNAPSHOT.jar"
 
 [[dependency]]
-path = "../commons/build/libs/graphql-commons-1.13.2-SNAPSHOT.jar"
+path = "../commons/build/libs/sabtharm-commons-1.13.2-SNAPSHOT.jar"
