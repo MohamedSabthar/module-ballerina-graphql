@@ -1,9 +1,9 @@
 [plugin]
-id = "graphql-compiler-plugin"
+id = "sabtharm-compiler-plugin"
 class = "io.sabtharm.stdlib.graphql.compiler.GraphqlCompilerPlugin"
 
 [[dependency]]
-path = "../compiler-plugin/build/libs/graphql-compiler-plugin-1.13.2-SNAPSHOT.jar"
+path = "../compiler-plugin/build/libs/sabtharm-compiler-plugin-1.13.2-SNAPSHOT.jar"
 
 [[dependency]]
 path = "../commons/build/libs/sabtharm-commons-1.13.2-SNAPSHOT.jar"
