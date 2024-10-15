@@ -30,7 +30,7 @@ dependencies {
     checkstyle "com.puppycrawl.tools:checkstyle:${checkstylePluginVersion}"
 
     testImplementation project(':sabtharm-commons')
-    testImplementation project(":graphql-compiler-plugin")
+    testImplementation project(":sabtharm-compiler-plugin")
     testImplementation group: 'org.ballerinalang', name: 'ballerina-lang', version: "${ballerinaLangVersion}"
     testImplementation group: 'org.ballerinalang', name: 'ballerina-tools-api', version: "${ballerinaLangVersion}"
     testImplementation group: 'org.ballerinalang', name: 'ballerina-parser', version: "${ballerinaLangVersion}"
@@ -92,7 +92,7 @@ jacocoTestReport {
         csv.required = false
         html.required = false
     }
-    // sourceSets project(':graphql-compiler-plugin').sourceSets.main
+    // sourceSets project(':sabtharm-compiler-plugin').sourceSets.main
     // sourceSets project(':sabtharm-commons').sourceSets.main
 }
 

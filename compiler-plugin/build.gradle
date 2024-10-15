@@ -67,7 +67,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             groupId project.group
-            artifactId "graphql-compiler-plugin"
+            artifactId "sabtharm-compiler-plugin"
             version = project.version
             artifact jar
         }
