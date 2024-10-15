@@ -14,8 +14,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/graphql;
-import ballerina/graphql.dataloader;
+import sabtharm/graphql;
+import sabtharm/graphql.dataloader;
 import ballerina/http;
 import ballerina/lang.runtime;
 import ballerina/uuid;

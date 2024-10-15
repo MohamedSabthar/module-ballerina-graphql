@@ -15,7 +15,7 @@
 // under the License.
 
 import ballerina/file;
-import ballerina/graphql;
+import sabtharm/graphql;
 import ballerina/http;
 import ballerina/io;
 import ballerina/test;

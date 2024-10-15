@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/graphql;
+import sabtharm/graphql;
 import ballerina/http;
 
 listener http:Listener httpListener = new (9090, httpVersion = http:HTTP_1_1);

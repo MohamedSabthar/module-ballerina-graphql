@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/graphql;
+import sabtharm/graphql;
 import ballerina/websocket;
 import ballerina/test;
 

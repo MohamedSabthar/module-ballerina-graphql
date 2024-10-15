@@ -43,7 +43,7 @@ public final class Utils {
 
     public static final String PACKAGE_NAME = "graphql";
     public static final String SUBGRAPH_SUB_MODULE_NAME = "graphql.subgraph";
-    public static final String PACKAGE_ORG = "ballerina";
+    public static final String PACKAGE_ORG = "sabtharm";
     public static final String SERVICE_NAME = "Service";
 
     public static boolean isGraphqlService(SyntaxNodeAnalysisContext context) {

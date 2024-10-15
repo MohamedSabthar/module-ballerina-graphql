@@ -90,7 +90,7 @@ public final class Utils {
     public static final String SERVICE_CONFIG_IDENTIFIER = "ServiceConfig";
     public static final String SUBGRAPH_ANNOTATION_NAME = "Subgraph";
     public static final String UUID_RECORD_NAME = "Uuid";
-    private static final String ORG_NAME = "ballerina";
+    private static final String ORG_NAME = "sabtharm";
     private static final String UUID_MODULE_NAME = "uuid";
     private static final String RESOURCE_CONFIG_ANNOTATION = "ResourceConfig";
     private static final String ENTITY_ANNOTATION = "Entity";

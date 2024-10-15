@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/graphql.subgraph;
+import sabtharm/graphql.subgraph;
 
 @subgraph:Entity {
     key: "name",

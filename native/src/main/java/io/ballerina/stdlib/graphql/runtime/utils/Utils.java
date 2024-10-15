@@ -50,7 +50,7 @@ public class Utils {
     public static final BString INTERNAL_NODE = StringUtils.fromString("internalNode");
 
     public static final String SUBGRAPH_SUB_MODULE_NAME = "graphql.subgraph";
-    public static final String PACKAGE_ORG = "ballerina";
+    public static final String PACKAGE_ORG = "sabtharm";
 
     public static final StrandMetadata RESOURCE_EXECUTION_STRAND = new StrandMetadata(getModule().getOrg(),
                                                                                       getModule().getName(),
