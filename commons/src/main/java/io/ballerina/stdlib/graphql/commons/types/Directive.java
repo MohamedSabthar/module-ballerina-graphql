@@ -16,13 +16,13 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.commons.types;
+package io.sabtharm.stdlib.graphql.commons.types;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
+import static io.sabtharm.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
 
 /**
  * Represents the {@code __Directive} in GraphQL schema.

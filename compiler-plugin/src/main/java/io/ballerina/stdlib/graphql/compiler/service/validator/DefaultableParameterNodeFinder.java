@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.service.validator;
+package io.sabtharm.stdlib.graphql.compiler.service.validator;
 
 import io.ballerina.compiler.api.symbols.MethodSymbol;
 import io.ballerina.compiler.api.symbols.ParameterKind;
@@ -26,7 +26,7 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.ParameterNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
-import io.ballerina.stdlib.graphql.compiler.FinderContext;
+import io.sabtharm.stdlib.graphql.compiler.FinderContext;
 
 import java.util.ArrayList;
 import java.util.Optional;

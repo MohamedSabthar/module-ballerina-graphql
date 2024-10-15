@@ -16,9 +16,9 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.commons.types;
+package io.sabtharm.stdlib.graphql.commons.types;
 
-import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
+import io.sabtharm.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
 
 import java.io.Serializable;
 import java.util.ArrayList;

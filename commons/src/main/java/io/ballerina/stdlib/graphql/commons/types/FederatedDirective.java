@@ -16,14 +16,14 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.commons.types;
+package io.sabtharm.stdlib.graphql.commons.types;
 
 import java.util.List;
 
-import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.INTERFACE;
-import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.OBJECT;
-import static io.ballerina.stdlib.graphql.commons.types.DirectiveLocation.SCHEMA;
-import static io.ballerina.stdlib.graphql.commons.types.FederatedEnumValue.LINK_PURPOSE;
+import static io.sabtharm.stdlib.graphql.commons.types.DirectiveLocation.INTERFACE;
+import static io.sabtharm.stdlib.graphql.commons.types.DirectiveLocation.OBJECT;
+import static io.sabtharm.stdlib.graphql.commons.types.DirectiveLocation.SCHEMA;
+import static io.sabtharm.stdlib.graphql.commons.types.FederatedEnumValue.LINK_PURPOSE;
 
 /**
  * Stores the federated subgraph directives.

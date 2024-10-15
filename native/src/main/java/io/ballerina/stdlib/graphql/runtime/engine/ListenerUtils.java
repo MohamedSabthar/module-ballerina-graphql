@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.runtime.engine;
+package io.sabtharm.stdlib.graphql.runtime.engine;
 
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.utils.StringUtils;
@@ -26,7 +26,7 @@ import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.observability.ObserveUtils;
 import io.ballerina.runtime.observability.ObserverContext;
-import io.ballerina.stdlib.graphql.runtime.observability.GraphqlObserverContext;
+import io.sabtharm.stdlib.graphql.runtime.observability.GraphqlObserverContext;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
 
 import static io.ballerina.runtime.observability.ObservabilityConstants.KEY_OBSERVER_CONTEXT;
 import static io.ballerina.runtime.observability.ObservabilityConstants.PROPERTY_ERROR_VALUE;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.ERROR_TYPE;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.createError;
+import static io.sabtharm.stdlib.graphql.runtime.utils.Utils.ERROR_TYPE;
+import static io.sabtharm.stdlib.graphql.runtime.utils.Utils.createError;
 
 /**
  * External utility methods used in Ballerina GraphQL listener.

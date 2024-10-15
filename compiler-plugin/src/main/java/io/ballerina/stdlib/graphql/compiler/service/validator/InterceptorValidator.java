@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.service.validator;
+package io.sabtharm.stdlib.graphql.compiler.service.validator;
 
 import io.ballerina.compiler.api.symbols.MethodSymbol;
 import io.ballerina.compiler.api.symbols.ResourceMethodSymbol;
@@ -28,14 +28,14 @@ import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
+import io.sabtharm.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 import io.ballerina.tools.diagnostics.Location;
 
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.GRAPHQL_INTERCEPTOR;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.INTERCEPTOR_EXECUTE;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.updateContext;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isRemoteMethod;
+import static io.sabtharm.stdlib.graphql.compiler.service.validator.ValidatorUtils.GRAPHQL_INTERCEPTOR;
+import static io.sabtharm.stdlib.graphql.compiler.service.validator.ValidatorUtils.INTERCEPTOR_EXECUTE;
+import static io.sabtharm.stdlib.graphql.compiler.service.validator.ValidatorUtils.updateContext;
 
 /**
  * Validate Interceptors in Ballerina GraphQL services.

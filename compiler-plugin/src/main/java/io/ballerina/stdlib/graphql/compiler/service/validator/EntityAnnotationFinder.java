@@ -16,14 +16,14 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.service.validator;
+package io.sabtharm.stdlib.graphql.compiler.service.validator;
 
 import io.ballerina.compiler.api.symbols.AnnotationSymbol;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
-import io.ballerina.stdlib.graphql.compiler.FinderContext;
+import io.sabtharm.stdlib.graphql.compiler.FinderContext;
 
 import java.util.Collection;
 import java.util.Optional;

@@ -1,4 +1,4 @@
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.api.symbols.ClassSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
@@ -8,10 +8,10 @@ import io.ballerina.compiler.api.symbols.TypeSymbol;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.projects.plugins.AnalysisTask;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.compiler.service.validator.InterceptorValidator;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.InterceptorValidator;
 
-import static io.ballerina.stdlib.graphql.compiler.Utils.hasCompilationErrors;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.hasCompilationErrors;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isServiceClass;
 
 /**
  * Validates a Ballerina GraphQL Interceptors.

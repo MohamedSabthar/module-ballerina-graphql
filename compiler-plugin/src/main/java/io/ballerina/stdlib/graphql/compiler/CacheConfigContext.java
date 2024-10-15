@@ -1,4 +1,4 @@
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 public class CacheConfigContext {
     private Boolean enabled;

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.schema.generator;
+package io.sabtharm.stdlib.graphql.compiler.schema.generator;
 
 import io.ballerina.compiler.api.symbols.Documentable;
 import io.ballerina.compiler.api.symbols.Symbol;
@@ -27,11 +27,11 @@ import io.ballerina.projects.ModuleId;
 import io.ballerina.projects.Package;
 import io.ballerina.projects.Project;
 import io.ballerina.projects.ResolvedPackageDependency;
-import io.ballerina.stdlib.graphql.commons.types.LinePosition;
-import io.ballerina.stdlib.graphql.commons.types.Position;
-import io.ballerina.stdlib.graphql.commons.types.ScalarType;
-import io.ballerina.stdlib.graphql.commons.types.Type;
-import io.ballerina.stdlib.graphql.commons.types.TypeKind;
+import io.sabtharm.stdlib.graphql.commons.types.LinePosition;
+import io.sabtharm.stdlib.graphql.commons.types.Position;
+import io.sabtharm.stdlib.graphql.commons.types.ScalarType;
+import io.sabtharm.stdlib.graphql.commons.types.Type;
+import io.sabtharm.stdlib.graphql.commons.types.TypeKind;
 import io.ballerina.tools.diagnostics.Location;
 
 import java.nio.file.Path;

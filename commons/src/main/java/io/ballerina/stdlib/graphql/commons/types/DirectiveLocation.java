@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.commons.types;
+package io.sabtharm.stdlib.graphql.commons.types;
 
 /**
  * Represents the {@code __DirectiveLocation} enum in GraphQL schema.

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
@@ -32,9 +32,9 @@ import io.ballerina.projects.ProjectEnvironmentBuilder;
 import io.ballerina.projects.directory.BuildProject;
 import io.ballerina.projects.environment.Environment;
 import io.ballerina.projects.environment.EnvironmentBuilder;
-import io.ballerina.stdlib.graphql.commons.types.ObjectKind;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.commons.types.TypeKind;
+import io.sabtharm.stdlib.graphql.commons.types.ObjectKind;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.commons.types.TypeKind;
 import io.ballerina.tools.text.LinePosition;
 import io.ballerina.tools.text.LineRange;
 import io.ballerina.tools.text.TextDocument;
@@ -47,7 +47,7 @@ import org.testng.annotations.Test;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static io.ballerina.stdlib.graphql.compiler.Utils.getSchemaObject;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getSchemaObject;
 
 /**
  * This class includes tests to validate the location and objectKind details of the GraphQL Schema.
@@ -137,21 +137,21 @@ public class SchemaValidatorTest {
 
         // Class
         Assert.assertEquals(schema.getType("Elephant").getObjectKind(), ObjectKind.CLASS);
-        io.ballerina.stdlib.graphql.commons.types.Position classPos = schema.getType("Elephant").getPosition();
+        io.sabtharm.stdlib.graphql.commons.types.Position classPos = schema.getType("Elephant").getPosition();
         Assert.assertEquals(classPos.getStartLine().getLine(), 43);
         Assert.assertEquals(classPos.getStartLine().getOffset(), 30);
         Assert.assertEquals(classPos.getEndLine().getOffset(), 38);
 
         //Record
         Assert.assertEquals(schema.getType("Lion").getObjectKind(), ObjectKind.RECORD);
-        io.ballerina.stdlib.graphql.commons.types.Position recordPos = schema.getType("Lion").getPosition();
+        io.sabtharm.stdlib.graphql.commons.types.Position recordPos = schema.getType("Lion").getPosition();
         Assert.assertEquals(recordPos.getStartLine().getLine(), 71);
         Assert.assertEquals(recordPos.getStartLine().getOffset(), 5);
         Assert.assertEquals(recordPos.getEndLine().getOffset(), 9);
         Assert.assertEquals(recordPos.getFilePath(), filePath);
 
         // Enum
-        io.ballerina.stdlib.graphql.commons.types.Position enumPos = schema.getType("Weekday").getPosition();
+        io.sabtharm.stdlib.graphql.commons.types.Position enumPos = schema.getType("Weekday").getPosition();
         Assert.assertEquals(enumPos.getStartLine().getLine(), 76);
         Assert.assertEquals(enumPos.getStartLine().getOffset(), 5);
         Assert.assertEquals(enumPos.getEndLine().getOffset(), 12);

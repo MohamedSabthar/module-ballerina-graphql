@@ -1,4 +1,4 @@
-package io.ballerina.stdlib.graphql.runtime.exception;
+package io.sabtharm.stdlib.graphql.runtime.exception;
 
 /**
  * Exception type definition for GraphQL constraint validation errors.

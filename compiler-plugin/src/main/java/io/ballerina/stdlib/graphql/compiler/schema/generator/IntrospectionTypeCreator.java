@@ -16,22 +16,22 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.schema.generator;
+package io.sabtharm.stdlib.graphql.compiler.schema.generator;
 
-import io.ballerina.stdlib.graphql.commons.types.DirectiveLocation;
-import io.ballerina.stdlib.graphql.commons.types.EnumValue;
-import io.ballerina.stdlib.graphql.commons.types.Field;
-import io.ballerina.stdlib.graphql.commons.types.FieldName;
-import io.ballerina.stdlib.graphql.commons.types.InputValue;
-import io.ballerina.stdlib.graphql.commons.types.IntrospectionField;
-import io.ballerina.stdlib.graphql.commons.types.IntrospectionType;
-import io.ballerina.stdlib.graphql.commons.types.ScalarType;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.commons.types.Type;
-import io.ballerina.stdlib.graphql.commons.types.TypeKind;
-import io.ballerina.stdlib.graphql.commons.types.TypeName;
+import io.sabtharm.stdlib.graphql.commons.types.DirectiveLocation;
+import io.sabtharm.stdlib.graphql.commons.types.EnumValue;
+import io.sabtharm.stdlib.graphql.commons.types.Field;
+import io.sabtharm.stdlib.graphql.commons.types.FieldName;
+import io.sabtharm.stdlib.graphql.commons.types.InputValue;
+import io.sabtharm.stdlib.graphql.commons.types.IntrospectionField;
+import io.sabtharm.stdlib.graphql.commons.types.IntrospectionType;
+import io.sabtharm.stdlib.graphql.commons.types.ScalarType;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.commons.types.Type;
+import io.sabtharm.stdlib.graphql.commons.types.TypeKind;
+import io.sabtharm.stdlib.graphql.commons.types.TypeName;
 
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getWrapperType;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getWrapperType;
 
 /**
  * Creates introspection types for a GraphQL schema.

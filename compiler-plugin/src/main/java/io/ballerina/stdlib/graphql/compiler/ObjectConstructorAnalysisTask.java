@@ -14,7 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Symbol;
@@ -27,15 +27,15 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.VariableDeclarationNode;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
-import io.ballerina.stdlib.graphql.compiler.service.validator.ServiceValidator;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.compiler.service.InterfaceEntityFinder;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.ServiceValidator;
 
 import java.util.Map;
 import java.util.Optional;
 
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
-import static io.ballerina.stdlib.graphql.compiler.Utils.hasCompilationErrors;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.hasCompilationErrors;
 
 public class ObjectConstructorAnalysisTask extends ServiceAnalysisTask {
 

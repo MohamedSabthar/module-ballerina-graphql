@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.runtime.engine;
+package io.sabtharm.stdlib.graphql.runtime.engine;
 
 import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
@@ -28,14 +28,14 @@ import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BString;
-import io.ballerina.stdlib.graphql.commons.types.Directive;
-import io.ballerina.stdlib.graphql.commons.types.DirectiveLocation;
-import io.ballerina.stdlib.graphql.commons.types.EnumValue;
-import io.ballerina.stdlib.graphql.commons.types.Field;
-import io.ballerina.stdlib.graphql.commons.types.InputValue;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.commons.types.Type;
-import io.ballerina.stdlib.graphql.commons.types.TypeKind;
+import io.sabtharm.stdlib.graphql.commons.types.Directive;
+import io.sabtharm.stdlib.graphql.commons.types.DirectiveLocation;
+import io.sabtharm.stdlib.graphql.commons.types.EnumValue;
+import io.sabtharm.stdlib.graphql.commons.types.Field;
+import io.sabtharm.stdlib.graphql.commons.types.InputValue;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.commons.types.Type;
+import io.sabtharm.stdlib.graphql.commons.types.TypeKind;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,38 +43,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.ARGS_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.DEFAULT_VALUE_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.DEPRECATION_REASON_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.DESCRIPTION_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.DIRECTIVES_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.DIRECTIVE_LOCATION_ENUM;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.DIRECTIVE_RECORD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.ENUM_VALUES_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.ENUM_VALUE_RECORD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.FIELDS_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.FIELD_RECORD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.INPUT_FIELDS_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.INPUT_VALUE_RECORD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.INTERFACES_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.IS_DEPRECATED_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.KIND_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.LOCATIONS_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.MUTATION;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.MUTATION_TYPE_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.NAME_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.OF_TYPE_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.POSSIBLE_TYPES_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.QUERY;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.QUERY_TYPE_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.SCHEMA_RECORD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.SUBSCRIPTION;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.SUBSCRIPTION_TYPE_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.TYPES_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.TYPE_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.TYPE_RECORD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.getArrayTypeFromBMap;
-import static io.ballerina.stdlib.graphql.runtime.utils.ModuleUtils.getModule;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.ARGS_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.DEFAULT_VALUE_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.DEPRECATION_REASON_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.DESCRIPTION_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.DIRECTIVES_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.DIRECTIVE_LOCATION_ENUM;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.DIRECTIVE_RECORD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.ENUM_VALUES_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.ENUM_VALUE_RECORD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.FIELDS_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.FIELD_RECORD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.INPUT_FIELDS_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.INPUT_VALUE_RECORD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.INTERFACES_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.IS_DEPRECATED_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.KIND_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.LOCATIONS_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.MUTATION;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.MUTATION_TYPE_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.NAME_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.OF_TYPE_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.POSSIBLE_TYPES_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.QUERY;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.QUERY_TYPE_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.SCHEMA_RECORD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.SUBSCRIPTION;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.SUBSCRIPTION_TYPE_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.TYPES_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.TYPE_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.TYPE_RECORD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.getArrayTypeFromBMap;
+import static io.sabtharm.stdlib.graphql.runtime.utils.ModuleUtils.getModule;
 
 /**
  * This class is used to generate a Ballerina {@code __Schema} record from the {@code Schema} object.

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.runtime.engine;
+package io.sabtharm.stdlib.graphql.runtime.engine;
 
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.Future;
@@ -40,8 +40,8 @@ import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.observability.ObserveUtils;
 import io.ballerina.runtime.observability.ObserverContext;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.runtime.exception.ConstraintValidationException;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.runtime.exception.ConstraintValidationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -54,23 +54,23 @@ import java.util.HashMap;
 import java.util.List;
 
 import static io.ballerina.runtime.observability.ObservabilityConstants.KEY_OBSERVER_CONTEXT;
-import static io.ballerina.stdlib.graphql.runtime.engine.ArgumentHandler.getEffectiveType;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.COLON;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.GET_ACCESSOR;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.INTERCEPTOR_EXECUTE;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.NAME_FIELD;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.OPERATION_QUERY;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.OPERATION_SUBSCRIPTION;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.RESOURCE_CONFIG;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.SUBSCRIBE_ACCESSOR;
-import static io.ballerina.stdlib.graphql.runtime.engine.EngineUtils.isPathsMatching;
-import static io.ballerina.stdlib.graphql.runtime.utils.ModuleUtils.getModule;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.ERROR_TYPE;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.INTERCEPTOR_EXECUTION_STRAND;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.INTERNAL_NODE;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.REMOTE_EXECUTION_STRAND;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.RESOURCE_EXECUTION_STRAND;
-import static io.ballerina.stdlib.graphql.runtime.utils.Utils.createError;
+import static io.sabtharm.stdlib.graphql.runtime.engine.ArgumentHandler.getEffectiveType;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.COLON;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.GET_ACCESSOR;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.INTERCEPTOR_EXECUTE;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.NAME_FIELD;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.OPERATION_QUERY;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.OPERATION_SUBSCRIPTION;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.RESOURCE_CONFIG;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.SUBSCRIBE_ACCESSOR;
+import static io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils.isPathsMatching;
+import static io.sabtharm.stdlib.graphql.runtime.utils.ModuleUtils.getModule;
+import static io.sabtharm.stdlib.graphql.runtime.utils.Utils.ERROR_TYPE;
+import static io.sabtharm.stdlib.graphql.runtime.utils.Utils.INTERCEPTOR_EXECUTION_STRAND;
+import static io.sabtharm.stdlib.graphql.runtime.utils.Utils.INTERNAL_NODE;
+import static io.sabtharm.stdlib.graphql.runtime.utils.Utils.REMOTE_EXECUTION_STRAND;
+import static io.sabtharm.stdlib.graphql.runtime.utils.Utils.RESOURCE_EXECUTION_STRAND;
+import static io.sabtharm.stdlib.graphql.runtime.utils.Utils.createError;
 
 /**
  * This handles Ballerina GraphQL Engine.

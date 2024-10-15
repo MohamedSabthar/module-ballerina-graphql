@@ -16,22 +16,22 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.plugins.CodeModifier;
 import io.ballerina.projects.plugins.CodeModifierContext;
-import io.ballerina.stdlib.graphql.compiler.schema.generator.GraphqlModifierContext;
-import io.ballerina.stdlib.graphql.compiler.schema.generator.GraphqlSourceModifier;
-import io.ballerina.stdlib.graphql.compiler.service.validator.ListenerValidator;
+import io.sabtharm.stdlib.graphql.compiler.schema.generator.GraphqlModifierContext;
+import io.sabtharm.stdlib.graphql.compiler.schema.generator.GraphqlSourceModifier;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.ListenerValidator;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.ballerina.stdlib.graphql.compiler.Utils.IS_ANALYSIS_COMPLETED;
-import static io.ballerina.stdlib.graphql.compiler.Utils.MODIFIER_CONTEXT_MAP;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.IS_ANALYSIS_COMPLETED;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.MODIFIER_CONTEXT_MAP;
 
 /**
  * Analyzes a Ballerina GraphQL service and report diagnostics, and generates a schema for a valid service.

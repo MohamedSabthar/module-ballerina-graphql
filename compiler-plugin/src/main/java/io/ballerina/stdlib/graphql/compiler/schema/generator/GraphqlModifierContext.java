@@ -16,11 +16,11 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.schema.generator;
+package io.sabtharm.stdlib.graphql.compiler.schema.generator;
 
 import io.ballerina.compiler.syntax.tree.Node;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.compiler.CacheConfigContext;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.compiler.CacheConfigContext;
 
 import java.util.HashMap;
 import java.util.Map;

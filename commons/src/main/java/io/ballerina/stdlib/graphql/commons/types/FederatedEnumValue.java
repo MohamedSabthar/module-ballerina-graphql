@@ -16,12 +16,12 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.commons.types;
+package io.sabtharm.stdlib.graphql.commons.types;
 
 import java.util.List;
 
-import static io.ballerina.stdlib.graphql.commons.types.Description.EXECUTION;
-import static io.ballerina.stdlib.graphql.commons.types.Description.SECURITY;
+import static io.sabtharm.stdlib.graphql.commons.types.Description.EXECUTION;
+import static io.sabtharm.stdlib.graphql.commons.types.Description.SECURITY;
 
 /**
  * Represents enum types of federated subgraph.

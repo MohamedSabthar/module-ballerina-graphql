@@ -14,13 +14,13 @@ distribution = "2201.9.0"
 graalvmCompatible = true
 
 [[platform.java17.dependency]]
-groupId = "io.ballerina.stdlib"
+groupId = "io.sabtharm.stdlib"
 artifactId = "graphql-native"
 version = "@toml.version@"
 path = "../native/build/libs/graphql-native-@project.version@.jar"
 
 [[platform.java17.dependency]]
-groupId = "io.ballerina.stdlib"
-artifactId = "graphql-commons"
+groupId = "io.sabtharm.stdlib"
+artifactId = "sabtharm-commons"
 version = "@toml.version@"
-path = "../commons/build/libs/graphql-commons-@project.version@.jar"
+path = "../commons/build/libs/sabtharm-commons-@project.version@.jar"

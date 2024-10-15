@@ -185,22 +185,22 @@ isolated class ExecutorVisitor {
     }
 
     private isolated function setResult(any|error result) = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+        'class: "io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
     isolated function initializeDataMap() = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.ExecutorVisitor"
+        'class: "io.sabtharm.stdlib.graphql.runtime.engine.ExecutorVisitor"
     } external;
 
     private isolated function addData(string key, anydata value) = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.ExecutorVisitor"
+        'class: "io.sabtharm.stdlib.graphql.runtime.engine.ExecutorVisitor"
     } external;
 
     private isolated function getResult() returns any|error = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+        'class: "io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils"
     } external;
 
     private isolated function getDataMap() returns Data = @java:Method {
-        'class: "io.ballerina.stdlib.graphql.runtime.engine.ExecutorVisitor"
+        'class: "io.sabtharm.stdlib.graphql.runtime.engine.ExecutorVisitor"
     } external;
 }

@@ -16,12 +16,12 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.service.validator;
+package io.sabtharm.stdlib.graphql.compiler.service.validator;
 
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticFactory;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
@@ -29,11 +29,11 @@ import io.ballerina.tools.diagnostics.Location;
 
 import java.util.List;
 
-import static io.ballerina.stdlib.graphql.commons.types.TypeName.ANY;
-import static io.ballerina.stdlib.graphql.commons.types.TypeName.FIELD_SET;
-import static io.ballerina.stdlib.graphql.commons.types.TypeName.LINK_IMPORT;
-import static io.ballerina.stdlib.graphql.commons.types.TypeName.LINK_PURPOSE;
-import static io.ballerina.stdlib.graphql.commons.types.TypeName.SERVICE;
+import static io.sabtharm.stdlib.graphql.commons.types.TypeName.ANY;
+import static io.sabtharm.stdlib.graphql.commons.types.TypeName.FIELD_SET;
+import static io.sabtharm.stdlib.graphql.commons.types.TypeName.LINK_IMPORT;
+import static io.sabtharm.stdlib.graphql.commons.types.TypeName.LINK_PURPOSE;
+import static io.sabtharm.stdlib.graphql.commons.types.TypeName.SERVICE;
 
 /**
  * Utility functions for the Ballerina GraphQL compiler validations.

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.runtime.engine;
+package io.sabtharm.stdlib.graphql.runtime.engine;
 
 import io.ballerina.runtime.api.TypeTags;
 import io.ballerina.runtime.api.creators.TypeCreator;
@@ -36,14 +36,14 @@ import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.values.BValue;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.commons.utils.SdlSchemaStringGenerator;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.commons.utils.SdlSchemaStringGenerator;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static io.ballerina.runtime.api.TypeTags.SERVICE_TAG;
-import static io.ballerina.stdlib.graphql.runtime.engine.Engine.getDecodedSchema;
+import static io.sabtharm.stdlib.graphql.runtime.engine.Engine.getDecodedSchema;
 
 /**
  * This class provides utility functions for Ballerina GraphQL engine.

@@ -16,8 +16,8 @@
  * under the License.
  */
 
-module io.ballerina.stdlib.graphql.runtime {
+module io.sabtharm.stdlib.graphql.runtime {
     requires io.ballerina.runtime;
     requires io.ballerina.stdlib.constraint;
-    requires io.ballerina.stdlib.graphql.commons;
+    requires io.sabtharm.stdlib.graphql.commons;
 }

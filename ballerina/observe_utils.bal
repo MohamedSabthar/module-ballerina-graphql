@@ -70,18 +70,18 @@ isolated function stopTracing(Context context, error? err = ()) {
 }
 
 isolated function createObserverContext(Context context, string serviceName, string operationType) = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.ListenerUtils"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.ListenerUtils"
 } external;
 
 isolated function createAndStartObserverContext(Context context, string serviceName, string operationType, string operationName,
         string moduleName, string fileName, int startLine, int startColumn) = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.ListenerUtils"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.ListenerUtils"
 } external;
 
 isolated function stopObserverContext(Context context) = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.ListenerUtils"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.ListenerUtils"
 } external;
 
 isolated function stopObserverContextWithError(Context context, error err) = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.ListenerUtils"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.ListenerUtils"
 } external;

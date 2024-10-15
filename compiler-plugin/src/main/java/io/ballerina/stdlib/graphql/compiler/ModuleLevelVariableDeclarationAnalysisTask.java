@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.VariableSymbol;
@@ -26,15 +26,15 @@ import io.ballerina.compiler.syntax.tree.ObjectConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils;
-import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
-import io.ballerina.stdlib.graphql.compiler.service.validator.ServiceValidator;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils;
+import io.sabtharm.stdlib.graphql.compiler.service.InterfaceEntityFinder;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.ServiceValidator;
 
 import java.util.Map;
 
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphQLServiceObjectDeclaration;
-import static io.ballerina.stdlib.graphql.compiler.Utils.hasCompilationErrors;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.isGraphQLServiceObjectDeclaration;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.hasCompilationErrors;
 
 /**
  * Validates a Ballerina GraphQL Service variable declaration.

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.schema.generator;
+package io.sabtharm.stdlib.graphql.compiler.schema.generator;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Annotatable;
@@ -63,23 +63,23 @@ import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.projects.Project;
-import io.ballerina.stdlib.graphql.commons.types.DefaultDirective;
-import io.ballerina.stdlib.graphql.commons.types.Description;
-import io.ballerina.stdlib.graphql.commons.types.Directive;
-import io.ballerina.stdlib.graphql.commons.types.EnumValue;
-import io.ballerina.stdlib.graphql.commons.types.Field;
-import io.ballerina.stdlib.graphql.commons.types.InputValue;
-import io.ballerina.stdlib.graphql.commons.types.ObjectKind;
-import io.ballerina.stdlib.graphql.commons.types.Position;
-import io.ballerina.stdlib.graphql.commons.types.ScalarType;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.commons.types.Type;
-import io.ballerina.stdlib.graphql.commons.types.TypeKind;
-import io.ballerina.stdlib.graphql.commons.types.TypeName;
-import io.ballerina.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
-import io.ballerina.stdlib.graphql.commons.utils.Utils;
-import io.ballerina.stdlib.graphql.compiler.FinderContext;
-import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
+import io.sabtharm.stdlib.graphql.commons.types.DefaultDirective;
+import io.sabtharm.stdlib.graphql.commons.types.Description;
+import io.sabtharm.stdlib.graphql.commons.types.Directive;
+import io.sabtharm.stdlib.graphql.commons.types.EnumValue;
+import io.sabtharm.stdlib.graphql.commons.types.Field;
+import io.sabtharm.stdlib.graphql.commons.types.InputValue;
+import io.sabtharm.stdlib.graphql.commons.types.ObjectKind;
+import io.sabtharm.stdlib.graphql.commons.types.Position;
+import io.sabtharm.stdlib.graphql.commons.types.ScalarType;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.commons.types.Type;
+import io.sabtharm.stdlib.graphql.commons.types.TypeKind;
+import io.sabtharm.stdlib.graphql.commons.types.TypeName;
+import io.sabtharm.stdlib.graphql.commons.utils.KeyDirectivesArgumentHolder;
+import io.sabtharm.stdlib.graphql.commons.utils.Utils;
+import io.sabtharm.stdlib.graphql.compiler.FinderContext;
+import io.sabtharm.stdlib.graphql.compiler.service.InterfaceEntityFinder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,30 +89,30 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-import static io.ballerina.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getAccessor;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getDefaultableParameterNode;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveType;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getEffectiveTypes;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getEntityAnnotationNode;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getEntityAnnotationSymbol;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getRecordFieldWithDefaultValueNode;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getRecordTypeDefinitionNode;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getStringValue;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getTypeInclusions;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isFileUploadParameter;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isFunctionDefinition;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isRemoteMethod;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isResourceMethod;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isValidGraphqlParameter;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.MAP_KEY_ARGUMENT_DESCRIPTION;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.MAP_KEY_ARGUMENT_NAME;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getDeprecationReason;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getDescription;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getTypeName;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getTypePosition;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getWrapperType;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_GET;
+import static io.sabtharm.stdlib.graphql.commons.utils.TypeUtils.removeEscapeCharacter;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getAccessor;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getDefaultableParameterNode;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getEffectiveType;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getEffectiveTypes;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getEntityAnnotationNode;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getEntityAnnotationSymbol;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getRecordFieldWithDefaultValueNode;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getRecordTypeDefinitionNode;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getStringValue;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getTypeInclusions;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isFileUploadParameter;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isFunctionDefinition;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isRemoteMethod;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isResourceMethod;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isValidGraphqlParameter;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.MAP_KEY_ARGUMENT_DESCRIPTION;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.MAP_KEY_ARGUMENT_NAME;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getDeprecationReason;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getDescription;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getTypeName;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getTypePosition;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getWrapperType;
+import static io.sabtharm.stdlib.graphql.compiler.service.validator.ValidatorUtils.RESOURCE_FUNCTION_GET;
 
 /**
  * Generates the GraphQL schema from a given, valid, Ballerina service.

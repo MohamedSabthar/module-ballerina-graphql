@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.AnnotationSymbol;
@@ -39,12 +39,12 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.UnionTypeDescriptorNode;
 import io.ballerina.projects.plugins.AnalysisTask;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
+import io.sabtharm.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 
 import java.util.List;
 
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.updateContext;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
+import static io.sabtharm.stdlib.graphql.compiler.service.validator.ValidatorUtils.updateContext;
 
 /**
  * Validates the usages of the annotation, @graphql:ID.

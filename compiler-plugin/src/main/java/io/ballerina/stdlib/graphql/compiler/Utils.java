@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.Annotatable;
@@ -55,13 +55,13 @@ import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.projects.Project;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.compiler.schema.generator.SchemaGenerator;
-import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
-import io.ballerina.stdlib.graphql.compiler.service.validator.DefaultableParameterNodeFinder;
-import io.ballerina.stdlib.graphql.compiler.service.validator.EntityAnnotationFinder;
-import io.ballerina.stdlib.graphql.compiler.service.validator.RecordFieldWithDefaultValueVisitor;
-import io.ballerina.stdlib.graphql.compiler.service.validator.RecordTypeDefinitionNodeFinder;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.compiler.schema.generator.SchemaGenerator;
+import io.sabtharm.stdlib.graphql.compiler.service.InterfaceEntityFinder;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.DefaultableParameterNodeFinder;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.EntityAnnotationFinder;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.RecordFieldWithDefaultValueVisitor;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.RecordTypeDefinitionNodeFinder;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
@@ -69,13 +69,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.PACKAGE_NAME;
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.hasGraphqlListener;
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphQLServiceObjectDeclaration;
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
-import static io.ballerina.stdlib.graphql.compiler.ModuleLevelVariableDeclarationAnalysisTask.getDescription;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getDescription;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.PACKAGE_NAME;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.hasGraphqlListener;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.isGraphQLServiceObjectDeclaration;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.isGraphqlModuleSymbol;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
+import static io.sabtharm.stdlib.graphql.compiler.ModuleLevelVariableDeclarationAnalysisTask.getDescription;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.getDescription;
 
 /**
  * Util class for the compiler plugin.

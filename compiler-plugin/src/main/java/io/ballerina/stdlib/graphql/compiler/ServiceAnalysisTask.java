@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.AnnotationSymbol;
@@ -30,11 +30,11 @@ import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Project;
 import io.ballerina.projects.plugins.AnalysisTask;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.compiler.schema.generator.GraphqlModifierContext;
-import io.ballerina.stdlib.graphql.compiler.schema.generator.SchemaGenerator;
-import io.ballerina.stdlib.graphql.compiler.service.InterfaceEntityFinder;
-import io.ballerina.stdlib.graphql.compiler.service.validator.ServiceValidator;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.compiler.schema.generator.GraphqlModifierContext;
+import io.sabtharm.stdlib.graphql.compiler.schema.generator.SchemaGenerator;
+import io.sabtharm.stdlib.graphql.compiler.service.InterfaceEntityFinder;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.ServiceValidator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,8 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.ballerina.stdlib.graphql.compiler.Utils.MODIFIER_CONTEXT_MAP;
-import static io.ballerina.stdlib.graphql.compiler.Utils.hasSubgraphAnnotation;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.MODIFIER_CONTEXT_MAP;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.hasSubgraphAnnotation;
 
 /**
  * Provides common implementation to validate Ballerina GraphQL Services.

@@ -16,11 +16,11 @@
  * under the License.
  */
 
-module io.ballerina.stdlib.graphql.compiler {
+module io.sabtharm.stdlib.graphql.compiler {
     requires io.ballerina.lang;
     requires io.ballerina.tools.api;
     requires io.ballerina.parser;
-    requires io.ballerina.stdlib.graphql.commons;
+    requires io.sabtharm.stdlib.graphql.commons;
 
-    exports io.ballerina.stdlib.graphql.compiler;
+    exports io.sabtharm.stdlib.graphql.compiler;
 }

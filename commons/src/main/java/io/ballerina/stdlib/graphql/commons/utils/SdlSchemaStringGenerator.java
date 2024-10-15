@@ -16,22 +16,22 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.commons.utils;
+package io.sabtharm.stdlib.graphql.commons.utils;
 
-import io.ballerina.stdlib.graphql.commons.types.DefaultDirective;
-import io.ballerina.stdlib.graphql.commons.types.Directive;
-import io.ballerina.stdlib.graphql.commons.types.DirectiveLocation;
-import io.ballerina.stdlib.graphql.commons.types.EnumValue;
-import io.ballerina.stdlib.graphql.commons.types.FederatedDirective;
-import io.ballerina.stdlib.graphql.commons.types.FederatedEnumValue;
-import io.ballerina.stdlib.graphql.commons.types.Field;
-import io.ballerina.stdlib.graphql.commons.types.InputValue;
-import io.ballerina.stdlib.graphql.commons.types.IntrospectionType;
-import io.ballerina.stdlib.graphql.commons.types.ScalarType;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.commons.types.Type;
-import io.ballerina.stdlib.graphql.commons.types.TypeKind;
-import io.ballerina.stdlib.graphql.commons.types.TypeName;
+import io.sabtharm.stdlib.graphql.commons.types.DefaultDirective;
+import io.sabtharm.stdlib.graphql.commons.types.Directive;
+import io.sabtharm.stdlib.graphql.commons.types.DirectiveLocation;
+import io.sabtharm.stdlib.graphql.commons.types.EnumValue;
+import io.sabtharm.stdlib.graphql.commons.types.FederatedDirective;
+import io.sabtharm.stdlib.graphql.commons.types.FederatedEnumValue;
+import io.sabtharm.stdlib.graphql.commons.types.Field;
+import io.sabtharm.stdlib.graphql.commons.types.InputValue;
+import io.sabtharm.stdlib.graphql.commons.types.IntrospectionType;
+import io.sabtharm.stdlib.graphql.commons.types.ScalarType;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.commons.types.Type;
+import io.sabtharm.stdlib.graphql.commons.types.TypeKind;
+import io.sabtharm.stdlib.graphql.commons.types.TypeName;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,8 +41,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static io.ballerina.stdlib.graphql.commons.types.FederatedDirective.canImportInLinkDirective;
-import static io.ballerina.stdlib.graphql.commons.types.FederatedDirective.values;
+import static io.sabtharm.stdlib.graphql.commons.types.FederatedDirective.canImportInLinkDirective;
+import static io.sabtharm.stdlib.graphql.commons.types.FederatedDirective.values;
 
 /**
  * Generate the SDL schema for a given Ballerina GraphQL Service.

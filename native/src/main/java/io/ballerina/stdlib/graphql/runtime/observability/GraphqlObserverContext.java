@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.runtime.observability;
+package io.sabtharm.stdlib.graphql.runtime.observability;
 
 import io.ballerina.runtime.observability.ObserverContext;
 

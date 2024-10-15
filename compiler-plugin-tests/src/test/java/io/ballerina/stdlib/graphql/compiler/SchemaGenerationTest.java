@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.projects.DiagnosticResult;
 import io.ballerina.projects.ProjectEnvironmentBuilder;

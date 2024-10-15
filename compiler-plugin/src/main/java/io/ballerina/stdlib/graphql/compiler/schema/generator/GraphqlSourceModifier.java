@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.schema.generator;
+package io.sabtharm.stdlib.graphql.compiler.schema.generator;
 
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
@@ -49,10 +49,10 @@ import io.ballerina.projects.DocumentId;
 import io.ballerina.projects.Module;
 import io.ballerina.projects.plugins.ModifierTask;
 import io.ballerina.projects.plugins.SourceModifierContext;
-import io.ballerina.stdlib.graphql.commons.types.Schema;
-import io.ballerina.stdlib.graphql.commons.types.Type;
-import io.ballerina.stdlib.graphql.compiler.CacheConfigContext;
-import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
+import io.sabtharm.stdlib.graphql.commons.types.Schema;
+import io.sabtharm.stdlib.graphql.commons.types.Type;
+import io.sabtharm.stdlib.graphql.compiler.CacheConfigContext;
+import io.sabtharm.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 import io.ballerina.tools.diagnostics.Diagnostic;
 import io.ballerina.tools.diagnostics.DiagnosticFactory;
 import io.ballerina.tools.diagnostics.DiagnosticInfo;
@@ -76,15 +76,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.PACKAGE_NAME;
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.PACKAGE_ORG;
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.SUBGRAPH_SUB_MODULE_NAME;
-import static io.ballerina.stdlib.graphql.compiler.Utils.SERVICE_CONFIG_IDENTIFIER;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isGraphqlServiceConfig;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.ENABLED_CACHE_FIELD;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.FIELD_CACHE_CONFIG_FIELD;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.MAX_SIZE_CACHE_FIELD;
-import static io.ballerina.stdlib.graphql.compiler.schema.generator.GeneratorUtils.SCHEMA_STRING_FIELD;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.PACKAGE_NAME;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.PACKAGE_ORG;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.SUBGRAPH_SUB_MODULE_NAME;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.SERVICE_CONFIG_IDENTIFIER;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isGraphqlServiceConfig;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.ENABLED_CACHE_FIELD;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.FIELD_CACHE_CONFIG_FIELD;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.MAX_SIZE_CACHE_FIELD;
+import static io.sabtharm.stdlib.graphql.compiler.schema.generator.GeneratorUtils.SCHEMA_STRING_FIELD;
 
 /**
  * Modifies the GraphQL service to add an annotation to the service with the generated schema.

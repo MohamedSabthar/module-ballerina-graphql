@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.diagnostics;
+package io.sabtharm.stdlib.graphql.compiler.diagnostics;
 
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 

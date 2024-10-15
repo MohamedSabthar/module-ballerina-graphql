@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.commons.utils;
+package io.sabtharm.stdlib.graphql.commons.utils;
 
 import java.io.Serializable;
 import java.util.List;

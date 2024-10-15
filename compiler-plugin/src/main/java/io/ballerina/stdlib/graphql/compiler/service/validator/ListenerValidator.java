@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.service.validator;
+package io.sabtharm.stdlib.graphql.compiler.service.validator;
 
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.SymbolKind;
@@ -31,10 +31,10 @@ import io.ballerina.compiler.syntax.tree.SeparatedNodeList;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.plugins.AnalysisTask;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
-import io.ballerina.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
+import io.sabtharm.stdlib.graphql.compiler.diagnostics.CompilationDiagnostic;
 
-import static io.ballerina.stdlib.graphql.compiler.Utils.isGraphqlListener;
-import static io.ballerina.stdlib.graphql.compiler.service.validator.ValidatorUtils.updateContext;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isGraphqlListener;
+import static io.sabtharm.stdlib.graphql.compiler.service.validator.ValidatorUtils.updateContext;
 
 /**
  * Validates Ballerina GraphQL Listener Initializations.

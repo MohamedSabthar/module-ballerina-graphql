@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.runtime.client;
+package io.sabtharm.stdlib.graphql.runtime.client;
 
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.Future;

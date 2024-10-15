@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.runtime.engine;
+package io.sabtharm.stdlib.graphql.runtime.engine;
 
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.values.BMap;
@@ -25,7 +25,7 @@ import io.ballerina.runtime.api.values.BString;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import static io.ballerina.stdlib.graphql.runtime.utils.ModuleUtils.getModule;
+import static io.sabtharm.stdlib.graphql.runtime.utils.ModuleUtils.getModule;
 
 /**
  * This class provides native implementations of the Ballerina ExecutorVisitor class.

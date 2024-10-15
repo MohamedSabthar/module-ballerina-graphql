@@ -16,21 +16,21 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.analyzer;
+package io.sabtharm.stdlib.graphql.compiler.analyzer;
 
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.plugins.CodeAnalysisContext;
 import io.ballerina.projects.plugins.CodeAnalyzer;
-import io.ballerina.stdlib.graphql.compiler.InterceptorAnalysisTask;
-import io.ballerina.stdlib.graphql.compiler.ModuleLevelVariableDeclarationAnalysisTask;
-import io.ballerina.stdlib.graphql.compiler.ObjectConstructorAnalysisTask;
-import io.ballerina.stdlib.graphql.compiler.ServiceDeclarationAnalysisTask;
-import io.ballerina.stdlib.graphql.compiler.service.validator.ListenerValidator;
+import io.sabtharm.stdlib.graphql.compiler.InterceptorAnalysisTask;
+import io.sabtharm.stdlib.graphql.compiler.ModuleLevelVariableDeclarationAnalysisTask;
+import io.sabtharm.stdlib.graphql.compiler.ObjectConstructorAnalysisTask;
+import io.sabtharm.stdlib.graphql.compiler.ServiceDeclarationAnalysisTask;
+import io.sabtharm.stdlib.graphql.compiler.service.validator.ListenerValidator;
 
 import java.util.Arrays;
 import java.util.Map;
 
-import static io.ballerina.stdlib.graphql.compiler.Utils.IS_ANALYSIS_COMPLETED;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.IS_ANALYSIS_COMPLETED;
 
 public class GraphqlCodeAnalyzer extends CodeAnalyzer {
 

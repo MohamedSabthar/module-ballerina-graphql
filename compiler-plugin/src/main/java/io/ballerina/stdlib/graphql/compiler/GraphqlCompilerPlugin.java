@@ -16,11 +16,11 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler;
+package io.sabtharm.stdlib.graphql.compiler;
 
 import io.ballerina.projects.plugins.CompilerPlugin;
 import io.ballerina.projects.plugins.CompilerPluginContext;
-import io.ballerina.stdlib.graphql.compiler.analyzer.GraphqlCodeAnalyzer;
+import io.sabtharm.stdlib.graphql.compiler.analyzer.GraphqlCodeAnalyzer;
 
 /**
  * This is the compiler plugin for Ballerina GraphQL package.

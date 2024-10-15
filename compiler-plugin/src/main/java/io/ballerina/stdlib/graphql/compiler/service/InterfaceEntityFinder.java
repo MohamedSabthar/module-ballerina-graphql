@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package io.ballerina.stdlib.graphql.compiler.service;
+package io.sabtharm.stdlib.graphql.compiler.service;
 
 import io.ballerina.compiler.api.SemanticModel;
 import io.ballerina.compiler.api.symbols.AnnotationSymbol;
@@ -32,12 +32,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
-import static io.ballerina.stdlib.graphql.compiler.Utils.getObjectTypeSymbol;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isRecordTypeDefinition;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceClass;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectDefinition;
-import static io.ballerina.stdlib.graphql.compiler.Utils.isServiceObjectReference;
+import static io.sabtharm.stdlib.graphql.commons.utils.Utils.isSubgraphModuleSymbol;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.getObjectTypeSymbol;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isRecordTypeDefinition;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isServiceClass;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isServiceObjectDefinition;
+import static io.sabtharm.stdlib.graphql.compiler.Utils.isServiceObjectReference;
 
 /**
  * Finds and validates possible GraphQL interfaces in a Ballerina service.

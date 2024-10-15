@@ -97,15 +97,15 @@ isolated function getFieldObject(parser:FieldNode fieldNode, parser:RootOperatio
 }
 
 isolated function createSchema(string schemaString) returns readonly & __Schema|Error = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.Engine"
 } external;
 
 isolated function isMap(map<any> value) returns boolean = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils"
 } external;
 
 isolated function getTypeNameFromValue(any value) returns string = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils"
 } external;
 
 # Obtains the schema representation of a federated subgraph, expressed in the SDL format.
@@ -113,7 +113,7 @@ isolated function getTypeNameFromValue(any value) returns string = @java:Method 
 # + return - Subgraph schema in SDL format as a string on success, or an error otherwise
 public isolated function getSdlString(string encodedSchemaString)
 returns string|error = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils"
 } external;
 
 isolated function getDefaultPrefetchMethodName(string fieldName) returns string {
@@ -134,9 +134,9 @@ returns cache:Cache? {
 
 isolated function hasRecordReturnType(service object {} serviceObject, string[] path)
     returns boolean = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.Engine"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.Engine"
 } external;
 
 isolated function isRecordWithNoOptionalFields(any|error value) returns boolean = @java:Method {
-    'class: "io.ballerina.stdlib.graphql.runtime.engine.EngineUtils"
+    'class: "io.sabtharm.stdlib.graphql.runtime.engine.EngineUtils"
 } external;
